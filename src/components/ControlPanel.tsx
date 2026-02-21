@@ -3,15 +3,18 @@ import { useHarmony } from '@/contexts/HarmonyContext';
 import {
   NOTE_NAMES_SHARP, NOTE_NAMES_FLAT,
   CHORD_CATEGORIES, SCALE_CATEGORIES,
-  type LabelMode,
+  type LabelMode, type HarmonicLockMode,
 } from '@/lib/musicTheory';
 
 export default function ControlPanel() {
   const {
+    scaleTonic, setScaleTonic,
     root, setRoot, chord, setChord, scale, setScale,
     inversion, setInversion, dropVoicingType, setDropVoicing,
     labelMode, setLabelMode, showArpeggio, setShowArpeggio,
     useFlats, setUseFlats,
+    lockMode, setLockMode,
+    functionalAnalysis, chordVibe,
   } = useHarmony();
 
   const noteNames = useFlats ? NOTE_NAMES_FLAT : NOTE_NAMES_SHARP;
@@ -19,8 +22,51 @@ export default function ControlPanel() {
 
   return (
     <div className="space-y-5 text-sm">
-      {/* Root Selection */}
-      <Section title="Root">
+      {/* Harmonic Lock Mode */}
+      <Section title="Harmonic Mode">
+        <div className="flex gap-1">
+          {([['quality', 'Quality Lock'], ['scale', 'Scale Lock']] as [HarmonicLockMode, string][]).map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => setLockMode(mode)}
+              className={`px-2.5 py-1.5 rounded text-xs font-sans transition-all ${
+                lockMode === mode
+                  ? 'bg-primary text-primary-foreground font-semibold'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1.5 font-sans leading-relaxed">
+          {lockMode === 'quality'
+            ? 'Keeps chord shape fixed when changing roots.'
+            : 'Auto-adjusts chord quality to stay diatonic.'}
+        </p>
+      </Section>
+
+      {/* Scale Tonic (Key Center) */}
+      <Section title="Key Center (Tonic)">
+        <div className="grid grid-cols-6 gap-1">
+          {noteNames.map((name, i) => (
+            <button
+              key={i}
+              onClick={() => setScaleTonic(i)}
+              className={`px-2 py-1.5 rounded font-mono text-xs transition-all ${
+                scaleTonic === i
+                  ? 'bg-accent text-accent-foreground font-semibold'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      {/* Harmonic Root (Chord Root) */}
+      <Section title="Chord Root">
         <div className="grid grid-cols-6 gap-1">
           {noteNames.map((name, i) => (
             <button
@@ -35,6 +81,27 @@ export default function ControlPanel() {
               {name}
             </button>
           ))}
+        </div>
+      </Section>
+
+      {/* Contextual Descriptor */}
+      <Section title="Harmonic Context">
+        <div className="bg-surface-2 border border-border rounded-md p-3 space-y-2">
+          <div>
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Character</p>
+            <p className="text-xs font-sans text-foreground leading-relaxed">{chordVibe}</p>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className={`text-sm font-mono font-bold ${functionalAnalysis.isDiatonic ? 'text-primary' : 'text-muted-foreground'}`}>
+                {functionalAnalysis.degreeName}
+              </span>
+              <span className="text-[10px] font-sans text-muted-foreground">
+                {functionalAnalysis.functionName}
+              </span>
+            </div>
+            <p className="text-[11px] font-sans text-muted-foreground leading-relaxed">{functionalAnalysis.description}</p>
+          </div>
         </div>
       </Section>
 

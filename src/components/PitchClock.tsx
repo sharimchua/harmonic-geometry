@@ -28,9 +28,10 @@ function pitchClassToXY(pc: number): [number, number] {
 
 export default function PitchClock() {
   const {
-    root, setRoot, activePitchClasses, scalePitchClasses,
+    root, scaleTonic, setRoot, activePitchClasses, scalePitchClasses,
     intervalTensions, labelMode, useFlats,
   } = useHarmony();
+  const isSameTonicAndRoot = root === scaleTonic;
 
   const allPitchClasses = Array.from({ length: 12 }, (_, i) => i);
 
@@ -77,6 +78,7 @@ export default function PitchClock() {
           const [x, y] = pitchClassToXY(pc);
           const isActive = activePitchClasses.includes(pc);
           const isRoot = pc === root;
+          const isTonic = pc === scaleTonic && !isSameTonicAndRoot;
           const isInScale = scalePitchClasses.includes(pc);
           
           let fillColor = 'hsl(0, 0%, 13%)';
@@ -84,11 +86,17 @@ export default function PitchClock() {
           let textColor = 'hsl(30, 8%, 40%)';
           let r = DOT_RADIUS - 4;
 
-          if (isInScale && !isActive) {
+          if (isInScale && !isActive && !isTonic) {
             fillColor = 'hsl(30, 10%, 18%)';
             strokeColor = 'hsl(30, 15%, 32%)';
             textColor = 'hsl(30, 10%, 55%)';
             r = DOT_RADIUS - 2;
+          }
+          if (isTonic && !isActive) {
+            fillColor = 'hsl(32, 45%, 20%)';
+            strokeColor = 'hsl(32, 70%, 50%)';
+            textColor = 'hsl(32, 60%, 65%)';
+            r = DOT_RADIUS;
           }
           if (isActive && !isRoot) {
             fillColor = 'hsl(28, 60%, 18%)';
@@ -113,6 +121,16 @@ export default function PitchClock() {
               role="button"
               tabIndex={0}
             >
+              {/* Tonic marker — diamond shape */}
+              {isTonic && !isRoot && (
+                <rect
+                  x={x - r - 5} y={y - r - 5}
+                  width={(r + 5) * 2} height={(r + 5) * 2}
+                  fill="none" stroke="hsl(32, 70%, 50%)" strokeWidth="1" opacity={0.4}
+                  rx={4}
+                  transform={`rotate(45, ${x}, ${y})`}
+                />
+              )}
               {isRoot && (
                 <circle cx={x} cy={y} r={r + 6} fill="none" stroke={strokeColor} strokeWidth="1" opacity={0.4} />
               )}

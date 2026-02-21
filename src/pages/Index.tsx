@@ -7,10 +7,10 @@ import GuitarFretboard from '@/components/GuitarFretboard';
 import ControlPanel from '@/components/ControlPanel';
 
 const Index = () => {
-  const { root, chord, scale, useFlats, activeIntervals } = useHarmony();
+  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, functionalAnalysis } = useHarmony();
 
   const chordLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
-  const scaleLabel = scale ? `${getNoteName(root, useFlats)} ${scale.name}` : 'No scale';
+  const keyLabel = scale ? `Key of ${getNoteName(scaleTonic, useFlats)} ${scale.name}` : 'No key';
   const intervalStr = activeIntervals.map(i => ((i % 12) + 12) % 12).join('-');
 
   return (
@@ -40,14 +40,22 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-note-root" />
             <span className="font-sans text-sm font-semibold text-foreground">{chordLabel}</span>
+            {functionalAnalysis.isDiatonic && (
+              <span className="font-mono text-xs text-primary font-bold">{functionalAnalysis.degreeName}</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-note-scale" />
-            <span className="font-sans text-xs text-muted-foreground">{scaleLabel}</span>
+            <span className="w-2 h-2 rounded-full bg-accent" />
+            <span className="font-sans text-xs text-muted-foreground">{keyLabel}</span>
           </div>
-          <span className="font-mono text-[10px] text-muted-foreground ml-auto">
-            [{intervalStr}]
-          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-surface-3">
+              {lockMode === 'scale' ? '🔒 Scale' : '🔒 Quality'}
+            </span>
+            <span className="font-mono text-[10px] text-muted-foreground">
+              [{intervalStr}]
+            </span>
+          </div>
         </div>
 
         {/* Visualizations */}

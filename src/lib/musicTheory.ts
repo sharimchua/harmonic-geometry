@@ -216,3 +216,169 @@ export function getLabel(
       return String((pc - root + 12) % 12);
   }
 }
+
+// ─── Harmonic Lock Modes ────────────────────────────────
+export type HarmonicLockMode = 'quality' | 'scale';
+
+// ─── Diatonic Analysis ──────────────────────────────────
+
+/** Scale degree names (1-indexed) */
+const SCALE_DEGREE_NAMES = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'] as const;
+const SCALE_DEGREE_NAMES_LOWER = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii'] as const;
+
+/**
+ * Given a scale (intervals from tonic) and a root pitch class,
+ * find the scale degree (0-indexed) of the root, or -1 if non-diatonic.
+ */
+export function getScaleDegree(scaleTonic: PitchClass, scaleIntervals: number[], harmonicRoot: PitchClass): number {
+  const semitones = ((harmonicRoot - scaleTonic) % 12 + 12) % 12;
+  return scaleIntervals.indexOf(semitones);
+}
+
+/**
+ * Build a diatonic chord on a given scale degree by stacking thirds from the scale.
+ * Returns intervals relative to the chord root.
+ */
+export function buildDiatonicChord(scaleIntervals: number[], degree: number, numNotes: number = 4): number[] {
+  const len = scaleIntervals.length;
+  const intervals: number[] = [0];
+  for (let i = 1; i < numNotes; i++) {
+    const scaleDegIdx = (degree + i * 2) % len;
+    const octaveOffset = Math.floor((degree + i * 2) / len) * 12;
+    const interval = (scaleIntervals[scaleDegIdx] + octaveOffset) - scaleIntervals[degree];
+    intervals.push(interval);
+  }
+  return intervals;
+}
+
+/**
+ * Find the best matching chord type for a set of intervals.
+ */
+export function findMatchingChord(intervals: number[]): ChordType | null {
+  const normalized = intervals.map(i => ((i % 12) + 12) % 12).sort((a, b) => a - b);
+  const allChords = Object.values(CHORD_CATEGORIES).flat();
+  
+  // Try exact match first (check triads for 3-note, 7ths for 4-note)
+  for (const chord of allChords) {
+    const chordNorm = chord.intervals.map(i => ((i % 12) + 12) % 12).sort((a, b) => a - b);
+    if (chordNorm.length === normalized.length && chordNorm.every((v, i) => v === normalized[i])) {
+      return chord;
+    }
+  }
+  // Try matching just the first N notes
+  for (const chord of allChords) {
+    const chordNorm = chord.intervals.slice(0, normalized.length).map(i => ((i % 12) + 12) % 12).sort((a, b) => a - b);
+    if (chordNorm.length === normalized.length && chordNorm.every((v, i) => v === normalized[i])) {
+      return chord;
+    }
+  }
+  return null;
+}
+
+/**
+ * Get the diatonic chord for a given scale degree.
+ * Tries 7th chord first, falls back to triad.
+ */
+export function getDiatonicChordForDegree(scaleIntervals: number[], degree: number): ChordType | null {
+  // Try 7th chord
+  const seventh = buildDiatonicChord(scaleIntervals, degree, 4);
+  const match7 = findMatchingChord(seventh);
+  if (match7) return match7;
+  
+  // Fall back to triad
+  const triad = buildDiatonicChord(scaleIntervals, degree, 3);
+  return findMatchingChord(triad);
+}
+
+// ─── Functional Analysis ────────────────────────────────
+
+export interface FunctionalAnalysis {
+  scaleDegree: number; // 0-indexed, -1 if non-diatonic
+  degreeName: string; // e.g. "IV", "ii", "V"
+  functionName: string; // e.g. "Subdominant"
+  description: string; // e.g. "A sense of opening up, moving away from home"
+  isDiatonic: boolean;
+}
+
+const FUNCTION_NAMES: Record<number, string> = {
+  0: 'Tonic',
+  1: 'Supertonic',
+  2: 'Mediant',
+  3: 'Subdominant',
+  4: 'Dominant',
+  5: 'Submediant',
+  6: 'Leading Tone',
+};
+
+const FUNCTION_DESCRIPTIONS: Record<number, string> = {
+  0: 'Home base. Stable and resolved — this is where the music rests.',
+  1: 'A gentle pull away from home. Often leads to the Dominant.',
+  2: 'A colorful passing point — shares notes with both Tonic and Dominant.',
+  3: 'Opens up the harmony. Creates a sense of floating away from home.',
+  4: 'Maximum tension. Wants to resolve back to Tonic.',
+  5: 'The relative area — warm and reflective, a softer alternative to Tonic.',
+  6: 'Restless and unstable. The strongest pull toward resolution.',
+};
+
+const CHORD_VIBES: Record<string, string> = {
+  'Major': 'Bright, happy, and open',
+  'Minor': 'Warm, reflective, and introspective',
+  'Diminished': 'Tense, mysterious, and unstable',
+  'Augmented': 'Dreamy, floating, and unresolved',
+  'Sus2': 'Open and airy — neither major nor minor',
+  'Sus4': 'Suspended and anticipatory — wants to resolve',
+  'Major 7': 'Dreamy and lush, like a soft sunset',
+  'Dominant 7': 'Bluesy tension — wants to move somewhere',
+  'Minor 7': 'Smooth, mellow, and soulful',
+  'm7b5': 'Dark and yearning — the classic jazz minor sound',
+  'Diminished 7': 'Dramatic and symmetrical — every note is equal',
+  'Major 9': 'Rich and expansive — sophisticated warmth',
+  'Dominant 9': 'Funky and bright — a wider dominant color',
+  'Minor 9': 'Lush and deep — neo-soul territory',
+};
+
+export function analyzeFunctionalRole(
+  scaleTonic: PitchClass,
+  scaleIntervals: number[] | null,
+  harmonicRoot: PitchClass,
+  chordName: string
+): FunctionalAnalysis {
+  if (!scaleIntervals) {
+    return {
+      scaleDegree: -1,
+      degreeName: '—',
+      functionName: 'No scale selected',
+      description: CHORD_VIBES[chordName] || 'A unique harmonic color',
+      isDiatonic: false,
+    };
+  }
+
+  const degree = getScaleDegree(scaleTonic, scaleIntervals, harmonicRoot);
+  
+  if (degree === -1) {
+    return {
+      scaleDegree: -1,
+      degreeName: 'Non-diatonic',
+      functionName: 'Chromatic',
+      description: `Outside the current scale. ${CHORD_VIBES[chordName] || 'A unique harmonic color.'}`,
+      isDiatonic: false,
+    };
+  }
+
+  // Determine if the chord is "minor-ish" for numeral casing
+  const isMinorQuality = chordName.includes('Minor') || chordName.includes('min') || 
+    chordName.includes('m7') || chordName === 'Diminished' || chordName === 'Diminished 7';
+  const degreeName = isMinorQuality ? SCALE_DEGREE_NAMES_LOWER[degree] : SCALE_DEGREE_NAMES[degree];
+
+  return {
+    scaleDegree: degree,
+    degreeName,
+    functionName: FUNCTION_NAMES[degree] || 'Unknown',
+    description: FUNCTION_DESCRIPTIONS[degree] || '',
+    isDiatonic: true,
+  };
+}
+
+export function getChordVibe(chordName: string): string {
+  return CHORD_VIBES[chordName] || 'A unique harmonic color';
+}
