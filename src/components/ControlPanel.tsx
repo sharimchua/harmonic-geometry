@@ -167,18 +167,18 @@ export default function ControlPanel() {
                 type="checkbox"
                 checked={showArpeggio}
                 onChange={e => setShowArpeggio(e.target.checked)}
-                className="rounded border-border"
+                className="rounded border-border accent-primary"
               />
-              <span className="text-xs font-mono text-muted-foreground">Arpeggio Mode</span>
+              <span className="text-xs font-sans text-muted-foreground">Arpeggio Mode</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={useFlats}
                 onChange={e => setUseFlats(e.target.checked)}
-                className="rounded border-border"
+                className="rounded border-border accent-primary"
               />
-              <span className="text-xs font-mono text-muted-foreground">♭ Flats</span>
+              <span className="text-xs font-sans text-muted-foreground">♭ Flats</span>
             </label>
           </div>
         </div>
@@ -190,7 +190,7 @@ export default function ControlPanel() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-2 border-b border-border pb-1">{title}</h4>
+      <h4 className="text-xs font-sans font-semibold text-muted-foreground uppercase tracking-widest mb-2 border-b border-border pb-1">{title}</h4>
       {children}
     </div>
   );
