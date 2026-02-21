@@ -7,11 +7,11 @@ const CENTER = 170;
 const DOT_RADIUS = 18;
 
 const TENSION_COLORS: Record<string, string> = {
-  perfect: 'hsl(160, 70%, 45%)',
-  consonant: 'hsl(200, 70%, 50%)',
-  mild: 'hsl(45, 70%, 55%)',
-  dissonant: 'hsl(350, 80%, 55%)',
-  tritone: 'hsl(320, 90%, 60%)',
+  perfect: 'hsl(160, 50%, 42%)',
+  consonant: 'hsl(190, 45%, 45%)',
+  mild: 'hsl(42, 55%, 52%)',
+  dissonant: 'hsl(0, 65%, 52%)',
+  tritone: 'hsl(340, 60%, 50%)',
 };
 
 function pitchClassToAngle(pc: number): number {
@@ -36,11 +36,11 @@ export default function PitchClock() {
 
   return (
     <div className="flex flex-col items-center">
-      <h3 className="text-sm font-mono text-muted-foreground mb-2 uppercase tracking-widest">Pitch Clock</h3>
+      <h3 className="text-sm font-sans font-semibold text-muted-foreground mb-3 uppercase tracking-widest">Pitch Clock</h3>
       <svg width={CENTER * 2} height={CENTER * 2} className="overflow-visible">
         {/* Background circle */}
-        <circle cx={CENTER} cy={CENTER} r={RADIUS + 30} fill="none" stroke="hsl(220, 15%, 15%)" strokeWidth="1" />
-        <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="hsl(220, 15%, 20%)" strokeWidth="1" strokeDasharray="2 4" />
+        <circle cx={CENTER} cy={CENTER} r={RADIUS + 30} fill="none" stroke="hsl(30, 5%, 18%)" strokeWidth="1" />
+        <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="hsl(30, 5%, 22%)" strokeWidth="1" strokeDasharray="2 4" />
 
         {/* Interval lines between active notes */}
         {intervalTensions.map((t, i) => {
@@ -64,11 +64,11 @@ export default function PitchClock() {
         {activePitchClasses.length >= 3 && (
           <polygon
             points={activePitchClasses.map(pc => pitchClassToXY(pc).join(',')).join(' ')}
-            fill="hsl(180, 70%, 50%)"
-            fillOpacity={0.08}
-            stroke="hsl(180, 70%, 50%)"
+            fill="hsl(28, 85%, 55%)"
+            fillOpacity={0.06}
+            stroke="hsl(28, 85%, 55%)"
             strokeWidth="1"
-            strokeOpacity={0.3}
+            strokeOpacity={0.25}
           />
         )}
 
@@ -79,27 +79,27 @@ export default function PitchClock() {
           const isRoot = pc === root;
           const isInScale = scalePitchClasses.includes(pc);
           
-          let fillColor = 'hsl(220, 15%, 14%)';
-          let strokeColor = 'hsl(220, 15%, 25%)';
-          let textColor = 'hsl(215, 15%, 40%)';
+          let fillColor = 'hsl(0, 0%, 13%)';
+          let strokeColor = 'hsl(30, 5%, 25%)';
+          let textColor = 'hsl(30, 8%, 40%)';
           let r = DOT_RADIUS - 4;
 
           if (isInScale && !isActive) {
-            fillColor = 'hsl(220, 50%, 20%)';
-            strokeColor = 'hsl(220, 50%, 35%)';
-            textColor = 'hsl(220, 50%, 60%)';
+            fillColor = 'hsl(30, 10%, 18%)';
+            strokeColor = 'hsl(30, 15%, 32%)';
+            textColor = 'hsl(30, 10%, 55%)';
             r = DOT_RADIUS - 2;
           }
           if (isActive && !isRoot) {
-            fillColor = 'hsl(180, 70%, 15%)';
-            strokeColor = 'hsl(180, 70%, 50%)';
-            textColor = 'hsl(180, 70%, 70%)';
+            fillColor = 'hsl(28, 60%, 18%)';
+            strokeColor = 'hsl(28, 85%, 55%)';
+            textColor = 'hsl(28, 80%, 70%)';
             r = DOT_RADIUS;
           }
           if (isRoot) {
-            fillColor = 'hsl(35, 90%, 20%)';
-            strokeColor = 'hsl(35, 90%, 55%)';
-            textColor = 'hsl(35, 90%, 70%)';
+            fillColor = 'hsl(32, 70%, 22%)';
+            strokeColor = 'hsl(32, 90%, 52%)';
+            textColor = 'hsl(32, 85%, 72%)';
             r = DOT_RADIUS + 2;
           }
 

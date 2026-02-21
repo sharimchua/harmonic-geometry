@@ -22,7 +22,7 @@ export default function GuitarFretboard() {
 
   return (
     <div className="flex flex-col items-center">
-      <h3 className="text-sm font-mono text-muted-foreground mb-2 uppercase tracking-widest">Fretboard</h3>
+      <h3 className="text-sm font-sans font-semibold text-muted-foreground mb-3 uppercase tracking-widest">Fretboard</h3>
       <div className="overflow-x-auto w-full">
         <svg width={totalWidth} height={totalHeight} className="mx-auto block">
           {/* Fret markers */}
@@ -33,7 +33,7 @@ export default function GuitarFretboard() {
               y={TOP_PAD - 6}
               textAnchor="middle" fontSize={9}
               fontFamily="'JetBrains Mono', monospace"
-              fill="hsl(215, 15%, 35%)"
+              fill="hsl(30, 8%, 35%)"
             >
               {f}
             </text>
@@ -43,7 +43,7 @@ export default function GuitarFretboard() {
           <line
             x1={LEFT_PAD} y1={TOP_PAD}
             x2={LEFT_PAD} y2={TOP_PAD + (numStrings - 1) * STRING_SPACING}
-            stroke="hsl(210, 20%, 60%)" strokeWidth="3"
+            stroke="hsl(30, 10%, 55%)" strokeWidth="3"
           />
 
           {/* Fret lines */}
@@ -54,7 +54,7 @@ export default function GuitarFretboard() {
               y1={TOP_PAD}
               x2={LEFT_PAD + (f + 1) * FRET_WIDTH}
               y2={TOP_PAD + (numStrings - 1) * STRING_SPACING}
-              stroke="hsl(220, 10%, 22%)" strokeWidth="1"
+              stroke="hsl(30, 5%, 22%)" strokeWidth="1"
             />
           ))}
 
@@ -66,7 +66,7 @@ export default function GuitarFretboard() {
                 y={TOP_PAD + s * STRING_SPACING + 4}
                 textAnchor="middle" fontSize={9}
                 fontFamily="'JetBrains Mono', monospace"
-                fill="hsl(215, 15%, 40%)"
+                fill="hsl(30, 8%, 40%)"
               >
                 {STRING_NAMES[s]}
               </text>
@@ -75,7 +75,7 @@ export default function GuitarFretboard() {
                 y1={TOP_PAD + s * STRING_SPACING}
                 x2={totalWidth - 10}
                 y2={TOP_PAD + s * STRING_SPACING}
-                stroke={`hsl(220, 10%, ${30 - s * 2}%)`}
+                stroke={`hsl(30, 6%, ${28 - s * 2}%)`}
                 strokeWidth={1 + (numStrings - 1 - s) * 0.3}
               />
             </g>
@@ -87,7 +87,7 @@ export default function GuitarFretboard() {
               key={`dot-${f}`}
               cx={LEFT_PAD + f * FRET_WIDTH - FRET_WIDTH / 2}
               cy={TOP_PAD + ((numStrings - 1) * STRING_SPACING) / 2}
-              r={3} fill="hsl(220, 10%, 20%)"
+              r={3} fill="hsl(30, 5%, 20%)"
             />
           ))}
           {/* Double dot at 12 */}
@@ -98,7 +98,7 @@ export default function GuitarFretboard() {
             <circle
               key={`dot12-${i}`}
               cx={LEFT_PAD + 12 * FRET_WIDTH - FRET_WIDTH / 2}
-              cy={y} r={3} fill="hsl(220, 10%, 20%)"
+              cy={y} r={3} fill="hsl(30, 5%, 20%)"
             />
           ))}
 
@@ -113,14 +113,13 @@ export default function GuitarFretboard() {
 
               if (!showArpeggio && !isActive) {
                 if (!isInScale) return null;
-                // Show scale notes as small dots
                 return (
                   <circle
                     key={`${s}-${f}`}
                     cx={LEFT_PAD + (f === 0 ? 0 : f * FRET_WIDTH - FRET_WIDTH / 2)}
                     cy={TOP_PAD + s * STRING_SPACING}
                     r={3}
-                    fill="hsl(220, 40%, 35%)"
+                    fill="hsl(30, 15%, 32%)"
                     opacity={0.5}
                     onClick={() => setRoot(pc)}
                     className="cursor-pointer"
@@ -131,14 +130,14 @@ export default function GuitarFretboard() {
               if (showArpeggio && !isActive && !isInScale) return null;
               if (!showArpeggio && !isActive) return null;
 
-              let fill = 'hsl(180, 60%, 40%)';
-              let textFill = 'hsl(180, 60%, 85%)';
+              let fill = 'hsl(28, 65%, 42%)';
+              let textFill = 'hsl(28, 60%, 90%)';
               if (isRoot) {
-                fill = 'hsl(35, 80%, 45%)';
-                textFill = 'hsl(35, 80%, 95%)';
+                fill = 'hsl(32, 80%, 48%)';
+                textFill = 'hsl(32, 80%, 95%)';
               } else if (showArpeggio && isInScale && !isActive) {
-                fill = 'hsl(220, 40%, 30%)';
-                textFill = 'hsl(220, 40%, 70%)';
+                fill = 'hsl(30, 12%, 28%)';
+                textFill = 'hsl(30, 10%, 65%)';
               }
 
               const cx = LEFT_PAD + (f === 0 ? 0 : f * FRET_WIDTH - FRET_WIDTH / 2);
