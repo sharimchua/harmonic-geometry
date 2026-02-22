@@ -4,6 +4,7 @@ import { getNoteName } from '@/lib/musicTheory';
 import PitchClock from '@/components/PitchClock';
 import PianoKeyboard from '@/components/PianoKeyboard';
 import GuitarFretboard from '@/components/GuitarFretboard';
+import CadenceExplorer from '@/components/CadenceExplorer';
 import ControlPanel from '@/components/ControlPanel';
 
 const Index = () => {
@@ -60,10 +61,18 @@ const Index = () => {
 
         {/* Visualizations */}
         <div className="p-4 space-y-5 max-w-5xl mx-auto">
-          {/* Pitch Clock */}
-          <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm">
-            <PitchClock />
-          </section>
+          {/* Pitch Clock + Cadence Explorer side by side on larger screens */}
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5">
+            {/* Pitch Clock */}
+            <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm">
+              <PitchClock />
+            </section>
+
+            {/* Cadence Explorer */}
+            <section className="bg-surface-1 border border-border rounded-lg p-5 shadow-sm overflow-y-auto max-h-[520px]">
+              <CadenceExplorer />
+            </section>
+          </div>
 
           {/* Piano */}
           <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
