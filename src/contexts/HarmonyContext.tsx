@@ -16,6 +16,7 @@ import {
   getDiatonicChordForDegree,
   analyzeFunctionalRole,
   getChordVibe,
+  identifyChordFromPitchClasses,
   type IntervalTension,
 } from '@/lib/musicTheory';
 
@@ -31,10 +32,10 @@ interface HarmonyState {
   cagedPosition: number | null;
   useFlats: boolean;
   lockMode: HarmonicLockMode;
+  constructionMode: boolean;
 }
 
 interface HarmonyContextValue extends HarmonyState {
-  // Keep `root` as alias for harmonicRoot for backward compat
   root: PitchClass;
   setScaleTonic: (tonic: PitchClass) => void;
   setRoot: (root: PitchClass) => void;
@@ -47,6 +48,8 @@ interface HarmonyContextValue extends HarmonyState {
   setCagedPosition: (pos: number | null) => void;
   setUseFlats: (useFlats: boolean) => void;
   setLockMode: (mode: HarmonicLockMode) => void;
+  setConstructionMode: (on: boolean) => void;
+  togglePitchClass: (pc: PitchClass) => void;
   // Derived data
   activeIntervals: number[];
   activePitchClasses: PitchClass[];
@@ -72,9 +75,32 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const [cagedPosition, setCagedPosition] = useState<number | null>(null);
   const [useFlats, setUseFlats] = useState(false);
   const [lockMode, setLockMode] = useState<HarmonicLockMode>('quality');
+  const [constructionMode, setConstructionMode] = useState(false);
+  const [customPitchClasses, setCustomPitchClasses] = useState<PitchClass[] | null>(null);
+
+  // Toggle a pitch class on/off in construction mode
+  const togglePitchClass = useCallback((pc: PitchClass) => {
+    setCustomPitchClasses(prev => {
+      const current = prev ?? getPitchClasses(harmonicRoot, chord.intervals);
+      const next = current.includes(pc)
+        ? current.filter(p => p !== pc)
+        : [...current, pc].sort((a, b) => a - b);
+      
+      // Try to identify the resulting chord
+      if (next.length >= 2) {
+        const identified = identifyChordFromPitchClasses(next);
+        if (identified) {
+          setHarmonicRoot(identified.root);
+          setChordRaw(identified.chord);
+        }
+      }
+      return next.length === 0 ? null : next;
+    });
+  }, [harmonicRoot, chord.intervals]);
 
   // When in scale lock mode, changing root adjusts chord quality diatonically
   const setRoot = useCallback((newRoot: PitchClass) => {
+    setCustomPitchClasses(null); // exit custom mode on root change
     setHarmonicRoot(newRoot);
     setInversion(0);
     setDropVoicing(0);
@@ -94,6 +120,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     setChordRaw(c);
     setInversion(0);
     setDropVoicing(0);
+    setCustomPitchClasses(null);
   }, []);
 
   const activeIntervals = useMemo(() => {
@@ -104,8 +131,8 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   }, [chord, inversion, dropVoicingType]);
 
   const activePitchClasses = useMemo(
-    () => getPitchClasses(harmonicRoot, activeIntervals),
-    [harmonicRoot, activeIntervals]
+    () => customPitchClasses ?? getPitchClasses(harmonicRoot, activeIntervals),
+    [harmonicRoot, activeIntervals, customPitchClasses]
   );
 
   const scalePitchClasses = useMemo(
@@ -151,6 +178,8 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     cagedPosition, setCagedPosition,
     useFlats, setUseFlats,
     lockMode, setLockMode,
+    constructionMode, setConstructionMode,
+    togglePitchClass,
     activeIntervals,
     activePitchClasses,
     scalePitchClasses,

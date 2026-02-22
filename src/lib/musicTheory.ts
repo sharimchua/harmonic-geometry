@@ -382,3 +382,27 @@ export function analyzeFunctionalRole(
 export function getChordVibe(chordName: string): string {
   return CHORD_VIBES[chordName] || 'A unique harmonic color';
 }
+
+/**
+ * Given a set of pitch classes, try to identify the chord name and root.
+ * Returns { root, chord } or null.
+ */
+export function identifyChordFromPitchClasses(pitchClasses: PitchClass[]): { root: PitchClass; chord: ChordType } | null {
+  if (pitchClasses.length < 2) return null;
+  const allChords = Object.values(CHORD_CATEGORIES).flat();
+  
+  // Try each pitch class as a potential root
+  for (const candidateRoot of pitchClasses) {
+    const intervals = pitchClasses
+      .map(pc => ((pc - candidateRoot) % 12 + 12) % 12)
+      .sort((a, b) => a - b);
+    
+    for (const chord of allChords) {
+      const chordNorm = chord.intervals.map(i => ((i % 12) + 12) % 12).sort((a, b) => a - b);
+      if (chordNorm.length === intervals.length && chordNorm.every((v, i) => v === intervals[i])) {
+        return { root: candidateRoot, chord };
+      }
+    }
+  }
+  return null;
+}
