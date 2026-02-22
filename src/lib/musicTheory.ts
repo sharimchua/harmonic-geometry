@@ -391,7 +391,6 @@ export function identifyChordFromPitchClasses(pitchClasses: PitchClass[]): { roo
   if (pitchClasses.length < 2) return null;
   const allChords = Object.values(CHORD_CATEGORIES).flat();
   
-  // Try each pitch class as a potential root
   for (const candidateRoot of pitchClasses) {
     const intervals = pitchClasses
       .map(pc => ((pc - candidateRoot) % 12 + 12) % 12)
@@ -406,3 +405,125 @@ export function identifyChordFromPitchClasses(pitchClasses: PitchClass[]): { roo
   }
   return null;
 }
+
+// ─── Cadence Explorer ───────────────────────────────────
+
+export type CadenceCategory = 'resolution' | 'surprise' | 'journey';
+
+export interface CadenceSuggestion {
+  category: CadenceCategory;
+  name: string;
+  label: string; // e.g. "V → I"
+  description: string;
+  songExample: string;
+  /** The root of the suggested chord, as semitones relative to the current root */
+  rootOffset: number;
+  /** The chord type to apply */
+  chordName: string;
+  /** If true, the suggestion implies the target becomes the new tonic */
+  resTonic: boolean;
+}
+
+const CADENCE_TEMPLATES: CadenceSuggestion[] = [
+  // ── The Resolution (Diatonic) ──
+  {
+    category: 'resolution',
+    name: 'Authentic',
+    label: 'V7 → I',
+    description: 'The big finish. Strong, predictable, and satisfying.',
+    songExample: 'Every pop song ending — "Let It Be" (Beatles)',
+    rootOffset: 7,
+    chordName: 'Dominant 7',
+    resTonic: false,
+  },
+  {
+    category: 'resolution',
+    name: 'Plagal',
+    label: 'IV → I',
+    description: 'The "Amen" cadence. Softer and more grounded.',
+    songExample: '"With or Without You" (U2)',
+    rootOffset: 5,
+    chordName: 'Major',
+    resTonic: false,
+  },
+  // ── The Surprise (Borrowed / Non-Diatonic) ──
+  {
+    category: 'surprise',
+    name: 'Minor Plagal',
+    label: 'iv → I',
+    description: 'The "Hollywood" or "Heartbreak" chord. Adds a touch of melancholy.',
+    songExample: '"Creep" (Radiohead), "Space Oddity" (Bowie)',
+    rootOffset: 5,
+    chordName: 'Minor',
+    resTonic: false,
+  },
+  {
+    category: 'surprise',
+    name: 'Backdoor Dominant',
+    label: 'bVII7 → I',
+    description: 'Soulful and sophisticated. A classic jazz-pop move.',
+    songExample: '"Lady Madonna" (Beatles), "I Got Rhythm" (Gershwin)',
+    rootOffset: 10,
+    chordName: 'Dominant 7',
+    resTonic: false,
+  },
+  // ── The Journey (Cycle of Fifths) ──
+  {
+    category: 'journey',
+    name: 'Secondary Dominant',
+    label: 'V/V (II7 → V)',
+    description: 'Building extra energy to get back to home.',
+    songExample: '"Sweet Child O\' Mine" (GN\'R), "Georgia On My Mind"',
+    rootOffset: 2,
+    chordName: 'Dominant 7',
+    resTonic: false,
+  },
+  {
+    category: 'journey',
+    name: 'Tritone Substitution',
+    label: 'bII7 → I',
+    description: 'The ultimate jazz tension. Exotic and smooth.',
+    songExample: '"Girl from Ipanema" (Jobim), "Body and Soul"',
+    rootOffset: 1,
+    chordName: 'Dominant 7',
+    resTonic: true,
+  },
+];
+
+export interface CadenceOption {
+  suggestion: CadenceSuggestion;
+  targetRoot: PitchClass;
+  targetChord: ChordType;
+  displayName: string; // e.g. "G7"
+}
+
+/**
+ * Generate cadence suggestions based on the current harmonic root.
+ * Returns concrete chord options grouped by category.
+ */
+export function getCadenceSuggestions(
+  currentRoot: PitchClass,
+  useFlats: boolean,
+): CadenceOption[] {
+  const allChords = Object.values(CHORD_CATEGORIES).flat();
+
+  return CADENCE_TEMPLATES.map(suggestion => {
+    const targetRoot = ((currentRoot + suggestion.rootOffset) % 12 + 12) % 12 as PitchClass;
+    const targetChord = allChords.find(c => c.name === suggestion.chordName)
+      ?? CHORD_CATEGORIES['Tertian Triads'][0]; // fallback to Major
+    const displayName = `${getNoteName(targetRoot, useFlats)} ${targetChord.name}`;
+
+    return {
+      suggestion,
+      targetRoot,
+      targetChord,
+      displayName,
+    };
+  });
+}
+
+export const CADENCE_CATEGORY_META: Record<CadenceCategory, { title: string; icon: string }> = {
+  resolution: { title: 'The Resolution', icon: '🏠' },
+  surprise: { title: 'The Surprise', icon: '✨' },
+  journey: { title: 'The Journey', icon: '🧭' },
+};
