@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getLabel, getIntervalTension } from '@/lib/musicTheory';
+import { getLabel } from '@/lib/musicTheory';
 
 const RADIUS = 140;
-const CENTER = 170;
+const DIAL_RADIUS = RADIUS + 30;
+const CENTER = 180;
 const DOT_RADIUS = 18;
 
 const TENSION_COLORS: Record<string, string> = {
@@ -18,29 +19,134 @@ function pitchClassToAngle(pc: number): number {
   return (pc * 30 - 90) * (Math.PI / 180);
 }
 
-function pitchClassToXY(pc: number): [number, number] {
+function pitchClassToXY(pc: number, radius = RADIUS): [number, number] {
   const angle = pitchClassToAngle(pc);
   return [
-    CENTER + RADIUS * Math.cos(angle),
-    CENTER + RADIUS * Math.sin(angle),
+    CENTER + radius * Math.cos(angle),
+    CENTER + radius * Math.sin(angle),
   ];
 }
 
 export default function PitchClock() {
   const {
-    root, scaleTonic, setRoot, activePitchClasses, scalePitchClasses,
+    root, scaleTonic, setScaleTonic, setRoot,
+    activePitchClasses, scalePitchClasses,
     intervalTensions, labelMode, useFlats,
+    constructionMode, setConstructionMode, togglePitchClass,
   } = useHarmony();
   const isSameTonicAndRoot = root === scaleTonic;
-
   const allPitchClasses = Array.from({ length: 12 }, (_, i) => i);
+
+  // ── Drag-to-spin state for key rotation dial ──
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartAngle = useRef<number>(0);
+  const dragStartTonic = useRef<number>(0);
+
+  const getAngleFromEvent = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!svgRef.current) return 0;
+    const rect = svgRef.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    return Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
+  }, []);
+
+  const handleDialPointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartAngle.current = getAngleFromEvent(e);
+    dragStartTonic.current = scaleTonic;
+  }, [getAngleFromEvent, scaleTonic]);
+
+  const handlePointerMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging) return;
+    const currentAngle = getAngleFromEvent(e);
+    const delta = currentAngle - dragStartAngle.current;
+    // Each 30° = 1 semitone
+    const steps = Math.round(delta / 30);
+    const newTonic = ((dragStartTonic.current + steps) % 12 + 12) % 12;
+    if (newTonic !== scaleTonic) {
+      setScaleTonic(newTonic);
+    }
+  }, [isDragging, getAngleFromEvent, scaleTonic, setScaleTonic]);
+
+  const handlePointerUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const stepTonic = (dir: number) => {
+    setScaleTonic(((scaleTonic + dir) % 12 + 12) % 12);
+  };
+
+  const handleNodeClick = (pc: number) => {
+    if (constructionMode) {
+      togglePitchClass(pc);
+    } else {
+      setRoot(pc);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center">
-      <h3 className="text-sm font-sans font-semibold text-muted-foreground mb-3 uppercase tracking-widest">Pitch Clock</h3>
-      <svg width={CENTER * 2} height={CENTER * 2} className="overflow-visible">
-        {/* Background circle */}
-        <circle cx={CENTER} cy={CENTER} r={RADIUS + 30} fill="none" stroke="hsl(30, 5%, 18%)" strokeWidth="1" />
+      {/* Header with Construction Mode toggle */}
+      <div className="flex items-center gap-3 mb-3">
+        <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">Pitch Clock</h3>
+        <button
+          onClick={() => setConstructionMode(!constructionMode)}
+          className={`text-[10px] font-mono px-2 py-1 rounded-md border transition-colors ${
+            constructionMode
+              ? 'bg-primary/20 border-primary text-primary'
+              : 'bg-transparent border-border text-muted-foreground hover:border-primary/50'
+          }`}
+        >
+          {constructionMode ? '✏️ Edit ON' : '✏️ Edit'}
+        </button>
+      </div>
+
+      <svg
+        ref={svgRef}
+        width={CENTER * 2}
+        height={CENTER * 2}
+        className="overflow-visible select-none"
+        onMouseMove={handlePointerMove}
+        onMouseUp={handlePointerUp}
+        onMouseLeave={handlePointerUp}
+        onTouchMove={handlePointerMove}
+        onTouchEnd={handlePointerUp}
+      >
+        {/* Outer dial ring (draggable for key rotation) */}
+        <circle
+          cx={CENTER} cy={CENTER} r={DIAL_RADIUS}
+          fill="none"
+          stroke={isDragging ? 'hsl(28, 85%, 55%)' : 'hsl(30, 5%, 18%)'}
+          strokeWidth={isDragging ? 2 : 1}
+          className="cursor-grab active:cursor-grabbing"
+          onMouseDown={handleDialPointerDown}
+          onTouchStart={handleDialPointerDown}
+        />
+
+        {/* Dial tick marks */}
+        {allPitchClasses.map(pc => {
+          const angle = pitchClassToAngle(pc);
+          const outerR = DIAL_RADIUS + 6;
+          const innerR = DIAL_RADIUS - 6;
+          const isScaleNote = scalePitchClasses.includes(pc);
+          return (
+            <line
+              key={`tick-${pc}`}
+              x1={CENTER + innerR * Math.cos(angle)}
+              y1={CENTER + innerR * Math.sin(angle)}
+              x2={CENTER + outerR * Math.cos(angle)}
+              y2={CENTER + outerR * Math.sin(angle)}
+              stroke={pc === scaleTonic ? 'hsl(28, 85%, 55%)' : isScaleNote ? 'hsl(30, 15%, 35%)' : 'hsl(30, 5%, 22%)'}
+              strokeWidth={pc === scaleTonic ? 2 : 1}
+            />
+          );
+        })}
+
+        {/* Inner dashed circle */}
         <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="hsl(30, 5%, 22%)" strokeWidth="1" strokeDasharray="2 4" />
 
         {/* Interval lines between active notes */}
@@ -80,7 +186,7 @@ export default function PitchClock() {
           const isRoot = pc === root;
           const isTonic = pc === scaleTonic && !isSameTonicAndRoot;
           const isInScale = scalePitchClasses.includes(pc);
-          
+
           let fillColor = 'hsl(0, 0%, 13%)';
           let strokeColor = 'hsl(30, 5%, 25%)';
           let textColor = 'hsl(30, 8%, 40%)';
@@ -111,16 +217,32 @@ export default function PitchClock() {
             r = DOT_RADIUS + 2;
           }
 
+          // In construction mode, show a subtle "addable" indicator for inactive nodes
+          if (constructionMode && !isActive) {
+            strokeColor = 'hsl(28, 40%, 35%)';
+          }
+
           const label = getLabel(pc, root, labelMode, useFlats);
 
           return (
             <g
               key={pc}
-              onClick={() => setRoot(pc)}
+              onClick={() => handleNodeClick(pc)}
               className="cursor-pointer"
               role="button"
               tabIndex={0}
             >
+              {/* Construction mode ring indicator */}
+              {constructionMode && (
+                <circle
+                  cx={x} cy={y} r={r + 8}
+                  fill="none"
+                  stroke={isActive ? 'hsl(0, 65%, 45%)' : 'hsl(160, 50%, 35%)'}
+                  strokeWidth="1"
+                  strokeDasharray="3 3"
+                  opacity={0.5}
+                />
+              )}
               {/* Tonic marker — diamond shape */}
               {isTonic && !isRoot && (
                 <rect
@@ -150,15 +272,40 @@ export default function PitchClock() {
         })}
       </svg>
 
-      {/* Tension legend */}
-      <div className="flex gap-3 mt-3 flex-wrap justify-center">
-        {(['perfect', 'consonant', 'mild', 'dissonant', 'tritone'] as const).map(t => (
-          <div key={t} className="flex items-center gap-1">
-            <div className="w-3 h-1 rounded-full" style={{ backgroundColor: TENSION_COLORS[t] }} />
-            <span className="text-[10px] font-mono text-muted-foreground capitalize">{t}</span>
-          </div>
-        ))}
+      {/* Key rotation step buttons + legend */}
+      <div className="flex items-center gap-4 mt-3">
+        <button
+          onClick={() => stepTonic(-1)}
+          className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+          title="Rotate key down a semitone"
+        >
+          ◀ Key
+        </button>
+
+        <div className="flex gap-3 flex-wrap justify-center">
+          {(['perfect', 'consonant', 'mild', 'dissonant', 'tritone'] as const).map(t => (
+            <div key={t} className="flex items-center gap-1">
+              <div className="w-3 h-1 rounded-full" style={{ backgroundColor: TENSION_COLORS[t] }} />
+              <span className="text-[10px] font-mono text-muted-foreground capitalize">{t}</span>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={() => stepTonic(1)}
+          className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+          title="Rotate key up a semitone"
+        >
+          Key ▶
+        </button>
       </div>
+
+      {/* Construction mode hint */}
+      {constructionMode && (
+        <p className="text-[10px] font-mono text-primary/70 mt-2">
+          Click nodes to add/remove notes • Chord auto-detected
+        </p>
+      )}
     </div>
   );
 }
