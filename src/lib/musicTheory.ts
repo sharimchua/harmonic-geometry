@@ -113,6 +113,11 @@ export const SCALE_CATEGORIES: Record<string, ScaleType[]> = {
 };
 
 // ─── Voicing Utilities ──────────────────────────────────
+/**
+ * Invert a chord by moving the bottom N notes up an octave.
+ * Intervals stay relative to the original root so pitch classes are preserved.
+ * E.g. Major [0,4,7] inv 1 → [4,7,12] (E is bass, root C moves up)
+ */
 export function invertChord(intervals: number[], inversion: number): number[] {
   if (inversion === 0 || intervals.length === 0) return [...intervals];
   const notes = [...intervals];
@@ -121,9 +126,8 @@ export function invertChord(intervals: number[], inversion: number): number[] {
     const lowest = notes.shift()!;
     notes.push(lowest + 12);
   }
-  // Normalize relative to new bass
-  const bass = notes[0];
-  return notes.map(n => n - bass);
+  // Keep intervals relative to original root (do NOT re-base)
+  return notes;
 }
 
 export function dropVoicing(intervals: number[], drop: number): number[] {
