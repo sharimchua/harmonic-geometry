@@ -130,9 +130,10 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     return intervals;
   }, [chord, inversion, dropVoicingType]);
 
+  // Pitch classes are always derived from the base chord intervals (not affected by inversion/drop)
   const activePitchClasses = useMemo(
-    () => customPitchClasses ?? getPitchClasses(harmonicRoot, activeIntervals),
-    [harmonicRoot, activeIntervals, customPitchClasses]
+    () => customPitchClasses ?? getPitchClasses(harmonicRoot, chord.intervals),
+    [harmonicRoot, chord.intervals, customPitchClasses]
   );
 
   const scalePitchClasses = useMemo(
