@@ -10,7 +10,6 @@ const DOT_R = 8;
 
 const FRET_MARKERS = [3, 5, 7, 9, 12, 15];
 
-// Tension color mapping
 const TENSION_COLORS: Record<string, string> = {
   perfect: 'hsl(160, 50%, 42%)',
   consonant: 'hsl(190, 45%, 45%)',
@@ -19,7 +18,6 @@ const TENSION_COLORS: Record<string, string> = {
   tritone: 'hsl(340, 60%, 50%)',
 };
 
-// Common guitar tuning presets
 const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[] = [
   { name: 'Standard', tuning: [40, 45, 50, 55, 59, 64], stringNames: ['E', 'A', 'D', 'G', 'B', 'e'] },
   { name: 'Drop D', tuning: [38, 45, 50, 55, 59, 64], stringNames: ['D', 'A', 'D', 'G', 'B', 'e'] },
@@ -46,43 +44,53 @@ export default function GuitarFretboard() {
   const totalWidth = LEFT_PAD + (NUM_FRETS + 1) * FRET_WIDTH;
   const totalHeight = TOP_PAD + (numStrings - 1) * STRING_SPACING + 30;
 
-  // Collect active note positions for tension overlay
-  const activePositions = useMemo(() => {
-    const positions: { s: number; f: number; pc: number; cx: number; cy: number }[] = [];
-    tuning.forEach((openMidi, s) => {
-      // Pick the first active note per string (for primary voicing)
+  // Reverse display order: high strings at top, low strings at bottom
+  // displayIndex maps visual row (0=top=highest string) to data index
+  const displayOrder = useMemo(() => {
+    const order: number[] = [];
+    for (let i = numStrings - 1; i >= 0; i--) order.push(i);
+    return order;
+  }, [numStrings]);
+
+  // Build one voicing: pick first (lowest fret) active note per string, no duplicate pitch classes
+  const voicingPositions = useMemo(() => {
+    const positions: { s: number; f: number; pc: number; cx: number; cy: number; displayRow: number }[] = [];
+    const usedPitchClasses = new Set<number>();
+
+    // Go through strings from low to high (data order), pick first unique chord tone
+    for (let s = 0; s < numStrings; s++) {
+      const displayRow = displayOrder.indexOf(s);
       for (let f = 0; f <= NUM_FRETS; f++) {
-        const midi = openMidi + f;
+        const midi = tuning[s] + f;
         const pc = midi % 12;
-        if (activePitchClasses.includes(pc)) {
+        if (activePitchClasses.includes(pc) && !usedPitchClasses.has(pc)) {
           const cx = LEFT_PAD + (f === 0 ? 0 : f * FRET_WIDTH - FRET_WIDTH / 2);
-          const cy = TOP_PAD + s * STRING_SPACING;
-          positions.push({ s, f, pc, cx, cy });
-          break; // one per string for the primary voicing
+          const cy = TOP_PAD + displayRow * STRING_SPACING;
+          positions.push({ s, f, pc, cx, cy, displayRow });
+          usedPitchClasses.add(pc);
+          break;
         }
       }
-    });
+    }
     return positions;
-  }, [tuning, activePitchClasses]);
+  }, [tuning, activePitchClasses, displayOrder, numStrings]);
 
-  // Build tension lines between adjacent active string positions
+  // Build tension lines between ALL pairs of voicing positions (matching pitch clock edge count)
   const tensionLines = useMemo(() => {
-    const lines: { x1: number; y1: number; x2: number; y2: number; tension: string; semitones: number }[] = [];
-    for (let i = 0; i < activePositions.length - 1; i++) {
-      for (let j = i + 1; j < activePositions.length; j++) {
-        // Only connect adjacent strings for readability
-        if (Math.abs(activePositions[j].s - activePositions[i].s) > 2) continue;
-        const semitones = ((activePositions[j].pc - activePositions[i].pc) % 12 + 12) % 12;
+    const lines: { x1: number; y1: number; x2: number; y2: number; tension: string }[] = [];
+    for (let i = 0; i < voicingPositions.length; i++) {
+      for (let j = i + 1; j < voicingPositions.length; j++) {
+        const semitones = ((voicingPositions[j].pc - voicingPositions[i].pc) % 12 + 12) % 12;
         const tension = getIntervalTension(semitones);
         lines.push({
-          x1: activePositions[i].cx, y1: activePositions[i].cy,
-          x2: activePositions[j].cx, y2: activePositions[j].cy,
-          tension, semitones,
+          x1: voicingPositions[i].cx, y1: voicingPositions[i].cy,
+          x2: voicingPositions[j].cx, y2: voicingPositions[j].cy,
+          tension,
         });
       }
     }
     return lines;
-  }, [activePositions]);
+  }, [voicingPositions]);
 
   return (
     <div className="flex flex-col items-center">
@@ -133,25 +141,25 @@ export default function GuitarFretboard() {
             />
           ))}
 
-          {/* Strings */}
-          {Array.from({ length: numStrings }, (_, s) => (
-            <g key={`string-${s}`}>
+          {/* Strings (displayed high-to-low, top-to-bottom) */}
+          {displayOrder.map((dataIdx, row) => (
+            <g key={`string-${dataIdx}`}>
               <text
                 x={LEFT_PAD - 14}
-                y={TOP_PAD + s * STRING_SPACING + 4}
+                y={TOP_PAD + row * STRING_SPACING + 4}
                 textAnchor="middle" fontSize={9}
                 fontFamily="'JetBrains Mono', monospace"
                 fill="hsl(30, 8%, 40%)"
               >
-                {stringNames[s]}
+                {stringNames[dataIdx]}
               </text>
               <line
                 x1={LEFT_PAD}
-                y1={TOP_PAD + s * STRING_SPACING}
+                y1={TOP_PAD + row * STRING_SPACING}
                 x2={totalWidth - 10}
-                y2={TOP_PAD + s * STRING_SPACING}
-                stroke={`hsl(30, 6%, ${28 - s * 2}%)`}
-                strokeWidth={1 + (numStrings - 1 - s) * 0.3}
+                y2={TOP_PAD + row * STRING_SPACING}
+                stroke={`hsl(30, 6%, ${28 - dataIdx * 2}%)`}
+                strokeWidth={1 + (numStrings - 1 - dataIdx) * 0.3}
               />
             </g>
           ))}
@@ -165,7 +173,6 @@ export default function GuitarFretboard() {
               r={3} fill="hsl(30, 5%, 20%)"
             />
           ))}
-          {/* Double dot at 12 */}
           {12 <= NUM_FRETS && [
             TOP_PAD + STRING_SPACING * 1.5,
             TOP_PAD + STRING_SPACING * 3.5,
@@ -177,7 +184,7 @@ export default function GuitarFretboard() {
             />
           ))}
 
-          {/* Tension overlay lines between active positions */}
+          {/* Tension overlay lines between all voicing pairs */}
           {tensionLines.map((line, i) => {
             const color = TENSION_COLORS[line.tension] ?? TENSION_COLORS.mild;
             return (
@@ -187,16 +194,16 @@ export default function GuitarFretboard() {
                 x2={line.x2} y2={line.y2}
                 stroke={color}
                 strokeWidth={1.5}
-                opacity={0.5}
+                opacity={0.45}
                 strokeDasharray={line.tension === 'dissonant' || line.tension === 'tritone' ? '4,3' : undefined}
               />
             );
           })}
 
           {/* Notes on fretboard */}
-          {tuning.map((openMidi, s) =>
+          {displayOrder.map((dataIdx, row) =>
             Array.from({ length: NUM_FRETS + 1 }, (_, f) => {
-              const midi = openMidi + f;
+              const midi = tuning[dataIdx] + f;
               const pc = midi % 12;
               const isActive = activePitchClasses.includes(pc);
               const isRoot = pc === root;
@@ -206,9 +213,9 @@ export default function GuitarFretboard() {
                 if (!isInScale) return null;
                 return (
                   <circle
-                    key={`${s}-${f}`}
+                    key={`${dataIdx}-${f}`}
                     cx={LEFT_PAD + (f === 0 ? 0 : f * FRET_WIDTH - FRET_WIDTH / 2)}
-                    cy={TOP_PAD + s * STRING_SPACING}
+                    cy={TOP_PAD + row * STRING_SPACING}
                     r={3}
                     fill="hsl(30, 15%, 32%)"
                     opacity={0.5}
@@ -232,10 +239,10 @@ export default function GuitarFretboard() {
               }
 
               const cx = LEFT_PAD + (f === 0 ? 0 : f * FRET_WIDTH - FRET_WIDTH / 2);
-              const cy = TOP_PAD + s * STRING_SPACING;
+              const cy = TOP_PAD + row * STRING_SPACING;
 
               return (
-                <g key={`${s}-${f}`} onClick={() => setRoot(pc)} className="cursor-pointer">
+                <g key={`${dataIdx}-${f}`} onClick={() => setRoot(pc)} className="cursor-pointer">
                   <circle cx={cx} cy={cy} r={DOT_R} fill={fill} />
                   <text
                     x={cx} y={cy}
