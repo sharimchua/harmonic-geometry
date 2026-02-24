@@ -6,6 +6,7 @@ import PianoKeyboard from '@/components/PianoKeyboard';
 import GuitarFretboard from '@/components/GuitarFretboard';
 import CadenceExplorer from '@/components/CadenceExplorer';
 import IntervalRelationshipList from '@/components/IntervalRelationshipList';
+import HarmonicContext from '@/components/HarmonicContext';
 import ControlPanel from '@/components/ControlPanel';
 
 const Index = () => {
@@ -71,6 +72,10 @@ const Index = () => {
 
             {/* Right column: Interval List + Cadence Explorer */}
             <div className="flex flex-col gap-5">
+              <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
+                <HarmonicContext />
+              </section>
+
               <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
                 <IntervalRelationshipList />
               </section>

@@ -413,117 +413,210 @@ export function identifyChordFromPitchClasses(pitchClasses: PitchClass[]): { roo
 // ─── Cadence Explorer ───────────────────────────────────
 
 export type CadenceCategory = 'resolution' | 'surprise' | 'journey';
+export type CadenceDirection = 'leadTo' | 'comeFrom';
 
 export interface CadenceSuggestion {
   category: CadenceCategory;
+  direction: CadenceDirection;
   name: string;
-  label: string; // e.g. "V → I"
+  label: string;
   description: string;
   songExample: string;
-  /** The root of the suggested chord, as semitones relative to the current root */
+  /** Semitone offset from current root to target root */
   rootOffset: number;
-  /** The chord type to apply */
+  /** Chord quality name for the target */
   chordName: string;
-  /** If true, the suggestion implies the target becomes the new tonic */
+  /** If true, implies the target becomes the new tonic */
   resTonic: boolean;
+  /** Optional: only show when the current chord quality matches one of these */
+  sourceQualities?: string[];
 }
 
 const CADENCE_TEMPLATES: CadenceSuggestion[] = [
-  // ── The Resolution (Diatonic) ──
-  {
-    category: 'resolution',
-    name: 'Authentic',
-    label: 'V7 → I',
-    description: 'The big finish. Strong, predictable, and satisfying.',
-    songExample: 'Every pop song ending — "Let It Be" (Beatles)',
-    rootOffset: 7,
-    chordName: 'Dominant 7',
-    resTonic: false,
-  },
-  {
-    category: 'resolution',
-    name: 'Plagal',
-    label: 'IV → I',
-    description: 'The "Amen" cadence. Softer and more grounded.',
+  // ═══════════════════════════════════════
+  // LEAD TO — "Where does this chord want to go?"
+  // ═══════════════════════════════════════
+
+  // From any Dominant 7 type
+  { category: 'resolution', direction: 'leadTo', name: 'Authentic Resolution', label: '→ I',
+    description: 'The strongest resolution. Your V7 resolves home.',
+    songExample: '"Let It Be" (Beatles)',
+    rootOffset: 5, chordName: 'Major 7', resTonic: true,
+    sourceQualities: ['Dominant 7', '7b5', '7#5', '7b9', '7#9', '7#11', '7b13', 'Dominant 9'] },
+
+  { category: 'surprise', direction: 'leadTo', name: 'Deceptive Resolution', label: '→ vi',
+    description: 'Tricks the ear — resolves to the relative minor instead of tonic.',
+    songExample: '"Every Breath You Take" (Police)',
+    rootOffset: 8, chordName: 'Minor 7', resTonic: false,
+    sourceQualities: ['Dominant 7', '7b9', '7#9', 'Dominant 9'] },
+
+  // From Major / Major 7
+  { category: 'journey', direction: 'leadTo', name: 'Move to Dominant', label: '→ V',
+    description: 'Sets up tension. The classic I → V movement.',
+    songExample: '"Twist and Shout" (Beatles)',
+    rootOffset: 7, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+
+  { category: 'journey', direction: 'leadTo', name: 'Plagal Float', label: '→ IV',
+    description: 'Opens up the harmony. Floating away from home.',
     songExample: '"With or Without You" (U2)',
-    rootOffset: 5,
-    chordName: 'Major',
-    resTonic: false,
-  },
-  // ── The Surprise (Borrowed / Non-Diatonic) ──
-  {
-    category: 'surprise',
-    name: 'Minor Plagal',
-    label: 'iv → I',
-    description: 'The "Hollywood" or "Heartbreak" chord. Adds a touch of melancholy.',
+    rootOffset: 5, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+
+  { category: 'surprise', direction: 'leadTo', name: 'Augmented Push', label: '→ IV',
+    description: 'The #5 shoves the ear toward the subdominant.',
+    songExample: '"Oh! Darling" (Beatles)',
+    rootOffset: 5, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Augmented'] },
+
+  // From Minor / Minor 7
+  { category: 'resolution', direction: 'leadTo', name: 'Pre-Dominant', label: '→ V7',
+    description: 'The classic ii → V motion. Building toward resolution.',
+    songExample: '"Autumn Leaves" (Kosma)',
+    rootOffset: 7, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Minor', 'Minor 7', 'Minor 9', 'm7b5'] },
+
+  { category: 'journey', direction: 'leadTo', name: 'Minor to Tonic', label: '→ I',
+    description: 'A gentle homecoming from the minor subdominant.',
+    songExample: '"Creep" (Radiohead)',
+    rootOffset: 7, chordName: 'Major 7', resTonic: false,
+    sourceQualities: ['Minor', 'Minor 7'] },
+
+  // From Diminished
+  { category: 'resolution', direction: 'leadTo', name: 'Diminished Resolution', label: '→ I',
+    description: 'High-tension leading-tone movement demanding resolution.',
+    songExample: '"Michelle" (Beatles)',
+    rootOffset: 1, chordName: 'Major', resTonic: true,
+    sourceQualities: ['Diminished', 'Diminished 7'] },
+
+  // From Sus4
+  { category: 'resolution', direction: 'leadTo', name: 'Suspend to Dominant', label: '→ V7',
+    description: 'Unfolds the suspension into dominant tension.',
+    songExample: '"Pinball Wizard" (The Who)',
+    rootOffset: 0, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Sus4'] },
+
+  // Universal lead-to suggestions
+  { category: 'journey', direction: 'leadTo', name: 'Step Up', label: '→ II',
+    description: 'A whole-step ascent — bright Lydian-flavored movement.',
+    songExample: '"Just Like Heaven" (The Cure)',
+    rootOffset: 2, chordName: 'Major', resTonic: false },
+
+  { category: 'surprise', direction: 'leadTo', name: 'Chromatic Slide Down', label: '→ bVII',
+    description: 'Unexpected drop. A rock and modal-interchange staple.',
+    songExample: '"Hey Jude" (Beatles)',
+    rootOffset: 10, chordName: 'Major', resTonic: false },
+
+  // ═══════════════════════════════════════
+  // COME FROM — "What typically leads into this chord?"
+  // ═══════════════════════════════════════
+
+  // Into Major / Major 7 (tonic resolution targets)
+  { category: 'resolution', direction: 'comeFrom', name: 'Authentic', label: 'V7 →',
+    description: 'The ultimate "Full Stop." The strongest resolution.',
+    songExample: '"Let It Be" (Beatles)',
+    rootOffset: 7, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+
+  { category: 'resolution', direction: 'comeFrom', name: 'Plagal / Amen', label: 'IV →',
+    description: 'A softer, grounded homecoming without leading-tone tension.',
+    songExample: '"Let It Be" ending (Beatles)',
+    rootOffset: 5, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+
+  { category: 'surprise', direction: 'comeFrom', name: 'Minor Plagal', label: 'iv →',
+    description: 'The "Hollywood Heartbreak." Borrowed from parallel minor.',
     songExample: '"Creep" (Radiohead), "Space Oddity" (Bowie)',
-    rootOffset: 5,
-    chordName: 'Minor',
-    resTonic: false,
-  },
-  {
-    category: 'surprise',
-    name: 'Backdoor Dominant',
-    label: 'bVII7 → I',
-    description: 'Soulful and sophisticated. A classic jazz-pop move.',
-    songExample: '"Lady Madonna" (Beatles), "I Got Rhythm" (Gershwin)',
-    rootOffset: 10,
-    chordName: 'Dominant 7',
-    resTonic: false,
-  },
-  // ── The Journey (Cycle of Fifths) ──
-  {
-    category: 'journey',
-    name: 'Secondary Dominant',
-    label: 'V/V (II7 → V)',
-    description: 'Building extra energy to get back to home.',
-    songExample: '"Sweet Child O\' Mine" (GN\'R), "Georgia On My Mind"',
-    rootOffset: 2,
-    chordName: 'Dominant 7',
-    resTonic: false,
-  },
-  {
-    category: 'journey',
-    name: 'Tritone Substitution',
-    label: 'bII7 → I',
-    description: 'The ultimate jazz tension. Exotic and smooth.',
-    songExample: '"Girl from Ipanema" (Jobim), "Body and Soul"',
-    rootOffset: 1,
-    chordName: 'Dominant 7',
-    resTonic: true,
-  },
+    rootOffset: 5, chordName: 'Minor', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+
+  { category: 'surprise', direction: 'comeFrom', name: 'Backdoor Dominant', label: '♭VII7 →',
+    description: 'Soulful jazz-pop resolution from the flat seventh.',
+    songExample: '"Lady Madonna" (Beatles)',
+    rootOffset: 10, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+
+  { category: 'surprise', direction: 'comeFrom', name: 'Tritone Sub', label: '♭II7 →',
+    description: 'The ultimate jazz tension. Smooth chromatic bass descent.',
+    songExample: '"Girl from Ipanema" (Jobim)',
+    rootOffset: 1, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+
+  // Into Dominant 7 (pre-dominant targets)
+  { category: 'resolution', direction: 'comeFrom', name: 'ii → V Setup', label: 'ii →',
+    description: 'The classic pre-dominant motion. Building momentum.',
+    songExample: '"Autumn Leaves" (Kosma)',
+    rootOffset: 7, chordName: 'Minor 7', resTonic: false,
+    sourceQualities: ['Dominant 7', 'Dominant 9', '7b9', '7#9'] },
+
+  { category: 'journey', direction: 'comeFrom', name: 'Secondary Dominant Chain', label: 'V7/V →',
+    description: 'A temporary dominant of this dominant. Circle of fifths energy.',
+    songExample: '"Sweet Georgia Brown"',
+    rootOffset: 7, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Dominant 7', 'Dominant 9'] },
+
+  // Into Minor / Minor 7
+  { category: 'resolution', direction: 'comeFrom', name: 'Mediant Pivot', label: 'III7 →',
+    description: 'A dramatic secondary dominant pulling to the relative minor.',
+    songExample: '"Hotel California" (Eagles)',
+    rootOffset: 8, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Minor', 'Minor 7', 'Minor 9'] },
+
+  { category: 'surprise', direction: 'comeFrom', name: 'Deceptive Arrival', label: 'V7 (of key) →',
+    description: 'You expected the tonic but landed here instead.',
+    songExample: '"Every Breath You Take" (Police)',
+    rootOffset: 4, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Minor', 'Minor 7', 'Minor 9'] },
+
+  // Universal come-from suggestions
+  { category: 'journey', direction: 'comeFrom', name: 'Chromatic Approach', label: '♭ →',
+    description: 'Approaching from a half-step below. Smooth voice leading.',
+    songExample: '"Misty" (Garner)',
+    rootOffset: 11, chordName: 'Major 7', resTonic: false },
+
+  { category: 'journey', direction: 'comeFrom', name: 'Whole-Step Descent', label: 'II →',
+    description: 'A Lydian-flavored approach from a whole step above.',
+    songExample: '"Just Like Heaven" (The Cure)',
+    rootOffset: 2, chordName: 'Major', resTonic: false },
 ];
 
 export interface CadenceOption {
   suggestion: CadenceSuggestion;
   targetRoot: PitchClass;
   targetChord: ChordType;
-  displayName: string; // e.g. "G7"
+  displayName: string;
 }
 
 /**
- * Generate cadence suggestions based on the current harmonic root.
- * Returns concrete chord options grouped by category.
+ * Generate cadence suggestions based on the current harmony.
+ * Filters by direction and chord quality.
  */
 export function getCadenceSuggestions(
   currentRoot: PitchClass,
+  currentChordName: string,
+  direction: CadenceDirection,
   useFlats: boolean,
 ): CadenceOption[] {
   const allChords = Object.values(CHORD_CATEGORIES).flat();
 
-  return CADENCE_TEMPLATES.map(suggestion => {
-    const targetRoot = ((currentRoot + suggestion.rootOffset) % 12 + 12) % 12 as PitchClass;
-    const targetChord = allChords.find(c => c.name === suggestion.chordName)
-      ?? CHORD_CATEGORIES['Tertian Triads'][0]; // fallback to Major
-    const displayName = `${getNoteName(targetRoot, useFlats)} ${targetChord.name}`;
-
-    return {
-      suggestion,
-      targetRoot,
-      targetChord,
-      displayName,
-    };
-  });
+  return CADENCE_TEMPLATES
+    .filter(s => s.direction === direction)
+    .filter(s => {
+      if (!s.sourceQualities) return true;
+      return s.sourceQualities.some(q =>
+        currentChordName === q ||
+        currentChordName.includes(q) ||
+        (q === 'Minor' && currentChordName.startsWith('Minor')) ||
+        (q === 'Major' && currentChordName.startsWith('Major'))
+      );
+    })
+    .map(suggestion => {
+      const targetRoot = ((currentRoot + suggestion.rootOffset) % 12 + 12) % 12 as PitchClass;
+      const targetChord = allChords.find(c => c.name === suggestion.chordName)
+        ?? CHORD_CATEGORIES['Tertian Triads'][0];
+      const displayName = `${getNoteName(targetRoot, useFlats)} ${targetChord.name}`;
+      return { suggestion, targetRoot, targetChord, displayName };
+    });
 }
 
 export const CADENCE_CATEGORY_META: Record<CadenceCategory, { title: string; icon: string }> = {
