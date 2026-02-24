@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
 import {
   getCadenceSuggestions,
@@ -6,14 +6,16 @@ import {
   getNoteName,
   type CadenceCategory,
   type CadenceOption,
+  type CadenceDirection,
 } from '@/lib/musicTheory';
 
 export default function CadenceExplorer() {
-  const { root, useFlats, setRoot, setChord, setScaleTonic } = useHarmony();
+  const { root, chord, useFlats, setRoot, setChord, setScaleTonic } = useHarmony();
+  const [direction, setDirection] = useState<CadenceDirection>('leadTo');
 
   const suggestions = useMemo(
-    () => getCadenceSuggestions(root, useFlats),
-    [root, useFlats],
+    () => getCadenceSuggestions(root, chord.name, direction, useFlats),
+    [root, chord.name, direction, useFlats],
   );
 
   const grouped = useMemo(() => {
@@ -29,15 +31,14 @@ export default function CadenceExplorer() {
   }, [suggestions]);
 
   const handleSelect = (option: CadenceOption) => {
-    // If the cadence implies resolution to tonic, update scale tonic too
     if (option.suggestion.resTonic) {
-      setScaleTonic(root);
+      setScaleTonic(option.targetRoot);
     }
     setChord(option.targetChord);
     setRoot(option.targetRoot);
   };
 
-  const currentLabel = getNoteName(root, useFlats);
+  const currentLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,9 +47,36 @@ export default function CadenceExplorer() {
           Cadence Explorer
         </h3>
         <span className="text-[10px] font-mono text-muted-foreground">
-          from {currentLabel}
+          {direction === 'leadTo' ? 'from' : 'to'} {currentLabel}
         </span>
       </div>
+
+      {/* Direction Toggle */}
+      <div className="flex gap-1 bg-secondary rounded-lg p-0.5">
+        {([
+          ['leadTo', 'Lead To →', 'Where to go next'] as const,
+          ['comeFrom', '← Come From', 'What leads here'] as const,
+        ]).map(([dir, label, title]) => (
+          <button
+            key={dir}
+            onClick={() => setDirection(dir)}
+            title={title}
+            className={`flex-1 px-2.5 py-1.5 rounded-md text-xs font-sans transition-all ${
+              direction === dir
+                ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                : 'text-secondary-foreground hover:bg-secondary/80'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {suggestions.length === 0 && (
+        <p className="text-[11px] font-sans text-muted-foreground italic text-center py-3">
+          No common cadences for this chord quality in this direction.
+        </p>
+      )}
 
       {(Object.keys(grouped) as CadenceCategory[]).map(cat => {
         const meta = CADENCE_CATEGORY_META[cat];

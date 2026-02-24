@@ -14,7 +14,6 @@ export default function ControlPanel() {
     labelMode, setLabelMode, showArpeggio, setShowArpeggio,
     useFlats, setUseFlats,
     lockMode, setLockMode,
-    functionalAnalysis, chordVibe,
   } = useHarmony();
 
   const noteNames = useFlats ? NOTE_NAMES_FLAT : NOTE_NAMES_SHARP;
@@ -84,26 +83,7 @@ export default function ControlPanel() {
         </div>
       </Section>
 
-      {/* Contextual Descriptor */}
-      <Section title="Harmonic Context">
-        <div className="bg-surface-2 border border-border rounded-md p-3 space-y-2">
-          <div>
-            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Character</p>
-            <p className="text-xs font-sans text-foreground leading-relaxed">{chordVibe}</p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className={`text-sm font-mono font-bold ${functionalAnalysis.isDiatonic ? 'text-primary' : 'text-muted-foreground'}`}>
-                {functionalAnalysis.degreeName}
-              </span>
-              <span className="text-[10px] font-sans text-muted-foreground">
-                {functionalAnalysis.functionName}
-              </span>
-            </div>
-            <p className="text-[11px] font-sans text-muted-foreground leading-relaxed">{functionalAnalysis.description}</p>
-          </div>
-        </div>
-      </Section>
+      {/* Harmonic Context moved to main display */}
 
       {/* Chord Quality */}
       <Section title="Chord Quality">
