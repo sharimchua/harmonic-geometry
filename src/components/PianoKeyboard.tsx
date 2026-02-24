@@ -39,9 +39,18 @@ export default function PianoKeyboard() {
   const blackKeys = keys.filter(k => k.isBlack);
 
   // Compute exact voicing MIDI notes (voicing specificity - PRD requirement)
-  // Place root in octave 4 (MIDI 48 + root), then apply intervals
+  // Smart bass placement: position so full voicing fits within the visible 2.5 octaves
   const voicingMidiNotes = useMemo(() => {
-    const baseMidi = 48 + root; // C4 = 48 in our system (octave 4 * 12)
+    const span = activeIntervals.length > 0 ? Math.max(...activeIntervals) - Math.min(...activeIntervals) : 0;
+    // Visible range: START_OCTAVE*12 to (START_OCTAVE+OCTAVES)*12-1 = 36..71
+    const visibleLow = START_OCTAVE * 12;
+    const visibleHigh = (START_OCTAVE + OCTAVES) * 12 - 1;
+    // Try to center the voicing; start from a base that keeps everything visible
+    let baseMidi = 48 + root; // default C4
+    // If voicing would go above visible range, shift down
+    while (baseMidi + span > visibleHigh && baseMidi > visibleLow) baseMidi -= 12;
+    // If bass is below visible range, shift up
+    while (baseMidi + Math.min(...activeIntervals) < visibleLow) baseMidi += 12;
     return activeIntervals.map(interval => baseMidi + interval);
   }, [root, activeIntervals]);
 
@@ -75,18 +84,19 @@ export default function PianoKeyboard() {
     }
   };
 
-  // Build interval stack pairs for visualization below keyboard
+  // Build ALL interval pairs for visualization below keyboard (not just adjacent)
   const intervalPairs = useMemo(() => {
     const pairs: { fromX: number; toX: number; tension: string; semitones: number }[] = [];
     const sorted = [...voicingMidiNotes].sort((a, b) => a - b);
-    // Adjacent pairs in the voicing (stacked from bottom)
-    for (let i = 0; i < sorted.length - 1; i++) {
-      const fromX = getMidiX(sorted[i]);
-      const toX = getMidiX(sorted[i + 1]);
-      if (fromX === -1 || toX === -1) continue;
-      const semitones = sorted[i + 1] - sorted[i];
-      const tension = getIntervalTension(semitones);
-      pairs.push({ fromX, toX, tension, semitones });
+    for (let i = 0; i < sorted.length; i++) {
+      for (let j = i + 1; j < sorted.length; j++) {
+        const fromX = getMidiX(sorted[i]);
+        const toX = getMidiX(sorted[j]);
+        if (fromX === -1 || toX === -1) continue;
+        const semitones = ((sorted[j] - sorted[i]) % 12 + 12) % 12;
+        const tension = getIntervalTension(semitones);
+        pairs.push({ fromX, toX, tension, semitones });
+      }
     }
     return pairs;
   }, [voicingMidiNotes, whiteKeys]);
