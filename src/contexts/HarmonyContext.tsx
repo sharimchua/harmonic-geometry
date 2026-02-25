@@ -108,13 +108,15 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     if (lockMode === 'scale' && scale) {
       const degree = getScaleDegree(scaleTonic, scale.intervals, newRoot);
       if (degree !== -1) {
-        const diatonicChord = getDiatonicChordForDegree(scale.intervals, degree);
+        // Preserve the chord family size (triads stay triads, 7ths stay 7ths)
+        const currentNoteCount = chord.intervals.length;
+        const diatonicChord = getDiatonicChordForDegree(scale.intervals, degree, currentNoteCount);
         if (diatonicChord) {
           setChordRaw(diatonicChord);
         }
       }
     }
-  }, [lockMode, scale, scaleTonic]);
+  }, [lockMode, scale, scaleTonic, chord.intervals.length]);
 
   const setChord = useCallback((c: ChordType) => {
     setChordRaw(c);

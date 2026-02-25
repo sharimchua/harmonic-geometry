@@ -63,19 +63,20 @@ const Index = () => {
 
         {/* Visualizations */}
         <div className="p-4 space-y-5 max-w-5xl mx-auto">
+          {/* Harmonic Context — prominent info bar */}
+          <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
+            <HarmonicContext />
+          </section>
+
           {/* Pitch Clock + Sidebar (Intervals + Cadence) */}
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5">
-            {/* Pitch Clock */}
-            <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5 items-start">
+            {/* Pitch Clock — stretches to fill */}
+            <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm xl:sticky xl:top-4">
               <PitchClock />
             </section>
 
             {/* Right column: Interval List + Cadence Explorer */}
             <div className="flex flex-col gap-5">
-              <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-                <HarmonicContext />
-              </section>
-
               <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
                 <IntervalRelationshipList />
               </section>

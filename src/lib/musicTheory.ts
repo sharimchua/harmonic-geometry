@@ -281,15 +281,30 @@ export function findMatchingChord(intervals: number[]): ChordType | null {
 
 /**
  * Get the diatonic chord for a given scale degree.
- * Tries 7th chord first, falls back to triad.
+ * Tries to match the requested note count (chord family) first,
+ * then falls back to simpler forms.
  */
-export function getDiatonicChordForDegree(scaleIntervals: number[], degree: number): ChordType | null {
-  // Try 7th chord
-  const seventh = buildDiatonicChord(scaleIntervals, degree, 4);
-  const match7 = findMatchingChord(seventh);
-  if (match7) return match7;
-  
-  // Fall back to triad
+export function getDiatonicChordForDegree(scaleIntervals: number[], degree: number, preferredNoteCount: number = 3): ChordType | null {
+  // Try the preferred note count first (preserves chord family)
+  const preferred = buildDiatonicChord(scaleIntervals, degree, preferredNoteCount);
+  const matchPref = findMatchingChord(preferred);
+  if (matchPref) return matchPref;
+
+  // Try 7th chord if not already tried
+  if (preferredNoteCount !== 4) {
+    const seventh = buildDiatonicChord(scaleIntervals, degree, 4);
+    const match7 = findMatchingChord(seventh);
+    if (match7) return match7;
+  }
+
+  // Fall back to triad if not already tried
+  if (preferredNoteCount !== 3) {
+    const triad = buildDiatonicChord(scaleIntervals, degree, 3);
+    const matchTriad = findMatchingChord(triad);
+    if (matchTriad) return matchTriad;
+  }
+
+  // Last resort: try triad
   const triad = buildDiatonicChord(scaleIntervals, degree, 3);
   return findMatchingChord(triad);
 }

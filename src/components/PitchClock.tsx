@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getLabel } from '@/lib/musicTheory';
+import { getLabel, type LabelMode } from '@/lib/musicTheory';
 
 const RADIUS = 140;
 const DIAL_RADIUS = RADIUS + 30;
@@ -31,7 +31,7 @@ export default function PitchClock() {
   const {
     root, scaleTonic, setScaleTonic, setRoot,
     activePitchClasses, scalePitchClasses,
-    intervalTensions, labelMode, useFlats,
+    intervalTensions, labelMode, setLabelMode, useFlats, setUseFlats,
     constructionMode, setConstructionMode, togglePitchClass,
   } = useHarmony();
   const isSameTonicAndRoot = root === scaleTonic;
@@ -272,32 +272,60 @@ export default function PitchClock() {
         })}
       </svg>
 
-      {/* Key rotation step buttons + legend */}
-      <div className="flex items-center gap-4 mt-3">
-        <button
-          onClick={() => stepTonic(-1)}
-          className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
-          title="Rotate key down a semitone"
-        >
-          ◀ Key
-        </button>
-
-        <div className="flex gap-3 flex-wrap justify-center">
-          {(['perfect', 'consonant', 'mild', 'dissonant', 'tritone'] as const).map(t => (
-            <div key={t} className="flex items-center gap-1">
-              <div className="w-3 h-1 rounded-full" style={{ backgroundColor: TENSION_COLORS[t] }} />
-              <span className="text-[10px] font-mono text-muted-foreground capitalize">{t}</span>
-            </div>
+      {/* Controls row: label mode, flats, key step */}
+      <div className="flex items-center gap-2 mt-3 flex-wrap justify-center">
+        <div className="flex gap-0.5 bg-secondary rounded p-0.5">
+          {(['notes', 'intervals', 'semitones'] as LabelMode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => setLabelMode(m)}
+              className={`px-2 py-1 rounded text-[10px] font-mono capitalize transition-all ${
+                labelMode === m
+                  ? 'bg-primary text-primary-foreground font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {m}
+            </button>
           ))}
         </div>
-
         <button
-          onClick={() => stepTonic(1)}
-          className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
-          title="Rotate key up a semitone"
+          onClick={() => setUseFlats(!useFlats)}
+          className={`text-[10px] font-mono px-2 py-1 rounded border transition-colors ${
+            useFlats
+              ? 'bg-primary/20 border-primary text-primary'
+              : 'border-border text-muted-foreground hover:border-primary/50'
+          }`}
         >
-          Key ▶
+          ♭
         </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => stepTonic(-1)}
+            className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+            title="Rotate key down a semitone"
+          >
+            ◀
+          </button>
+          <span className="text-[10px] font-mono text-muted-foreground">Key</span>
+          <button
+            onClick={() => stepTonic(1)}
+            className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+            title="Rotate key up a semitone"
+          >
+            ▶
+          </button>
+        </div>
+      </div>
+
+      {/* Tension legend */}
+      <div className="flex gap-3 flex-wrap justify-center mt-2">
+        {(['perfect', 'consonant', 'mild', 'dissonant', 'tritone'] as const).map(t => (
+          <div key={t} className="flex items-center gap-1">
+            <div className="w-3 h-1 rounded-full" style={{ backgroundColor: TENSION_COLORS[t] }} />
+            <span className="text-[10px] font-mono text-muted-foreground capitalize">{t}</span>
+          </div>
+        ))}
       </div>
 
       {/* Construction mode hint */}

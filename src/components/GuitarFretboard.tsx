@@ -29,90 +29,121 @@ const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[
 ];
 
 const NUM_FRETS = 15;
+const MAX_SPAN = 4; // max fret span for a playable voicing
 
-/**
- * CAGED shape templates for a Major triad, defined as fret offsets relative to the chord root.
- * Each shape: [lowE, A, D, G, B, highE] — null means string is muted.
- * Fret values are relative to the root position of that shape.
- * 
- * For C shape at root C(0): bass starts on A string fret 3 (C note)
- * These are the canonical open-position shapes transposed.
- */
-interface CAGEDShape {
-  name: string;
-  /** For root=0 (C), the absolute frets. null = muted. */
-  baseFrets: (number | null)[];
-  /** Which fret is the "anchor" (root position) for transposing */
-  anchorString: number;
-  anchorFret: number;
+interface VoicingPosition {
+  s: number; // string index
+  f: number; // fret number
+  pc: number; // pitch class
 }
 
-// Canonical CAGED shapes for C major (root = C = 0)
-// These get transposed by adding (root semitones) to each fret
-const CAGED_SHAPES: CAGEDShape[] = [
-  // C shape: x-3-2-0-1-0 (bass on A string)
-  { name: 'C', baseFrets: [null, 3, 2, 0, 1, 0], anchorString: 1, anchorFret: 3 },
-  // A shape: x-0-2-2-2-0 → for C, shift by 3: x-3-5-5-5-3
-  { name: 'A', baseFrets: [null, 3, 5, 5, 5, 3], anchorString: 1, anchorFret: 3 },
-  // G shape: 3-2-0-0-0-3 → for C, shift by 5: 8-7-5-5-5-8
-  { name: 'G', baseFrets: [8, 7, 5, 5, 5, 8], anchorString: 0, anchorFret: 8 },
-  // E shape: 0-2-2-1-0-0 → for C, shift by 8: 8-10-10-9-8-8
-  { name: 'E', baseFrets: [8, 10, 10, 9, 8, 8], anchorString: 0, anchorFret: 8 },
-  // D shape: x-x-0-2-3-2 → for C, shift by 10: x-x-10-12-13-12
-  { name: 'D', baseFrets: [null, null, 10, 12, 13, 12], anchorString: 2, anchorFret: 10 },
-];
-
 /**
- * Transpose a CAGED shape to a new root.
- * Returns absolute fret numbers for standard tuning.
+ * Find playable voicings across the fretboard by scanning fret windows.
+ * For each window, find the best assignment of chord tones to strings
+ * (one note per string, max MAX_SPAN fret span, prioritizing all chord tones).
  */
-function transposeCagedShape(
-  shape: CAGEDShape,
+function generateVoicings(
+  chordPcs: number[],
   rootPc: number,
   tuning: number[],
-  chordPcs: number[]
-): { frets: (number | null)[]; positions: { s: number; f: number; pc: number }[] } {
-  // The base shapes are defined for root C (pc=0).
-  // To transpose to a new root, shift all frets by rootPc semitones.
-  const shift = rootPc; // semitones from C
-  const frets: (number | null)[] = shape.baseFrets.map((f, s) => {
-    if (f === null) return null;
-    const transposed = f + shift;
-    // Wrap if beyond fretboard — but keep within 0..NUM_FRETS
-    if (transposed > NUM_FRETS) return null;
-    return transposed;
-  });
+  maxFret: number = NUM_FRETS
+): VoicingPosition[][] {
+  const numStrings = tuning.length;
+  const voicings: VoicingPosition[][] = [];
 
-  // Validate: each fretted note must be a chord tone
-  const positions: { s: number; f: number; pc: number }[] = [];
-  for (let s = 0; s < frets.length; s++) {
-    const f = frets[s];
-    if (f === null) continue;
-    const midi = tuning[s] + f;
-    const pc = midi % 12;
-    if (chordPcs.includes(pc)) {
-      positions.push({ s, f, pc });
-    } else {
-      // Try to adjust ±1 fret to find a chord tone (for non-major chords)
-      let found = false;
-      for (const adj of [-1, 1, -2, 2]) {
-        const adjF = f + adj;
-        if (adjF < 0 || adjF > NUM_FRETS) continue;
-        const adjPc = (tuning[s] + adjF) % 12;
-        if (chordPcs.includes(adjPc)) {
-          frets[s] = adjF;
-          positions.push({ s, f: adjF, pc: adjPc });
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        frets[s] = null; // mute this string
+  // Scan across fret positions — each voicing anchored by a root on bass strings
+  const rootPositions: { s: number; f: number }[] = [];
+  // Find all root positions on the lower 3 strings (bass foundation)
+  for (let s = 0; s < Math.min(3, numStrings); s++) {
+    for (let f = 0; f <= maxFret; f++) {
+      if ((tuning[s] + f) % 12 === rootPc) {
+        rootPositions.push({ s, f });
       }
     }
   }
 
-  return { frets, positions };
+  // For each root anchor, build the best voicing in that region
+  const usedRegions = new Set<number>(); // avoid duplicate voicings in same region
+  for (const anchor of rootPositions) {
+    const regionKey = Math.floor(anchor.f / 3);
+    if (usedRegions.has(regionKey)) continue;
+
+    // Define the fret window around this anchor
+    const minFret = Math.max(0, anchor.f - 1);
+    const maxWindowFret = Math.min(maxFret, minFret + MAX_SPAN);
+
+    // For each string, find available chord tones in this window
+    const stringOptions: VoicingPosition[][] = [];
+    for (let s = 0; s < numStrings; s++) {
+      const opts: VoicingPosition[] = [];
+      for (let f = (s <= anchor.s ? anchor.f : minFret); f <= maxWindowFret; f++) {
+        const pc = (tuning[s] + f) % 12;
+        if (chordPcs.includes(pc)) {
+          opts.push({ s, f, pc });
+        }
+      }
+      // Also check open string (fret 0) if within range
+      if (minFret <= 2) {
+        const openPc = tuning[s] % 12;
+        if (chordPcs.includes(openPc) && !opts.some(o => o.f === 0)) {
+          opts.unshift({ s, f: 0, pc: openPc });
+        }
+      }
+      stringOptions.push(opts);
+    }
+
+    // Greedy: ensure bass note is the root, then fill upper strings with chord tones
+    const voicing: VoicingPosition[] = [];
+    const usedPcs = new Set<number>();
+
+    // Place root on the anchor string
+    voicing.push({ s: anchor.s, f: anchor.f, pc: rootPc });
+    usedPcs.add(rootPc);
+
+    // Fill remaining strings from anchor+1 upward
+    for (let s = anchor.s + 1; s < numStrings; s++) {
+      const opts = stringOptions[s];
+      if (opts.length === 0) continue;
+
+      // Prefer chord tones not yet used (to cover all chord tones)
+      const unused = opts.filter(o => !usedPcs.has(o.pc));
+      const pick = unused.length > 0 ? unused[0] : opts[0];
+
+      // Check playability: fret span
+      const frettedNotes = voicing.filter(v => v.f > 0);
+      if (pick.f > 0 && frettedNotes.length > 0) {
+        const currentMin = Math.min(...frettedNotes.map(v => v.f));
+        const currentMax = Math.max(...frettedNotes.map(v => v.f));
+        const newMin = Math.min(currentMin, pick.f);
+        const newMax = Math.max(currentMax, pick.f);
+        if (newMax - newMin > MAX_SPAN) continue; // skip - too wide
+      }
+
+      voicing.push(pick);
+      usedPcs.add(pick.pc);
+    }
+
+    // Only keep voicings that cover at least 3 chord tones (or all if chord has ≤3)
+    const coveredPcs = new Set(voicing.map(v => v.pc));
+    const minCoverage = Math.min(3, chordPcs.length);
+    if (coveredPcs.size >= minCoverage && voicing.length >= 3) {
+      voicings.push(voicing.sort((a, b) => a.s - b.s));
+      usedRegions.add(regionKey);
+    }
+  }
+
+  // Deduplicate voicings that are identical
+  const unique: VoicingPosition[][] = [];
+  const seen = new Set<string>();
+  for (const v of voicings) {
+    const key = v.map(p => `${p.s}:${p.f}`).join(',');
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(v);
+    }
+  }
+
+  return unique;
 }
 
 export default function GuitarFretboard() {
@@ -136,34 +167,25 @@ export default function GuitarFretboard() {
     return order;
   }, [numStrings]);
 
-  // Build CAGED voicings for all 5 positions
-  const cagedVoicings = useMemo(() => {
-    return CAGED_SHAPES.map(shape => {
-      const result = transposeCagedShape(shape, root, tuning, activePitchClasses);
-      return {
-        name: shape.name,
-        ...result,
-      };
-    });
+  // Generate voicings across the fretboard
+  const voicings = useMemo(() => {
+    return generateVoicings(activePitchClasses, root, tuning, NUM_FRETS);
   }, [root, tuning, activePitchClasses]);
 
-  // Build tension lines for each CAGED position
-  const cagedTensionLines = useMemo(() => {
-    return cagedVoicings.map(voicing => {
+  // Build tension lines for each voicing
+  const voicingTensionLines = useMemo(() => {
+    return voicings.map(voicing => {
       const lines: { x1: number; y1: number; x2: number; y2: number; tension: string }[] = [];
-      const pos = voicing.positions;
-      for (let i = 0; i < pos.length; i++) {
-        for (let j = i + 1; j < pos.length; j++) {
-          const semitones = ((pos[j].pc - pos[i].pc) % 12 + 12) % 12;
+      for (let i = 0; i < voicing.length; i++) {
+        for (let j = i + 1; j < voicing.length; j++) {
+          const semitones = ((voicing[j].pc - voicing[i].pc) % 12 + 12) % 12;
           const tension = getIntervalTension(semitones);
-          const displayRowI = displayOrder.indexOf(pos[i].s);
-          const displayRowJ = displayOrder.indexOf(pos[j].s);
-          const f1 = pos[i].f;
-          const f2 = pos[j].f;
+          const displayRowI = displayOrder.indexOf(voicing[i].s);
+          const displayRowJ = displayOrder.indexOf(voicing[j].s);
           lines.push({
-            x1: LEFT_PAD + (f1 === 0 ? 0 : f1 * FRET_WIDTH - FRET_WIDTH / 2),
+            x1: LEFT_PAD + (voicing[i].f === 0 ? 0 : voicing[i].f * FRET_WIDTH - FRET_WIDTH / 2),
             y1: TOP_PAD + displayRowI * STRING_SPACING,
-            x2: LEFT_PAD + (f2 === 0 ? 0 : f2 * FRET_WIDTH - FRET_WIDTH / 2),
+            x2: LEFT_PAD + (voicing[j].f === 0 ? 0 : voicing[j].f * FRET_WIDTH - FRET_WIDTH / 2),
             y2: TOP_PAD + displayRowJ * STRING_SPACING,
             tension,
           });
@@ -171,25 +193,16 @@ export default function GuitarFretboard() {
       }
       return lines;
     });
-  }, [cagedVoicings, displayOrder]);
+  }, [voicings, displayOrder]);
 
-  // Collect all CAGED fretted positions into a set for highlighting
-  const cagedFrettedSet = useMemo(() => {
+  // Collect all voiced positions into a set for highlighting
+  const voicedSet = useMemo(() => {
     const set = new Set<string>();
-    cagedVoicings.forEach(v => {
-      v.positions.forEach(p => set.add(`${p.s}-${p.f}`));
+    voicings.forEach(v => {
+      v.forEach(p => set.add(`${p.s}-${p.f}`));
     });
     return set;
-  }, [cagedVoicings]);
-
-  // CAGED shape colors for distinguishing positions
-  const CAGED_COLORS = [
-    'hsl(32, 85%, 58%)',  // C - warm orange
-    'hsl(190, 55%, 45%)', // A - teal
-    'hsl(140, 45%, 42%)', // G - green
-    'hsl(280, 40%, 55%)', // E - purple
-    'hsl(350, 55%, 52%)', // D - rose
-  ];
+  }, [voicings]);
 
   return (
     <div className="flex flex-col items-center">
@@ -204,19 +217,9 @@ export default function GuitarFretboard() {
             <option key={preset.name} value={i}>{preset.name}</option>
           ))}
         </select>
-      </div>
-
-      {/* CAGED position legend */}
-      <div className="flex items-center gap-3 mb-2 flex-wrap">
-        {cagedVoicings.map((v, i) => (
-          <div key={v.name} className="flex items-center gap-1">
-            <span
-              className="w-3 h-3 rounded-full inline-block"
-              style={{ backgroundColor: CAGED_COLORS[i] }}
-            />
-            <span className="text-[10px] font-mono text-muted-foreground">{v.name}</span>
-          </div>
-        ))}
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {voicings.length} voicing{voicings.length !== 1 ? 's' : ''} found
+        </span>
       </div>
 
       <div className="overflow-x-auto w-full">
@@ -297,8 +300,8 @@ export default function GuitarFretboard() {
             />
           ))}
 
-          {/* Tension overlay lines for each CAGED position */}
-          {cagedTensionLines.map((lines, posIdx) =>
+          {/* Tension overlay lines for each voicing */}
+          {voicingTensionLines.map((lines, posIdx) =>
             lines.map((line, i) => {
               const color = TENSION_COLORS[line.tension] ?? TENSION_COLORS.mild;
               return (
@@ -308,32 +311,32 @@ export default function GuitarFretboard() {
                   x2={line.x2} y2={line.y2}
                   stroke={color}
                   strokeWidth={1.5}
-                  opacity={0.35}
+                  opacity={0.3}
                   strokeDasharray={line.tension === 'dissonant' || line.tension === 'tritone' ? '4,3' : undefined}
                 />
               );
             })
           )}
 
-          {/* CAGED voicing dots (highlighted) */}
-          {cagedVoicings.map((voicing, posIdx) =>
-            voicing.positions.map((pos, i) => {
+          {/* Voicing dots (highlighted) */}
+          {voicings.map((voicing, posIdx) =>
+            voicing.map((pos, i) => {
               const displayRow = displayOrder.indexOf(pos.s);
               const cx = LEFT_PAD + (pos.f === 0 ? 0 : pos.f * FRET_WIDTH - FRET_WIDTH / 2);
               const cy = TOP_PAD + displayRow * STRING_SPACING;
               const isRoot = pos.pc === root;
-              const fill = isRoot ? 'hsl(32, 85%, 52%)' : CAGED_COLORS[posIdx];
-              const textFill = isRoot ? 'hsl(32, 95%, 95%)' : 'hsl(0, 0%, 95%)';
+              const fill = isRoot ? 'hsl(32, 85%, 52%)' : 'hsl(28, 60%, 40%)';
+              const stroke = isRoot ? 'hsl(32, 90%, 65%)' : 'hsl(28, 50%, 55%)';
 
               return (
-                <g key={`caged-${posIdx}-${i}`} onClick={() => setRoot(pos.pc)} className="cursor-pointer">
-                  <circle cx={cx} cy={cy} r={DOT_R} fill={fill} stroke="hsl(0,0%,10%)" strokeWidth={0.5} />
+                <g key={`v-${posIdx}-${i}`} onClick={() => setRoot(pos.pc)} className="cursor-pointer">
+                  <circle cx={cx} cy={cy} r={DOT_R} fill={fill} stroke={stroke} strokeWidth={1} />
                   <text
                     x={cx} y={cy}
                     textAnchor="middle" dominantBaseline="central"
                     fontSize={8} fontWeight={600}
                     fontFamily="'JetBrains Mono', monospace"
-                    fill={textFill}
+                    fill="hsl(0, 0%, 92%)"
                   >
                     {getLabel(pos.pc, root, labelMode, useFlats)}
                   </text>
@@ -346,7 +349,7 @@ export default function GuitarFretboard() {
           {showArpeggio && displayOrder.map((dataIdx, row) =>
             Array.from({ length: NUM_FRETS + 1 }, (_, f) => {
               const key = `${dataIdx}-${f}`;
-              if (cagedFrettedSet.has(key)) return null;
+              if (voicedSet.has(key)) return null;
               const midi = tuning[dataIdx] + f;
               const pc = midi % 12;
               if (!scalePitchClasses.includes(pc) || activePitchClasses.includes(pc)) return null;
