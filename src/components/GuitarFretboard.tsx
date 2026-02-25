@@ -38,119 +38,129 @@ interface VoicingPosition {
 }
 
 /**
- * Find playable voicings across the fretboard by scanning fret windows.
- * For each window, find the best assignment of chord tones to strings
- * (one note per string, max MAX_SPAN fret span, prioritizing all chord tones).
+ * Build a single voicing starting from a bass anchor, filling upward strings
+ * within a fret window. Returns null if not enough chord tones covered.
+ */
+function buildVoicing(
+  chordPcs: number[],
+  bassString: number,
+  bassFret: number,
+  bassPc: number,
+  tuning: number[],
+  windowMin: number,
+  windowMax: number,
+): VoicingPosition[] | null {
+  const numStrings = tuning.length;
+  const voicing: VoicingPosition[] = [];
+  const usedPcs = new Set<number>();
+
+  voicing.push({ s: bassString, f: bassFret, pc: bassPc });
+  usedPcs.add(bassPc);
+
+  for (let s = bassString + 1; s < numStrings; s++) {
+    const opts: VoicingPosition[] = [];
+    // Check open string
+    const openPc = tuning[s] % 12;
+    if (chordPcs.includes(openPc) && windowMin <= 3) {
+      opts.push({ s, f: 0, pc: openPc });
+    }
+    // Check fretted positions in window
+    for (let f = Math.max(1, windowMin); f <= windowMax; f++) {
+      const pc = (tuning[s] + f) % 12;
+      if (chordPcs.includes(pc)) {
+        opts.push({ s, f, pc });
+      }
+    }
+    if (opts.length === 0) continue;
+
+    // Prefer uncovered chord tones first
+    const unused = opts.filter(o => !usedPcs.has(o.pc));
+    const pick = unused.length > 0 ? unused[0] : opts[0];
+
+    // Verify fret span stays playable
+    const fretted = [...voicing, pick].filter(v => v.f > 0);
+    if (fretted.length > 1) {
+      const min = Math.min(...fretted.map(v => v.f));
+      const max = Math.max(...fretted.map(v => v.f));
+      if (max - min > MAX_SPAN) continue;
+    }
+
+    voicing.push(pick);
+    usedPcs.add(pick.pc);
+  }
+
+  const covered = new Set(voicing.map(v => v.pc));
+  const minCoverage = Math.min(3, chordPcs.length);
+  if (covered.size >= minCoverage && voicing.length >= 3) {
+    return voicing.sort((a, b) => a.s - b.s);
+  }
+  return null;
+}
+
+/**
+ * Find playable voicings across the full fretboard.
+ * For each bass note anchor, tries multiple fret windows to produce
+ * distinct voicing shapes. The same fret position can anchor multiple voicings.
  */
 function generateVoicings(
   chordPcs: number[],
-  rootPc: number,
+  bassPc: number,
   tuning: number[],
   maxFret: number = NUM_FRETS
 ): VoicingPosition[][] {
   const numStrings = tuning.length;
+  const seen = new Set<string>();
   const voicings: VoicingPosition[][] = [];
 
-  // Scan across fret positions — each voicing anchored by a root on bass strings
-  const rootPositions: { s: number; f: number }[] = [];
-  // Find all root positions on the lower 3 strings (bass foundation)
+  // Find all bass note positions on the lower 3 strings
+  const bassPositions: { s: number; f: number }[] = [];
   for (let s = 0; s < Math.min(3, numStrings); s++) {
     for (let f = 0; f <= maxFret; f++) {
-      if ((tuning[s] + f) % 12 === rootPc) {
-        rootPositions.push({ s, f });
+      if ((tuning[s] + f) % 12 === bassPc) {
+        bassPositions.push({ s, f });
       }
     }
   }
 
-  // For each root anchor, build the best voicing in that region
-  const usedRegions = new Set<number>(); // avoid duplicate voicings in same region
-  for (const anchor of rootPositions) {
-    const regionKey = Math.floor(anchor.f / 3);
-    if (usedRegions.has(regionKey)) continue;
+  for (const anchor of bassPositions) {
+    // Try multiple fret windows around this anchor to get different shapes
+    const windows: [number, number][] = [
+      [anchor.f, Math.min(maxFret, anchor.f + MAX_SPAN)],           // reach up
+      [Math.max(0, anchor.f - 2), Math.min(maxFret, anchor.f + 2)], // centered
+      [Math.max(0, anchor.f - MAX_SPAN), anchor.f],                 // reach down
+    ];
 
-    // Define the fret window around this anchor
-    const minFret = Math.max(0, anchor.f - 1);
-    const maxWindowFret = Math.min(maxFret, minFret + MAX_SPAN);
+    for (const [wMin, wMax] of windows) {
+      if (wMax - wMin > MAX_SPAN + 1) continue; // safety
+      const voicing = buildVoicing(chordPcs, anchor.s, anchor.f, bassPc, tuning, wMin, wMax);
+      if (!voicing) continue;
 
-    // For each string, find available chord tones in this window
-    const stringOptions: VoicingPosition[][] = [];
-    for (let s = 0; s < numStrings; s++) {
-      const opts: VoicingPosition[] = [];
-      for (let f = (s <= anchor.s ? anchor.f : minFret); f <= maxWindowFret; f++) {
-        const pc = (tuning[s] + f) % 12;
-        if (chordPcs.includes(pc)) {
-          opts.push({ s, f, pc });
-        }
+      const key = voicing.map(p => `${p.s}:${p.f}`).join(',');
+      if (!seen.has(key)) {
+        seen.add(key);
+        voicings.push(voicing);
       }
-      // Also check open string (fret 0) if within range
-      if (minFret <= 2) {
-        const openPc = tuning[s] % 12;
-        if (chordPcs.includes(openPc) && !opts.some(o => o.f === 0)) {
-          opts.unshift({ s, f: 0, pc: openPc });
-        }
-      }
-      stringOptions.push(opts);
-    }
-
-    // Greedy: ensure bass note is the root, then fill upper strings with chord tones
-    const voicing: VoicingPosition[] = [];
-    const usedPcs = new Set<number>();
-
-    // Place root on the anchor string
-    voicing.push({ s: anchor.s, f: anchor.f, pc: rootPc });
-    usedPcs.add(rootPc);
-
-    // Fill remaining strings from anchor+1 upward
-    for (let s = anchor.s + 1; s < numStrings; s++) {
-      const opts = stringOptions[s];
-      if (opts.length === 0) continue;
-
-      // Prefer chord tones not yet used (to cover all chord tones)
-      const unused = opts.filter(o => !usedPcs.has(o.pc));
-      const pick = unused.length > 0 ? unused[0] : opts[0];
-
-      // Check playability: fret span
-      const frettedNotes = voicing.filter(v => v.f > 0);
-      if (pick.f > 0 && frettedNotes.length > 0) {
-        const currentMin = Math.min(...frettedNotes.map(v => v.f));
-        const currentMax = Math.max(...frettedNotes.map(v => v.f));
-        const newMin = Math.min(currentMin, pick.f);
-        const newMax = Math.max(currentMax, pick.f);
-        if (newMax - newMin > MAX_SPAN) continue; // skip - too wide
-      }
-
-      voicing.push(pick);
-      usedPcs.add(pick.pc);
-    }
-
-    // Only keep voicings that cover at least 3 chord tones (or all if chord has ≤3)
-    const coveredPcs = new Set(voicing.map(v => v.pc));
-    const minCoverage = Math.min(3, chordPcs.length);
-    if (coveredPcs.size >= minCoverage && voicing.length >= 3) {
-      voicings.push(voicing.sort((a, b) => a.s - b.s));
-      usedRegions.add(regionKey);
     }
   }
 
-  // Deduplicate voicings that are identical
-  const unique: VoicingPosition[][] = [];
-  const seen = new Set<string>();
-  for (const v of voicings) {
-    const key = v.map(p => `${p.s}:${p.f}`).join(',');
-    if (!seen.has(key)) {
-      seen.add(key);
-      unique.push(v);
-    }
-  }
-
-  return unique;
+  return voicings;
 }
 
 export default function GuitarFretboard() {
   const {
     root, setRoot, activePitchClasses, scalePitchClasses,
     showArpeggio, labelMode, useFlats,
+    activeIntervals, inversion,
   } = useHarmony();
+
+  // Determine bass pitch class based on inversion
+  const bassPc = useMemo(() => {
+    if (inversion === 0) return root;
+    // The bass note is the interval at position [inversion] mapped to pitch class
+    const intervals = [...activeIntervals];
+    const bassInterval = intervals[0]; // activeIntervals already has inversion applied
+    return ((root + bassInterval) % 12 + 12) % 12;
+  }, [root, inversion, activeIntervals]);
 
   const [tuningIdx, setTuningIdx] = React.useState(0);
   const currentTuning = TUNING_PRESETS[tuningIdx];
@@ -167,10 +177,10 @@ export default function GuitarFretboard() {
     return order;
   }, [numStrings]);
 
-  // Generate voicings across the fretboard
+  // Generate voicings across the fretboard, anchored on the bass note
   const voicings = useMemo(() => {
-    return generateVoicings(activePitchClasses, root, tuning, NUM_FRETS);
-  }, [root, tuning, activePitchClasses]);
+    return generateVoicings(activePitchClasses, bassPc, tuning, NUM_FRETS);
+  }, [bassPc, tuning, activePitchClasses]);
 
   // Build tension lines for each voicing
   const voicingTensionLines = useMemo(() => {
