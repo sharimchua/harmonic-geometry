@@ -8,6 +8,7 @@ import CadenceExplorer from '@/components/CadenceExplorer';
 import IntervalRelationshipList from '@/components/IntervalRelationshipList';
 import HarmonicContext from '@/components/HarmonicContext';
 import ControlPanel from '@/components/ControlPanel';
+import StaffNotation from '@/components/StaffNotation';
 
 const Index = () => {
   const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, functionalAnalysis } = useHarmony();
@@ -86,6 +87,11 @@ const Index = () => {
               </section>
             </div>
           </div>
+
+          {/* Staff Notation */}
+          <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
+            <StaffNotation />
+          </section>
 
           {/* Piano */}
           <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
