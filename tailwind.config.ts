@@ -12,6 +12,9 @@ export default {
         "2xl": "1400px",
       },
     },
+    screens: {
+        '3xl': '1920px',
+      },
     extend: {
       fontFamily: {
         sans: ["Montserrat", "sans-serif"],
