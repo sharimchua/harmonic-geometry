@@ -294,10 +294,14 @@ export default function StaffNotation() {
               );
             })}
 
-            {/* Clef indicator */}
+            {/* Clef indicator — treble curl on G4 line, bass dots around F3 line */}
             <text
-              x={22} y={STAFF_TOP_Y + STAFF_H / 2 + (clef === 'treble' ? 6 : 5)}
-              fontSize={clef === 'treble' ? 42 : 36}
+              x={22}
+              y={clef === 'treble'
+                ? getY(32) + 8   /* G4 line — curl of 𝄞 sits near baseline */
+                : getY(24) + 6   /* F3 line — 𝄢 reference */
+              }
+              fontSize={clef === 'treble' ? 44 : 36}
               fontFamily="serif, 'Times New Roman', Georgia"
               fill="hsl(30, 10%, 55%)"
               textAnchor="start"
