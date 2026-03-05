@@ -19,6 +19,7 @@ import {
   identifyChordFromPitchClasses,
   type IntervalTension,
 } from '@/lib/musicTheory';
+import { useMidi, type MidiState } from '@/hooks/use-midi';
 
 interface HarmonyState {
   scaleTonic: PitchClass; // key center
@@ -50,6 +51,10 @@ interface HarmonyContextValue extends HarmonyState {
   setLockMode: (mode: HarmonicLockMode) => void;
   setConstructionMode: (on: boolean) => void;
   togglePitchClass: (pc: PitchClass) => void;
+  // MIDI
+  midi: MidiState;
+  midiEnabled: boolean;
+  setMidiEnabled: (on: boolean) => void;
   // Derived data
   activeIntervals: number[];
   activePitchClasses: PitchClass[];
@@ -77,6 +82,22 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const [lockMode, setLockMode] = useState<HarmonicLockMode>('quality');
   const [constructionMode, setConstructionMode] = useState(false);
   const [customPitchClasses, setCustomPitchClasses] = useState<PitchClass[] | null>(null);
+  const [midiEnabled, setMidiEnabled] = useState(false);
+
+  // MIDI integration — update harmony when chords are played
+  const handleMidiChord = useCallback((event: any) => {
+    if (!midiEnabled) return;
+    const { chord: identified, inversion: inv } = event;
+    if (identified) {
+      setHarmonicRoot(identified.root);
+      setChordRaw(identified.chord);
+      setInversion(inv);
+      setDropVoicing(0);
+      setCustomPitchClasses(null);
+    }
+  }, [midiEnabled]);
+
+  const midi = useMidi(midiEnabled ? handleMidiChord : undefined);
 
   // Toggle a pitch class on/off in construction mode
   const togglePitchClass = useCallback((pc: PitchClass) => {
@@ -183,6 +204,8 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     lockMode, setLockMode,
     constructionMode, setConstructionMode,
     togglePitchClass,
+    midi,
+    midiEnabled, setMidiEnabled,
     activeIntervals,
     activePitchClasses,
     scalePitchClasses,

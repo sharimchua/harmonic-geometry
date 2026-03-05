@@ -14,6 +14,7 @@ export default function ControlPanel() {
     labelMode, setLabelMode, showArpeggio, setShowArpeggio,
     useFlats, setUseFlats,
     lockMode, setLockMode,
+    midi, midiEnabled, setMidiEnabled,
   } = useHarmony();
 
   const noteNames = useFlats ? NOTE_NAMES_FLAT : NOTE_NAMES_SHARP;
@@ -228,6 +229,39 @@ export default function ControlPanel() {
               <span className="text-xs font-sans text-muted-foreground">♭ Flats</span>
             </label>
           </div>
+        </div>
+      </Section>
+
+      {/* MIDI Input */}
+      <Section title="MIDI Input">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setMidiEnabled(!midiEnabled)}
+              className={`px-2.5 py-1.5 rounded text-xs font-sans transition-all ${
+                midiEnabled
+                  ? 'bg-primary text-primary-foreground font-semibold'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+              }`}
+            >
+              {midiEnabled ? '🎹 MIDI On' : 'Enable MIDI'}
+            </button>
+          </div>
+          {midi.isSupported ? (
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${midi.isConnected ? 'bg-green-500' : 'bg-muted-foreground/40'}`} />
+              <span className="text-[11px] font-sans text-muted-foreground">
+                {midi.isConnected ? midi.deviceName : 'No device'}
+              </span>
+            </div>
+          ) : (
+            <p className="text-[11px] font-sans text-muted-foreground">MIDI not supported in this browser</p>
+          )}
+          {midiEnabled && midi.heldNotes.length > 0 && (
+            <div className="text-[10px] font-mono text-muted-foreground">
+              Notes: {midi.heldNotes.map(n => n).join(', ')}
+            </div>
+          )}
         </div>
       </Section>
     </div>
