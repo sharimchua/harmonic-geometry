@@ -36,9 +36,9 @@
 
     --radius: 0.5rem;
 
-    /* Music-specific semantic colors */
-    --interval-perfect: 160 50% 42%;
-    --interval-consonant: 190 45% 45%;
+    /* Music-specific semantic colors — improved contrast between perfect & consonant */
+    --interval-perfect: 220 55% 58%;
+    --interval-consonant: 150 55% 42%;
     --interval-mild: 42 55% 52%;
     --interval-dissonant: 0 65% 52%;
     --interval-tritone: 340 60% 50%;

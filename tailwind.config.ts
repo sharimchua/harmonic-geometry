@@ -12,10 +12,10 @@ export default {
         "2xl": "1400px",
       },
     },
-    screens: {
+    extend: {
+      screens: {
         '3xl': '1920px',
       },
-    extend: {
       fontFamily: {
         sans: ["Montserrat", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],

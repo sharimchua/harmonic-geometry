@@ -7,10 +7,9 @@ const BLACK_KEY_PCS = [1, 3, 6, 8, 10];
 const OCTAVES = 3;
 const START_OCTAVE = 3;
 
-// Tension color mapping (matches design tokens)
 const TENSION_COLORS: Record<string, string> = {
-  perfect: 'hsl(160, 50%, 42%)',
-  consonant: 'hsl(190, 45%, 45%)',
+  perfect: 'hsl(220, 55%, 58%)',
+  consonant: 'hsl(150, 55%, 42%)',
   mild: 'hsl(42, 55%, 52%)',
   dissonant: 'hsl(0, 65%, 52%)',
   tritone: 'hsl(340, 60%, 50%)',
