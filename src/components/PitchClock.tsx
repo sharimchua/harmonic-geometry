@@ -8,11 +8,19 @@ const CENTER = 180;
 const DOT_RADIUS = 18;
 
 const TENSION_COLORS: Record<string, string> = {
-  perfect: 'hsl(160, 50%, 42%)',
-  consonant: 'hsl(190, 45%, 45%)',
+  perfect: 'hsl(220, 55%, 58%)',
+  consonant: 'hsl(150, 55%, 42%)',
   mild: 'hsl(42, 55%, 52%)',
   dissonant: 'hsl(0, 65%, 52%)',
   tritone: 'hsl(340, 60%, 50%)',
+};
+
+const TENSION_LABELS: Record<string, string> = {
+  perfect: 'Perfect',
+  consonant: 'Consonant',
+  mild: 'Mild',
+  dissonant: 'Dissonant',
+  tritone: 'Tritone',
 };
 
 function pitchClassToAngle(pc: number): number {
@@ -64,7 +72,6 @@ export default function PitchClock() {
     if (!isDragging) return;
     const currentAngle = getAngleFromEvent(e);
     const delta = currentAngle - dragStartAngle.current;
-    // Each 30° = 1 semitone
     const steps = Math.round(delta / 30);
     const newTonic = ((dragStartTonic.current + steps) % 12 + 12) % 12;
     if (newTonic !== scaleTonic) {
@@ -91,7 +98,7 @@ export default function PitchClock() {
   return (
     <div className="flex flex-col items-center">
       {/* Header with Construction Mode toggle */}
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3 mb-4">
         <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">Pitch Clock</h3>
         <button
           onClick={() => setConstructionMode(!constructionMode)}
@@ -155,14 +162,15 @@ export default function PitchClock() {
           const [x2, y2] = pitchClassToXY(t.to);
           const color = TENSION_COLORS[t.tension];
           const isDiss = t.tension === 'dissonant' || t.tension === 'tritone';
+          const isPerfect = t.tension === 'perfect';
           return (
             <line
               key={i}
               x1={x1} y1={y1} x2={x2} y2={y2}
               stroke={color}
-              strokeWidth={isDiss ? 2.5 : 1.5}
+              strokeWidth={isPerfect ? 2.5 : isDiss ? 2.5 : 1.5}
               strokeDasharray={isDiss ? '6 3' : 'none'}
-              opacity={0.7}
+              opacity={0.8}
             />
           );
         })}
@@ -217,7 +225,6 @@ export default function PitchClock() {
             r = DOT_RADIUS + 2;
           }
 
-          // In construction mode, show a subtle "addable" indicator for inactive nodes
           if (constructionMode && !isActive) {
             strokeColor = 'hsl(28, 40%, 35%)';
           }
@@ -232,18 +239,16 @@ export default function PitchClock() {
               role="button"
               tabIndex={0}
             >
-              {/* Construction mode ring indicator */}
               {constructionMode && (
                 <circle
                   cx={x} cy={y} r={r + 8}
                   fill="none"
-                  stroke={isActive ? 'hsl(0, 65%, 45%)' : 'hsl(160, 50%, 35%)'}
+                  stroke={isActive ? 'hsl(0, 65%, 45%)' : 'hsl(150, 55%, 35%)'}
                   strokeWidth="1"
                   strokeDasharray="3 3"
                   opacity={0.5}
                 />
               )}
-              {/* Tonic marker — diamond shape */}
               {isTonic && !isRoot && (
                 <rect
                   x={x - r - 5} y={y - r - 5}
@@ -272,8 +277,8 @@ export default function PitchClock() {
         })}
       </svg>
 
-      {/* Controls row: label mode, flats, key step */}
-      <div className="flex items-center gap-2 mt-3 flex-wrap justify-center">
+      {/* Controls row */}
+      <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
         <div className="flex gap-0.5 bg-secondary rounded p-0.5">
           {(['notes', 'intervals', 'semitones'] as LabelMode[]).map(m => (
             <button
@@ -318,17 +323,16 @@ export default function PitchClock() {
         </div>
       </div>
 
-      {/* Tension legend */}
-      <div className="flex gap-3 flex-wrap justify-center mt-2">
+      {/* Tension legend — larger swatches for readability */}
+      <div className="flex gap-4 flex-wrap justify-center mt-3">
         {(['perfect', 'consonant', 'mild', 'dissonant', 'tritone'] as const).map(t => (
-          <div key={t} className="flex items-center gap-1">
-            <div className="w-3 h-1 rounded-full" style={{ backgroundColor: TENSION_COLORS[t] }} />
-            <span className="text-[10px] font-mono text-muted-foreground capitalize">{t}</span>
+          <div key={t} className="flex items-center gap-1.5">
+            <div className="w-4 h-1.5 rounded-full" style={{ backgroundColor: TENSION_COLORS[t] }} />
+            <span className="text-[10px] font-mono text-muted-foreground">{TENSION_LABELS[t]}</span>
           </div>
         ))}
       </div>
 
-      {/* Construction mode hint */}
       {constructionMode && (
         <p className="text-[10px] font-mono text-primary/70 mt-2">
           Click nodes to add/remove notes • Chord auto-detected

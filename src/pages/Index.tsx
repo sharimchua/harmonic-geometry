@@ -68,121 +68,44 @@ const Index = () => {
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════
-            RESPONSIVE LAYOUT
-            
-            Default (mobile):     Single column, everything stacked
-            xl  (1280px+):        Pitch Clock | Intervals + Cadence  (2 col)
-            2xl (1536px+):        Pitch Clock (large center) | Right sidebar (Context + Intervals + Cadence)
-                                  Below: Staff + Piano + Guitar in 2-col grid
-            3xl (1920px+):        3-column: Context+Staff | Pitch Clock | Intervals+Cadence
-                                  Below: Piano + Guitar side by side
-           ═══════════════════════════════════════════════ */}
+        <div className="p-4 xl:p-6">
+          {/* ── xl+: Two-column layout — Analysis | Instruments ── */}
+          <div className="hidden xl:grid xl:grid-cols-2 3xl:grid-cols-[1fr_1fr] gap-6 3xl:gap-8 items-start">
+            {/* LEFT COLUMN: Analysis (Pitch Clock hero + Context + Intervals + Cadence) */}
+            <div className="flex flex-col gap-6 3xl:gap-8">
+              {/* Pitch Clock — hero placement, generous padding */}
+              <section className="bg-surface-1 border border-border rounded-lg p-6 3xl:p-10 shadow-sm">
+                <PitchClock />
+              </section>
 
-        <div className="p-4 3xl:p-6">
-          {/* ── 3xl: Three-column hero row ── */}
-          <div className="hidden 3xl:grid 3xl:grid-cols-[320px_1fr_360px] gap-5 items-start mb-5">
-            {/* Left column: Context + Staff */}
-            <div className="flex flex-col gap-5 sticky top-4">
-              <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
+              {/* Harmonic Context */}
+              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
                 <HarmonicContext />
               </section>
-              <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-                <StaffNotation />
-              </section>
-            </div>
 
-            {/* Center: Pitch Clock — hero placement */}
-            <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm sticky top-4">
-              <PitchClock />
-            </section>
-
-            {/* Right column: Intervals + Cadence */}
-            <div className="flex flex-col gap-5 sticky top-4">
-              <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
+              {/* Interval Relationships */}
+              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
                 <IntervalRelationshipList />
               </section>
-              <section className="bg-surface-1 border border-border rounded-lg p-5 shadow-sm overflow-y-auto max-h-[420px]">
+
+              {/* Cadence Explorer */}
+              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
                 <CadenceExplorer />
               </section>
             </div>
-          </div>
 
-          {/* 3xl: Instruments row — side by side */}
-          <div className="hidden 3xl:grid 3xl:grid-cols-2 gap-5">
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <PianoKeyboard />
-            </section>
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <GuitarFretboard />
-            </section>
-          </div>
-
-          {/* ── 2xl (not 3xl): Two-column layout ── */}
-          <div className="hidden 2xl:grid 3xl:hidden 2xl:grid-cols-[1fr_340px] gap-5 items-start mb-5">
-            {/* Left: Context + Pitch Clock */}
-            <div className="flex flex-col gap-5">
-              <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-                <HarmonicContext />
-              </section>
-              <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm sticky top-4">
-                <PitchClock />
-              </section>
-            </div>
-
-            {/* Right sidebar: Intervals + Cadence + Staff */}
-            <div className="flex flex-col gap-5 sticky top-4">
-              <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-                <IntervalRelationshipList />
-              </section>
-              <section className="bg-surface-1 border border-border rounded-lg p-5 shadow-sm overflow-y-auto max-h-[360px]">
-                <CadenceExplorer />
-              </section>
-              <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
+            {/* RIGHT COLUMN: Instruments (Staff + Piano + Fretboard) */}
+            <div className="flex flex-col gap-6 3xl:gap-8 sticky top-4">
+              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
                 <StaffNotation />
               </section>
-            </div>
-          </div>
-
-          {/* 2xl (not 3xl): Instruments row */}
-          <div className="hidden 2xl:grid 3xl:hidden 2xl:grid-cols-2 gap-5">
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <PianoKeyboard />
-            </section>
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <GuitarFretboard />
-            </section>
-          </div>
-
-          {/* ── xl (not 2xl): Original 2-col layout ── */}
-          <div className="hidden xl:block 2xl:hidden space-y-5 max-w-5xl mx-auto">
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <HarmonicContext />
-            </section>
-
-            <div className="grid grid-cols-[1fr_340px] gap-5 items-start">
-              <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm sticky top-4">
-                <PitchClock />
+              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
+                <PianoKeyboard />
               </section>
-              <div className="flex flex-col gap-5">
-                <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-                  <IntervalRelationshipList />
-                </section>
-                <section className="bg-surface-1 border border-border rounded-lg p-5 shadow-sm overflow-y-auto max-h-[420px]">
-                  <CadenceExplorer />
-                </section>
-              </div>
+              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
+                <GuitarFretboard />
+              </section>
             </div>
-
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <StaffNotation />
-            </section>
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <PianoKeyboard />
-            </section>
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <GuitarFretboard />
-            </section>
           </div>
 
           {/* ── Default / mobile / md (below xl): Single column ── */}
@@ -199,7 +122,7 @@ const Index = () => {
               <IntervalRelationshipList />
             </section>
 
-            <section className="bg-surface-1 border border-border rounded-lg p-5 shadow-sm overflow-y-auto max-h-[420px]">
+            <section className="bg-surface-1 border border-border rounded-lg p-5 shadow-sm">
               <CadenceExplorer />
             </section>
 

@@ -11,8 +11,8 @@ const DOT_R = 8;
 const FRET_MARKERS = [3, 5, 7, 9, 12, 15];
 
 const TENSION_COLORS: Record<string, string> = {
-  perfect: 'hsl(160, 50%, 42%)',
-  consonant: 'hsl(190, 45%, 45%)',
+  perfect: 'hsl(220, 55%, 58%)',
+  consonant: 'hsl(150, 55%, 42%)',
   mild: 'hsl(42, 55%, 52%)',
   dissonant: 'hsl(0, 65%, 52%)',
   tritone: 'hsl(340, 60%, 50%)',
@@ -29,18 +29,14 @@ const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[
 ];
 
 const NUM_FRETS = 15;
-const MAX_SPAN = 4; // max fret span for a playable voicing
+const MAX_SPAN = 4;
 
 interface VoicingPosition {
-  s: number; // string index
-  f: number; // fret number
-  pc: number; // pitch class
+  s: number;
+  f: number;
+  pc: number;
 }
 
-/**
- * Build a single voicing starting from a bass anchor, filling upward strings
- * within a fret window. Returns null if not enough chord tones covered.
- */
 function buildVoicing(
   chordPcs: number[],
   bassString: number,
@@ -59,12 +55,10 @@ function buildVoicing(
 
   for (let s = bassString + 1; s < numStrings; s++) {
     const opts: VoicingPosition[] = [];
-    // Check open string
     const openPc = tuning[s] % 12;
     if (chordPcs.includes(openPc) && windowMin <= 3) {
       opts.push({ s, f: 0, pc: openPc });
     }
-    // Check fretted positions in window
     for (let f = Math.max(1, windowMin); f <= windowMax; f++) {
       const pc = (tuning[s] + f) % 12;
       if (chordPcs.includes(pc)) {
@@ -73,11 +67,9 @@ function buildVoicing(
     }
     if (opts.length === 0) continue;
 
-    // Prefer uncovered chord tones first
     const unused = opts.filter(o => !usedPcs.has(o.pc));
     const pick = unused.length > 0 ? unused[0] : opts[0];
 
-    // Verify fret span stays playable
     const fretted = [...voicing, pick].filter(v => v.f > 0);
     if (fretted.length > 1) {
       const min = Math.min(...fretted.map(v => v.f));
@@ -97,11 +89,6 @@ function buildVoicing(
   return null;
 }
 
-/**
- * Find playable voicings across the full fretboard.
- * For each bass note anchor, tries multiple fret windows to produce
- * distinct voicing shapes. The same fret position can anchor multiple voicings.
- */
 function generateVoicings(
   chordPcs: number[],
   bassPc: number,
@@ -112,7 +99,6 @@ function generateVoicings(
   const seen = new Set<string>();
   const voicings: VoicingPosition[][] = [];
 
-  // Find all bass note positions on the lower 3 strings
   const bassPositions: { s: number; f: number }[] = [];
   for (let s = 0; s < Math.min(3, numStrings); s++) {
     for (let f = 0; f <= maxFret; f++) {
@@ -123,15 +109,14 @@ function generateVoicings(
   }
 
   for (const anchor of bassPositions) {
-    // Try multiple fret windows around this anchor to get different shapes
     const windows: [number, number][] = [
-      [anchor.f, Math.min(maxFret, anchor.f + MAX_SPAN)],           // reach up
-      [Math.max(0, anchor.f - 2), Math.min(maxFret, anchor.f + 2)], // centered
-      [Math.max(0, anchor.f - MAX_SPAN), anchor.f],                 // reach down
+      [anchor.f, Math.min(maxFret, anchor.f + MAX_SPAN)],
+      [Math.max(0, anchor.f - 2), Math.min(maxFret, anchor.f + 2)],
+      [Math.max(0, anchor.f - MAX_SPAN), anchor.f],
     ];
 
     for (const [wMin, wMax] of windows) {
-      if (wMax - wMin > MAX_SPAN + 1) continue; // safety
+      if (wMax - wMin > MAX_SPAN + 1) continue;
       const voicing = buildVoicing(chordPcs, anchor.s, anchor.f, bassPc, tuning, wMin, wMax);
       if (!voicing) continue;
 
@@ -153,12 +138,10 @@ export default function GuitarFretboard() {
     activeIntervals, inversion,
   } = useHarmony();
 
-  // Determine bass pitch class based on inversion
   const bassPc = useMemo(() => {
     if (inversion === 0) return root;
-    // The bass note is the interval at position [inversion] mapped to pitch class
     const intervals = [...activeIntervals];
-    const bassInterval = intervals[0]; // activeIntervals already has inversion applied
+    const bassInterval = intervals[0];
     return ((root + bassInterval) % 12 + 12) % 12;
   }, [root, inversion, activeIntervals]);
 
@@ -170,19 +153,16 @@ export default function GuitarFretboard() {
   const totalWidth = LEFT_PAD + (NUM_FRETS + 1) * FRET_WIDTH;
   const totalHeight = TOP_PAD + (numStrings - 1) * STRING_SPACING + 30;
 
-  // Reverse display order: high strings at top, low strings at bottom
   const displayOrder = useMemo(() => {
     const order: number[] = [];
     for (let i = numStrings - 1; i >= 0; i--) order.push(i);
     return order;
   }, [numStrings]);
 
-  // Generate voicings across the fretboard, anchored on the bass note
   const voicings = useMemo(() => {
     return generateVoicings(activePitchClasses, bassPc, tuning, NUM_FRETS);
   }, [bassPc, tuning, activePitchClasses]);
 
-  // Build tension lines for each voicing
   const voicingTensionLines = useMemo(() => {
     return voicings.map(voicing => {
       const lines: { x1: number; y1: number; x2: number; y2: number; tension: string }[] = [];
@@ -205,7 +185,6 @@ export default function GuitarFretboard() {
     });
   }, [voicings, displayOrder]);
 
-  // Collect all voiced positions into a set for highlighting
   const voicedSet = useMemo(() => {
     const set = new Set<string>();
     voicings.forEach(v => {
@@ -234,7 +213,6 @@ export default function GuitarFretboard() {
 
       <div className="overflow-x-auto w-full">
         <svg width={totalWidth} height={totalHeight} className="mx-auto block">
-          {/* Fret markers */}
           {FRET_MARKERS.map(f => f <= NUM_FRETS && (
             <text
               key={`marker-${f}`}
@@ -248,14 +226,12 @@ export default function GuitarFretboard() {
             </text>
           ))}
 
-          {/* Nut */}
           <line
             x1={LEFT_PAD} y1={TOP_PAD}
             x2={LEFT_PAD} y2={TOP_PAD + (numStrings - 1) * STRING_SPACING}
             stroke="hsl(30, 10%, 55%)" strokeWidth="3"
           />
 
-          {/* Fret lines */}
           {Array.from({ length: NUM_FRETS }, (_, f) => (
             <line
               key={`fret-${f}`}
@@ -267,7 +243,6 @@ export default function GuitarFretboard() {
             />
           ))}
 
-          {/* Strings */}
           {displayOrder.map((dataIdx, row) => (
             <g key={`string-${dataIdx}`}>
               <text
@@ -290,7 +265,6 @@ export default function GuitarFretboard() {
             </g>
           ))}
 
-          {/* Fret marker dots */}
           {FRET_MARKERS.filter(f => f !== 12 && f <= NUM_FRETS).map(f => (
             <circle
               key={`dot-${f}`}
@@ -310,7 +284,6 @@ export default function GuitarFretboard() {
             />
           ))}
 
-          {/* Tension overlay lines for each voicing */}
           {voicingTensionLines.map((lines, posIdx) =>
             lines.map((line, i) => {
               const color = TENSION_COLORS[line.tension] ?? TENSION_COLORS.mild;
@@ -328,7 +301,6 @@ export default function GuitarFretboard() {
             })
           )}
 
-          {/* Voicing dots (highlighted) */}
           {voicings.map((voicing, posIdx) =>
             voicing.map((pos, i) => {
               const displayRow = displayOrder.indexOf(pos.s);
@@ -355,7 +327,6 @@ export default function GuitarFretboard() {
             })
           )}
 
-          {/* Ghost scale tones (not in chord, but in scale) */}
           {showArpeggio && displayOrder.map((dataIdx, row) =>
             Array.from({ length: NUM_FRETS + 1 }, (_, f) => {
               const key = `${dataIdx}-${f}`;

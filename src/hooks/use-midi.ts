@@ -21,6 +21,8 @@ export interface MidiChordEvent {
   pitchClasses: PitchClass[];
 }
 
+const NOTE_OFF_DELAY_MS = 180; // ms to wait after key release before processing
+
 /**
  * Determines the inversion number by comparing the bass note's pitch class
  * to the identified root and the chord's interval structure.
@@ -50,6 +52,7 @@ export function useMidi(
   const heldNotesRef = useRef<Set<number>>(new Set());
   const onChordRef = useRef(onChordDetected);
   onChordRef.current = onChordDetected;
+  const noteOffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const processNotes = useCallback(() => {
     const notes = Array.from(heldNotesRef.current).sort((a, b) => a - b);
@@ -81,6 +84,18 @@ export function useMidi(
     });
   }, []);
 
+  const scheduleNoteOffProcess = useCallback(() => {
+    // Clear any pending timer
+    if (noteOffTimerRef.current) {
+      clearTimeout(noteOffTimerRef.current);
+    }
+    // Delay processing to allow for slightly staggered key releases
+    noteOffTimerRef.current = setTimeout(() => {
+      processNotes();
+      noteOffTimerRef.current = null;
+    }, NOTE_OFF_DELAY_MS);
+  }, [processNotes]);
+
   useEffect(() => {
     if (!state.isSupported) return;
 
@@ -92,19 +107,23 @@ export function useMidi(
 
       const command = status & 0xf0;
       if (command === 0x90 && velocity > 0) {
-        // Note On
+        // Note On — process immediately for responsiveness
+        if (noteOffTimerRef.current) {
+          clearTimeout(noteOffTimerRef.current);
+          noteOffTimerRef.current = null;
+        }
         heldNotesRef.current.add(note);
         processNotes();
       } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-        // Note Off
+        // Note Off — delay processing
         heldNotesRef.current.delete(note);
-        processNotes();
+        scheduleNoteOffProcess();
       }
     };
 
     const connectInputs = (access: any) => {
       let firstName: string | null = null;
-      access.inputs.forEach((input) => {
+      access.inputs.forEach((input: any) => {
         if (!firstName) firstName = input.name ?? 'MIDI Device';
         input.onmidimessage = handleMidiMessage;
       });
@@ -129,13 +148,16 @@ export function useMidi(
       });
 
     return () => {
+      if (noteOffTimerRef.current) {
+        clearTimeout(noteOffTimerRef.current);
+      }
       if (midiAccess) {
-        midiAccess.inputs.forEach((input) => {
+        midiAccess.inputs.forEach((input: any) => {
           input.onmidimessage = null;
         });
       }
     };
-  }, [state.isSupported, processNotes]);
+  }, [state.isSupported, processNotes, scheduleNoteOffProcess]);
 
   return state;
 }
