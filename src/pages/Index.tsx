@@ -11,7 +11,7 @@ import ControlPanel from '@/components/ControlPanel';
 import StaffNotation from '@/components/StaffNotation';
 
 const Index = () => {
-  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, functionalAnalysis } = useHarmony();
+  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
 
   const chordLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
   const keyLabel = scale ? `Key of ${getNoteName(scaleTonic, useFlats)} ${scale.name}` : 'No key';
@@ -53,6 +53,12 @@ const Index = () => {
             <span className="font-sans text-xs text-muted-foreground">{keyLabel}</span>
           </div>
           <div className="flex items-center gap-2 ml-auto">
+            {midiEnabled && midi.isConnected && (
+              <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-surface-3 flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${midi.heldNotes.length > 0 ? 'bg-primary animate-pulse' : 'bg-green-500'}`} />
+                MIDI
+              </span>
+            )}
             <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-surface-3">
               {lockMode === 'scale' ? '🔒 Scale' : '🔒 Quality'}
             </span>
