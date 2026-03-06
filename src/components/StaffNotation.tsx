@@ -1,19 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getIntervalTension, getLabel } from '@/lib/musicTheory';
+import { getIntervalTension } from '@/lib/musicTheory';
 
 type ClefType = 'treble' | 'bass';
 
-const LINE_SP = 11;
-const STAFF_H = 4 * LINE_SP; // 44px for 5 lines
-const NOTE_RX = 6.5;
-const NOTE_RY = 4.5;
+const LINE_SP = 18;
+const STAFF_H = 4 * LINE_SP;
+const NOTE_RX = 9;
+const NOTE_RY = 6;
 
-const NATURAL_PCS = [0, 2, 4, 5, 7, 9, 11]; // C D E F G A B
+const NATURAL_PCS = [0, 2, 4, 5, 7, 9, 11];
 
 const CLEF_CONFIG: Record<ClefType, { bottomPos: number; topPos: number }> = {
-  treble: { bottomPos: 30, topPos: 38 }, // E4–F5
-  bass:   { bottomPos: 18, topPos: 26 }, // G2–A3
+  treble: { bottomPos: 30, topPos: 38 },
+  bass:   { bottomPos: 18, topPos: 26 },
 };
 
 const KEY_SIG_SHARP_POS: Record<ClefType, number[]> = {
@@ -91,13 +91,13 @@ function computeKeySignature(
 
 export default function StaffNotation() {
   const {
-    root, scaleTonic, scale, activeIntervals, activePitchClasses,
-    labelMode, useFlats,
+    root, scaleTonic, scale, activeIntervals,
+    useFlats,
   } = useHarmony();
 
   const [clef, setClef] = useState<ClefType>('treble');
   const { bottomPos, topPos } = CLEF_CONFIG[clef];
-  const STAFF_TOP_Y = 64;
+  const STAFF_TOP_Y = 20;
 
   const scaleLetterMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -166,7 +166,7 @@ export default function StaffNotation() {
     const offsets = staffNotes.map(() => 0);
     for (let i = 1; i < staffNotes.length; i++) {
       if (staffNotes[i].staffPos - staffNotes[i - 1].staffPos <= 1) {
-        offsets[i] = offsets[i - 1] === 0 ? 16 : 0;
+        offsets[i] = offsets[i - 1] === 0 ? 18 : 0;
       }
     }
     return offsets;
@@ -207,47 +207,64 @@ export default function StaffNotation() {
     return pairs;
   }, [staffNotes]);
 
-  const clefAreaW = 36;
+  const clefAreaW = 44;
   const keySigCount = keySig.sharps.length + keySig.flats.length;
-  const keySigAreaW = keySigCount > 0 ? keySigCount * 11 + 10 : 0;
-  const noteX = 20 + clefAreaW + keySigAreaW + 30;
-  const tensionX = noteX + 50;
-  const totalWidth = Math.max(420, tensionX + tensionPairs.length * 14 + 30);
+  const keySigAreaW = keySigCount > 0 ? keySigCount * 14 + 10 : 0;
+  const noteX = 20 + clefAreaW + keySigAreaW + 36;
+  const tensionX = noteX + 56;
+  const totalWidth = Math.max(380, tensionX + tensionPairs.length * 16 + 30);
 
   const allPositions = staffNotes.map(n => n.staffPos);
   const minPos = allPositions.length ? Math.min(...allPositions) : bottomPos;
   const maxPos = allPositions.length ? Math.max(...allPositions) : topPos;
-  const minY = Math.min(getY(maxPos) - 20, STAFF_TOP_Y - 20);
-  const maxY = Math.max(getY(minPos) + 20, STAFF_TOP_Y + STAFF_H + 20);
-  const totalHeight = maxY - minY + 40;
-  const yOffset = minY < 0 ? -minY + 10 : 10;
+  
+  // The staff lines area
+  const staffTopY = STAFF_TOP_Y;
+  const staffBottomY = STAFF_TOP_Y + STAFF_H;
+  
+  // Calculate required vertical extent based on notes
+  const noteTopY = getY(maxPos) - 20;
+  const noteBottomY = getY(minPos) + 20;
+  
+  const minY = Math.min(staffTopY - 12, noteTopY);
+  const maxY = Math.max(staffBottomY + 12, noteBottomY);
+  const totalHeight = maxY - minY + 12;
+  const yOffset = minY < 0 ? -minY + 4 : 4;
 
   const staffLineXStart = 16;
   const staffLineXEnd = totalWidth - 16;
 
+  // Ledger line width: just wider than the notehead
+  const ledgerHalf = NOTE_RX + 5;
+
   return (
-    <div className="flex flex-col items-center">
-      <div className="flex items-center gap-3 mb-3">
-        <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">Staff</h3>
-        <div className="flex gap-1 ml-2">
+    <div className="flex items-start gap-3">
+      {/* Side controls */}
+      <div className="flex flex-col items-center gap-2 pt-1 flex-shrink-0">
+        <span className="text-[10px] font-sans font-semibold text-muted-foreground uppercase tracking-widest [writing-mode:vertical-lr] rotate-180">
+          Staff
+        </span>
+        <div className="flex flex-col gap-1 mt-1">
           {(['treble', 'bass'] as ClefType[]).map(c => (
             <button
               key={c}
               onClick={() => setClef(c)}
-              className={`px-2.5 py-1 rounded text-xs font-sans capitalize transition-all ${
+              className={`w-8 h-8 rounded flex items-center justify-center text-base transition-all ${
                 clef === c
                   ? 'bg-primary text-primary-foreground font-semibold'
                   : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
+              title={c === 'treble' ? 'Treble Clef' : 'Bass Clef'}
             >
-              {c === 'treble' ? '𝄞 Treble' : '𝄢 Bass'}
+              {c === 'treble' ? '𝄞' : '𝄢'}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="overflow-x-auto w-full">
-        <svg width={totalWidth} height={totalHeight} className="mx-auto block">
+      {/* Staff SVG */}
+      <div className="overflow-x-auto flex-1 min-w-0">
+        <svg width={totalWidth} height={totalHeight} className="block w-full" viewBox={`0 0 ${totalWidth} ${totalHeight}`} preserveAspectRatio="xMidYMid meet">
           <g transform={`translate(0, ${yOffset})`}>
             {/* Staff lines */}
             {Array.from({ length: 5 }, (_, i) => {
@@ -260,25 +277,40 @@ export default function StaffNotation() {
               );
             })}
 
-            {/* Ledger lines */}
+            {/* Ledger lines — only note-width */}
             {ledgerLines.map(pos => {
               const y = getY(pos);
+              // Find the x positions of notes on or near this ledger line
+              const notesOnLine = staffNotes
+                .map((n, i) => ({ ...n, x: noteX + noteOffsets[i] }))
+                .filter(n => Math.abs(n.staffPos - pos) <= 1 && n.staffPos % 2 === pos % 2 || n.staffPos === pos);
+              
+              if (notesOnLine.length > 0) {
+                const minNoteX = Math.min(...notesOnLine.map(n => n.x));
+                const maxNoteX = Math.max(...notesOnLine.map(n => n.x));
+                return (
+                  <line key={`ll-${pos}`}
+                    x1={minNoteX - ledgerHalf} y1={y} x2={maxNoteX + ledgerHalf} y2={y}
+                    stroke="hsl(30, 8%, 30%)" strokeWidth={1}
+                  />
+                );
+              }
               return (
                 <line key={`ll-${pos}`}
-                  x1={noteX - 12} y1={y} x2={noteX + 20 + 12} y2={y}
+                  x1={noteX - ledgerHalf} y1={y} x2={noteX + ledgerHalf} y2={y}
                   stroke="hsl(30, 8%, 30%)" strokeWidth={1}
                 />
               );
             })}
 
-            {/* Clef indicator */}
+            {/* Clef symbol */}
             <text
-              x={22}
+              x={24}
               y={clef === 'treble'
-                ? getY(32) + 8
-                : getY(24) + 6
+                ? getY(32) + 10
+                : getY(22) + 8
               }
-              fontSize={clef === 'treble' ? 44 : 36}
+              fontSize={clef === 'treble' ? 60 : 48}
               fontFamily="serif, 'Times New Roman', Georgia"
               fill="hsl(30, 10%, 55%)"
               textAnchor="start"
@@ -291,10 +323,10 @@ export default function StaffNotation() {
               const pos = KEY_SIG_SHARP_POS[clef][SHARP_ORDER.indexOf(letterIdx)];
               if (pos === undefined) return null;
               const y = getY(pos);
-              const x = 20 + clefAreaW + i * 11;
+              const x = 20 + clefAreaW + i * 14;
               return (
                 <text key={`ks-${i}`}
-                  x={x} y={y + 4} fontSize={14}
+                  x={x} y={y + 6} fontSize={18}
                   fontFamily="serif" fill="hsl(30, 10%, 65%)"
                 >♯</text>
               );
@@ -303,16 +335,16 @@ export default function StaffNotation() {
               const pos = KEY_SIG_FLAT_POS[clef][FLAT_ORDER.indexOf(letterIdx)];
               if (pos === undefined) return null;
               const y = getY(pos);
-              const x = 20 + clefAreaW + i * 11;
+              const x = 20 + clefAreaW + i * 14;
               return (
                 <text key={`kf-${i}`}
-                  x={x} y={y + 4} fontSize={14}
+                  x={x} y={y + 6} fontSize={18}
                   fontFamily="serif" fill="hsl(30, 10%, 65%)"
                 >♭</text>
               );
             })}
 
-            {/* Note heads */}
+            {/* Note heads — no labels */}
             {staffNotes.map((note, i) => {
               const y = getY(note.staffPos);
               const x = noteX + noteOffsets[i];
@@ -323,8 +355,8 @@ export default function StaffNotation() {
                 <g key={`n-${i}`}>
                   {note.showAccidental && (
                     <text
-                      x={x - NOTE_RX - 10} y={y + 4}
-                      fontSize={13} fontFamily="serif"
+                      x={x - NOTE_RX - 12} y={y + 6}
+                      fontSize={17} fontFamily="serif"
                       fill="hsl(30, 10%, 75%)"
                       textAnchor="middle"
                     >
@@ -337,21 +369,13 @@ export default function StaffNotation() {
                     stroke="hsl(30, 15%, 25%)" strokeWidth={1}
                     transform={`rotate(-15, ${x}, ${y})`}
                   />
-                  <text
-                    x={x} y={y + NOTE_RY + 12}
-                    textAnchor="middle" fontSize={8}
-                    fontFamily="'JetBrains Mono', monospace"
-                    fill="hsl(30, 10%, 55%)"
-                  >
-                    {getLabel(note.pc, root, labelMode, useFlats)}
-                  </text>
                 </g>
               );
             })}
 
             {/* Interval tension lines */}
             {tensionPairs.map((pair, i) => {
-              const x = tensionX + i * 14;
+              const x = tensionX + i * 16;
               const color = TENSION_COLORS[pair.tension] ?? TENSION_COLORS.mild;
               const width = TENSION_WIDTHS[pair.tension] ?? 1.5;
               const minPairY = Math.min(pair.y1, pair.y2);
@@ -364,11 +388,11 @@ export default function StaffNotation() {
                     stroke={color} strokeWidth={width}
                     strokeLinecap="round" opacity={0.85}
                   />
-                  <circle cx={x} cy={minPairY} r={2.5} fill={color} opacity={0.9} />
-                  <circle cx={x} cy={maxPairY} r={2.5} fill={color} opacity={0.9} />
+                  <circle cx={x} cy={minPairY} r={3} fill={color} opacity={0.9} />
+                  <circle cx={x} cy={maxPairY} r={3} fill={color} opacity={0.9} />
                   <text
-                    x={x} y={minPairY - 5}
-                    textAnchor="middle" fontSize={7}
+                    x={x} y={minPairY - 6}
+                    textAnchor="middle" fontSize={8}
                     fontFamily="'JetBrains Mono', monospace"
                     fill={color} opacity={0.7}
                   >
