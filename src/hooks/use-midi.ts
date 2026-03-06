@@ -21,7 +21,7 @@ export interface MidiChordEvent {
   pitchClasses: PitchClass[];
 }
 
-const NOTE_OFF_DELAY_MS = 180; // ms to wait after key release before processing
+const NOTE_OFF_DELAY_MS = 300; // ms to wait after key release before processing
 
 /**
  * Determines the inversion number by comparing the bass note's pitch class
@@ -62,7 +62,7 @@ export function useMidi(
 
     const pitchClasses = [...new Set(notes.map(n => (n % 12) as PitchClass))].sort((a, b) => a - b);
     
-    if (pitchClasses.length < 2) return;
+    if (pitchClasses.length < 1) return;
 
     const identified = identifyChordFromPitchClasses(pitchClasses);
     if (!identified) return;
