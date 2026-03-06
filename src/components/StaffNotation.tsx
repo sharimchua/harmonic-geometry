@@ -4,10 +4,10 @@ import { getIntervalTension } from '@/lib/musicTheory';
 
 type ClefType = 'treble' | 'bass';
 
-const LINE_SP = 18;
+const LINE_SP = 14;
 const STAFF_H = 4 * LINE_SP;
-const NOTE_RX = 9;
-const NOTE_RY = 6;
+const NOTE_RX = 7.5;
+const NOTE_RY = 5;
 
 const NATURAL_PCS = [0, 2, 4, 5, 7, 9, 11];
 
@@ -97,7 +97,7 @@ export default function StaffNotation() {
 
   const [clef, setClef] = useState<ClefType>('treble');
   const { bottomPos, topPos } = CLEF_CONFIG[clef];
-  const STAFF_TOP_Y = 20;
+  const STAFF_TOP_Y = 30;
 
   const scaleLetterMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -207,35 +207,26 @@ export default function StaffNotation() {
     return pairs;
   }, [staffNotes]);
 
-  const clefAreaW = 44;
+  const clefAreaW = 40;
   const keySigCount = keySig.sharps.length + keySig.flats.length;
-  const keySigAreaW = keySigCount > 0 ? keySigCount * 14 + 10 : 0;
-  const noteX = 20 + clefAreaW + keySigAreaW + 36;
-  const tensionX = noteX + 56;
-  const totalWidth = Math.max(380, tensionX + tensionPairs.length * 16 + 30);
+  const keySigAreaW = keySigCount > 0 ? keySigCount * 12 + 10 : 0;
+  const noteX = 20 + clefAreaW + keySigAreaW + 30;
+  const tensionX = noteX + 50;
+  const totalWidth = Math.max(380, tensionX + tensionPairs.length * 14 + 30);
 
   const allPositions = staffNotes.map(n => n.staffPos);
   const minPos = allPositions.length ? Math.min(...allPositions) : bottomPos;
   const maxPos = allPositions.length ? Math.max(...allPositions) : topPos;
-  
-  // The staff lines area
-  const staffTopY = STAFF_TOP_Y;
-  const staffBottomY = STAFF_TOP_Y + STAFF_H;
-  
-  // Calculate required vertical extent based on notes
-  const noteTopY = getY(maxPos) - 20;
-  const noteBottomY = getY(minPos) + 20;
-  
-  const minY = Math.min(staffTopY - 12, noteTopY);
-  const maxY = Math.max(staffBottomY + 12, noteBottomY);
-  const totalHeight = maxY - minY + 12;
-  const yOffset = minY < 0 ? -minY + 4 : 4;
+  const minY = Math.min(getY(maxPos) - 16, STAFF_TOP_Y - 16);
+  const maxY = Math.max(getY(minPos) + 16, STAFF_TOP_Y + STAFF_H + 16);
+  const totalHeight = maxY - minY + 20;
+  const yOffset = minY < 0 ? -minY + 6 : 6;
 
   const staffLineXStart = 16;
   const staffLineXEnd = totalWidth - 16;
 
   // Ledger line width: just wider than the notehead
-  const ledgerHalf = NOTE_RX + 5;
+  const ledgerHalf = NOTE_RX + 4;
 
   return (
     <div className="flex items-start gap-3">
@@ -303,14 +294,14 @@ export default function StaffNotation() {
               );
             })}
 
-            {/* Clef symbol */}
+            {/* Clef indicator — bass clef dots on F line (pos 22 = 4th line) */}
             <text
-              x={24}
+              x={22}
               y={clef === 'treble'
-                ? getY(32) + 10
-                : getY(22) + 8
+                ? getY(32) + 8
+                : getY(22) + 10
               }
-              fontSize={clef === 'treble' ? 60 : 48}
+              fontSize={clef === 'treble' ? 52 : 42}
               fontFamily="serif, 'Times New Roman', Georgia"
               fill="hsl(30, 10%, 55%)"
               textAnchor="start"
@@ -323,10 +314,10 @@ export default function StaffNotation() {
               const pos = KEY_SIG_SHARP_POS[clef][SHARP_ORDER.indexOf(letterIdx)];
               if (pos === undefined) return null;
               const y = getY(pos);
-              const x = 20 + clefAreaW + i * 14;
+              const x = 20 + clefAreaW + i * 12;
               return (
                 <text key={`ks-${i}`}
-                  x={x} y={y + 6} fontSize={18}
+                  x={x} y={y + 5} fontSize={16}
                   fontFamily="serif" fill="hsl(30, 10%, 65%)"
                 >♯</text>
               );
@@ -335,10 +326,10 @@ export default function StaffNotation() {
               const pos = KEY_SIG_FLAT_POS[clef][FLAT_ORDER.indexOf(letterIdx)];
               if (pos === undefined) return null;
               const y = getY(pos);
-              const x = 20 + clefAreaW + i * 14;
+              const x = 20 + clefAreaW + i * 12;
               return (
                 <text key={`kf-${i}`}
-                  x={x} y={y + 6} fontSize={18}
+                  x={x} y={y + 5} fontSize={16}
                   fontFamily="serif" fill="hsl(30, 10%, 65%)"
                 >♭</text>
               );
@@ -355,8 +346,8 @@ export default function StaffNotation() {
                 <g key={`n-${i}`}>
                   {note.showAccidental && (
                     <text
-                      x={x - NOTE_RX - 12} y={y + 6}
-                      fontSize={17} fontFamily="serif"
+                      x={x - NOTE_RX - 10} y={y + 5}
+                      fontSize={15} fontFamily="serif"
                       fill="hsl(30, 10%, 75%)"
                       textAnchor="middle"
                     >
@@ -375,7 +366,7 @@ export default function StaffNotation() {
 
             {/* Interval tension lines */}
             {tensionPairs.map((pair, i) => {
-              const x = tensionX + i * 16;
+              const x = tensionX + i * 14;
               const color = TENSION_COLORS[pair.tension] ?? TENSION_COLORS.mild;
               const width = TENSION_WIDTHS[pair.tension] ?? 1.5;
               const minPairY = Math.min(pair.y1, pair.y2);
@@ -388,11 +379,11 @@ export default function StaffNotation() {
                     stroke={color} strokeWidth={width}
                     strokeLinecap="round" opacity={0.85}
                   />
-                  <circle cx={x} cy={minPairY} r={3} fill={color} opacity={0.9} />
-                  <circle cx={x} cy={maxPairY} r={3} fill={color} opacity={0.9} />
+                  <circle cx={x} cy={minPairY} r={2.5} fill={color} opacity={0.9} />
+                  <circle cx={x} cy={maxPairY} r={2.5} fill={color} opacity={0.9} />
                   <text
-                    x={x} y={minPairY - 6}
-                    textAnchor="middle" fontSize={8}
+                    x={x} y={minPairY - 5}
+                    textAnchor="middle" fontSize={7}
                     fontFamily="'JetBrains Mono', monospace"
                     fill={color} opacity={0.7}
                   >

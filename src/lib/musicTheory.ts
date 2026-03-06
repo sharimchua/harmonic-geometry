@@ -51,15 +51,8 @@ export const CHORD_CATEGORIES: Record<string, ChordType[]> = {
     { name: 'Major 7', intervals: [0, 4, 7, 11], category: 'Seventh Chords' },
     { name: 'Dominant 7', intervals: [0, 4, 7, 10], category: 'Seventh Chords' },
     { name: 'Minor 7', intervals: [0, 3, 7, 10], category: 'Seventh Chords' },
-    { name: 'Minor Major 7', intervals: [0, 3, 7, 11], category: 'Seventh Chords' },
     { name: 'm7b5', intervals: [0, 3, 6, 10], category: 'Seventh Chords' },
     { name: 'Diminished 7', intervals: [0, 3, 6, 9], category: 'Seventh Chords' },
-    { name: 'Augmented 7', intervals: [0, 4, 8, 10], category: 'Seventh Chords' },
-    { name: 'Augmented Maj 7', intervals: [0, 4, 8, 11], category: 'Seventh Chords' },
-  ],
-  'Sixth Chords': [
-    { name: 'Major 6', intervals: [0, 4, 7, 9], category: 'Sixth Chords' },
-    { name: 'Minor 6', intervals: [0, 3, 7, 9], category: 'Sixth Chords' },
   ],
   'Shell Voicings': [
     { name: 'Maj Shell (1-3-7)', intervals: [0, 4, 11], category: 'Shell Voicings' },
@@ -70,15 +63,8 @@ export const CHORD_CATEGORIES: Record<string, ChordType[]> = {
     { name: 'Major 9', intervals: [0, 4, 7, 11, 14], category: 'Extensions' },
     { name: 'Dominant 9', intervals: [0, 4, 7, 10, 14], category: 'Extensions' },
     { name: 'Minor 9', intervals: [0, 3, 7, 10, 14], category: 'Extensions' },
-    { name: 'MinMaj 9', intervals: [0, 3, 7, 11, 14], category: 'Extensions' },
     { name: 'Major 11', intervals: [0, 4, 7, 11, 14, 17], category: 'Extensions' },
-    { name: 'Dominant 11', intervals: [0, 4, 7, 10, 14, 17], category: 'Extensions' },
-    { name: 'Minor 11', intervals: [0, 3, 7, 10, 14, 17], category: 'Extensions' },
     { name: 'Major 13', intervals: [0, 4, 7, 11, 14, 17, 21], category: 'Extensions' },
-    { name: 'Dominant 13', intervals: [0, 4, 7, 10, 14, 17, 21], category: 'Extensions' },
-    { name: 'Minor 13', intervals: [0, 3, 7, 10, 14, 17, 21], category: 'Extensions' },
-    { name: 'Add 9', intervals: [0, 4, 7, 14], category: 'Extensions' },
-    { name: 'Minor Add 9', intervals: [0, 3, 7, 14], category: 'Extensions' },
   ],
   'Altered Dominant': [
     { name: '7b5', intervals: [0, 4, 6, 10], category: 'Altered Dominant' },
@@ -365,17 +351,9 @@ const CHORD_VIBES: Record<string, string> = {
   'Minor 7': 'Smooth, mellow, and soulful',
   'm7b5': 'Dark and yearning — the classic jazz minor sound',
   'Diminished 7': 'Dramatic and symmetrical — every note is equal',
-  'Minor Major 7': 'Dark yet luminous — tension between sadness and beauty',
-  'Augmented 7': 'Restless and exotic — pushing outward with blues',
-  'Augmented Maj 7': 'Ethereal and expansive — dreamlike tension',
-  'Major 6': 'Warm, nostalgic, and grounded — vintage charm',
-  'Minor 6': 'Bittersweet and cinematic — noir atmosphere',
   'Major 9': 'Rich and expansive — sophisticated warmth',
   'Dominant 9': 'Funky and bright — a wider dominant color',
   'Minor 9': 'Lush and deep — neo-soul territory',
-  'MinMaj 9': 'Complex emotional depth — dark beauty with space',
-  'Add 9': 'Open and sparkly — pop brightness without the 7th',
-  'Minor Add 9': 'Gentle melancholy with a shimmer of light',
 };
 
 export function analyzeFunctionalRole(
@@ -428,44 +406,22 @@ export function getChordVibe(chordName: string): string {
  * Given a set of pitch classes, try to identify the chord name and root.
  * Returns { root, chord } or null.
  */
-/**
- * Given a set of pitch classes, try to identify the chord name and root.
- * Supports dyads (2 notes) as intervals, and full chords (3+ notes).
- */
 export function identifyChordFromPitchClasses(pitchClasses: PitchClass[]): { root: PitchClass; chord: ChordType } | null {
   if (pitchClasses.length < 2) return null;
   const allChords = Object.values(CHORD_CATEGORIES).flat();
   
-  // For 3+ notes, try to match against known chord types
-  if (pitchClasses.length >= 3) {
-    for (const candidateRoot of pitchClasses) {
-      const intervals = pitchClasses
-        .map(pc => ((pc - candidateRoot) % 12 + 12) % 12)
-        .sort((a, b) => a - b);
-      
-      for (const chord of allChords) {
-        const chordNorm = chord.intervals.map(i => ((i % 12) + 12) % 12).sort((a, b) => a - b);
-        if (chordNorm.length === intervals.length && chordNorm.every((v, i) => v === intervals[i])) {
-          return { root: candidateRoot, chord };
-        }
+  for (const candidateRoot of pitchClasses) {
+    const intervals = pitchClasses
+      .map(pc => ((pc - candidateRoot) % 12 + 12) % 12)
+      .sort((a, b) => a - b);
+    
+    for (const chord of allChords) {
+      const chordNorm = chord.intervals.map(i => ((i % 12) + 12) % 12).sort((a, b) => a - b);
+      if (chordNorm.length === intervals.length && chordNorm.every((v, i) => v === intervals[i])) {
+        return { root: candidateRoot, chord };
       }
     }
   }
-  
-  // For exactly 2 notes (dyad), treat the lower as root and create an interval "chord"
-  if (pitchClasses.length === 2) {
-    const sorted = [...pitchClasses].sort((a, b) => a - b);
-    const rootPc = sorted[0];
-    const semitones = ((sorted[1] - sorted[0]) % 12 + 12) % 12;
-    const intervalName = INTERVAL_NAMES[semitones];
-    const dyad: ChordType = {
-      name: `Dyad (${intervalName})`,
-      intervals: [0, semitones],
-      category: 'Dyads',
-    };
-    return { root: rootPc, chord: dyad };
-  }
-
   return null;
 }
 
