@@ -207,7 +207,7 @@ export default function StaffNotation() {
     return pairs;
   }, [staffNotes]);
 
-  const clefAreaW = 44;
+  const clefAreaW = 52;
   const keySigCount = keySig.sharps.length + keySig.flats.length;
   const keySigAreaW = keySigCount > 0 ? keySigCount * 14 + 10 : 0;
   const noteX = 20 + clefAreaW + keySigAreaW + 36;
@@ -218,11 +218,9 @@ export default function StaffNotation() {
   const minPos = allPositions.length ? Math.min(...allPositions) : bottomPos;
   const maxPos = allPositions.length ? Math.max(...allPositions) : topPos;
   
-  // The staff lines area
   const staffTopY = STAFF_TOP_Y;
   const staffBottomY = STAFF_TOP_Y + STAFF_H;
   
-  // Calculate required vertical extent based on notes
   const noteTopY = getY(maxPos) - 20;
   const noteBottomY = getY(minPos) + 20;
   
@@ -234,8 +232,11 @@ export default function StaffNotation() {
   const staffLineXStart = 16;
   const staffLineXEnd = totalWidth - 16;
 
-  // Ledger line width: just wider than the notehead
   const ledgerHalf = NOTE_RX + 5;
+
+  // Clef reference lines: treble G is staffPos 32, bass F is staffPos 22
+  const trebleGY = getY(32);
+  const bassFY = getY(22);
 
   return (
     <div className="flex items-start gap-3">
@@ -280,7 +281,6 @@ export default function StaffNotation() {
             {/* Ledger lines — only note-width */}
             {ledgerLines.map(pos => {
               const y = getY(pos);
-              // Find the x positions of notes on or near this ledger line
               const notesOnLine = staffNotes
                 .map((n, i) => ({ ...n, x: noteX + noteOffsets[i] }))
                 .filter(n => Math.abs(n.staffPos - pos) <= 1 && n.staffPos % 2 === pos % 2 || n.staffPos === pos);
@@ -303,20 +303,30 @@ export default function StaffNotation() {
               );
             })}
 
-            {/* Clef symbol */}
-            <text
-              x={24}
-              y={clef === 'treble'
-                ? getY(32) + 10
-                : getY(22) + 8
-              }
-              fontSize={clef === 'treble' ? 60 : 48}
-              fontFamily="serif, 'Times New Roman', Georgia"
-              fill="hsl(30, 10%, 55%)"
-              textAnchor="start"
-            >
-              {clef === 'treble' ? '𝄞' : '𝄢'}
-            </text>
+            {/* Clef symbol — larger, precisely anchored */}
+            {clef === 'treble' ? (
+              <text
+                x={24}
+                y={trebleGY + 14}
+                fontSize={78}
+                fontFamily="serif, 'Times New Roman', Georgia"
+                fill="hsl(30, 10%, 55%)"
+                textAnchor="start"
+              >
+                𝄞
+              </text>
+            ) : (
+              <text
+                x={24}
+                y={bassFY + 10}
+                fontSize={62}
+                fontFamily="serif, 'Times New Roman', Georgia"
+                fill="hsl(30, 10%, 55%)"
+                textAnchor="start"
+              >
+                𝄢
+              </text>
+            )}
 
             {/* Key signature */}
             {keySig.sharps.map((letterIdx, i) => {
@@ -344,7 +354,7 @@ export default function StaffNotation() {
               );
             })}
 
-            {/* Note heads — no labels */}
+            {/* Note heads */}
             {staffNotes.map((note, i) => {
               const y = getY(note.staffPos);
               const x = noteX + noteOffsets[i];
