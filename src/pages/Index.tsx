@@ -9,13 +9,62 @@ import IntervalRelationshipList from '@/components/IntervalRelationshipList';
 import HarmonicContext from '@/components/HarmonicContext';
 import ControlPanel from '@/components/ControlPanel';
 import StaffNotation from '@/components/StaffNotation';
+import ChordSynonyms from '@/components/ChordSynonyms';
+import { useSectionOrder, type SectionId } from '@/hooks/useSectionOrder';
+import { ChevronUp, ChevronDown, Lock, Unlock } from 'lucide-react';
+
+const SECTION_COMPONENTS: Record<SectionId, React.FC> = {
+  context: HarmonicContext,
+  intervals: IntervalRelationshipList,
+  cadence: CadenceExplorer,
+  staff: StaffNotation,
+  piano: PianoKeyboard,
+  fretboard: GuitarFretboard,
+};
+
+const SECTION_LABELS: Record<SectionId, string> = {
+  context: 'Harmonic Context',
+  intervals: 'Interval Relationships',
+  cadence: 'Cadence Explorer',
+  staff: 'Staff Notation',
+  piano: 'Piano',
+  fretboard: 'Guitar Fretboard',
+};
 
 const Index = () => {
-  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
+  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
+  const { order, moveUp, moveDown } = useSectionOrder();
 
   const chordLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
   const keyLabel = scale ? `Key of ${getNoteName(scaleTonic, useFlats)} ${scale.name}` : 'No key';
   const intervalStr = activeIntervals.map(i => ((i % 12) + 12) % 12).join('-');
+
+  // Split ordered sections into analysis vs instruments
+  const analysisSections: SectionId[] = ['context', 'intervals', 'cadence'];
+  const instrumentSections: SectionId[] = ['staff', 'piano', 'fretboard'];
+  const orderedAnalysis = order.filter(id => analysisSections.includes(id));
+  const orderedInstruments = order.filter(id => instrumentSections.includes(id));
+
+  const renderSection = (id: SectionId, idx: number, list: SectionId[]) => {
+    const Comp = SECTION_COMPONENTS[id];
+    return (
+      <section key={id} className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm relative group">
+        <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          {idx > 0 && (
+            <button onClick={() => moveUp(id)} className="w-5 h-5 rounded flex items-center justify-center bg-surface-3 hover:bg-surface-2 text-muted-foreground" title="Move up">
+              <ChevronUp size={12} />
+            </button>
+          )}
+          {idx < list.length - 1 && (
+            <button onClick={() => moveDown(id)} className="w-5 h-5 rounded flex items-center justify-center bg-surface-3 hover:bg-surface-2 text-muted-foreground" title="Move down">
+              <ChevronDown size={12} />
+            </button>
+          )}
+        </div>
+        <Comp />
+      </section>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -52,6 +101,8 @@ const Index = () => {
             <span className="w-2 h-2 rounded-full bg-accent" />
             <span className="font-sans text-xs text-muted-foreground">{keyLabel}</span>
           </div>
+          {/* Chord synonyms */}
+          <ChordSynonyms />
           <div className="flex items-center gap-2 ml-auto">
             {midiEnabled && midi.isConnected && (
               <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-surface-3 flex items-center gap-1">
@@ -59,9 +110,15 @@ const Index = () => {
                 MIDI
               </span>
             )}
-            <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-surface-3">
-              {lockMode === 'scale' ? '🔒 Scale' : '🔒 Quality'}
-            </span>
+            {/* Lock mode toggle */}
+            <button
+              onClick={() => setLockMode(lockMode === 'scale' ? 'quality' : 'scale')}
+              className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-surface-3 hover:bg-surface-2 transition-colors flex items-center gap-1 cursor-pointer"
+              title={lockMode === 'scale' ? 'Scale Lock: Click to switch to Quality Lock' : 'Quality Lock: Click to switch to Scale Lock'}
+            >
+              {lockMode === 'scale' ? <Lock size={10} /> : <Unlock size={10} />}
+              {lockMode === 'scale' ? 'Scale' : 'Quality'}
+            </button>
             <span className="font-mono text-[10px] text-muted-foreground">
               [{intervalStr}]
             </span>
@@ -71,70 +128,42 @@ const Index = () => {
         <div className="p-4 xl:p-6">
           {/* ── xl+: Two-column layout — Analysis | Instruments ── */}
           <div className="hidden xl:grid xl:grid-cols-2 3xl:grid-cols-[1fr_1fr] gap-6 3xl:gap-8 items-start">
-            {/* LEFT COLUMN: Analysis (Pitch Clock hero + Context + Intervals + Cadence) */}
+            {/* LEFT COLUMN: Analysis (Pitch Clock hero + ordered sections) */}
             <div className="flex flex-col gap-6 3xl:gap-8">
-              {/* Pitch Clock — hero placement, generous padding */}
               <section className="bg-surface-1 border border-border rounded-lg p-6 3xl:p-10 shadow-sm">
                 <PitchClock />
               </section>
-
-              {/* Harmonic Context */}
-              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
-                <HarmonicContext />
-              </section>
-
-              {/* Interval Relationships */}
-              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
-                <IntervalRelationshipList />
-              </section>
-
-              {/* Cadence Explorer */}
-              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
-                <CadenceExplorer />
-              </section>
+              {orderedAnalysis.map((id, i) => renderSection(id, i, orderedAnalysis))}
             </div>
 
-            {/* RIGHT COLUMN: Instruments (Staff + Piano + Fretboard) */}
+            {/* RIGHT COLUMN: Instruments */}
             <div className="flex flex-col gap-6 3xl:gap-8 sticky top-4">
-              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
-                <StaffNotation />
-              </section>
-              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
-                <PianoKeyboard />
-              </section>
-              <section className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm">
-                <GuitarFretboard />
-              </section>
+              {orderedInstruments.map((id, i) => renderSection(id, i, orderedInstruments))}
             </div>
           </div>
 
           {/* ── Default / mobile / md (below xl): Single column ── */}
           <div className="xl:hidden space-y-5 max-w-5xl mx-auto">
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <HarmonicContext />
-            </section>
-
             <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm">
               <PitchClock />
             </section>
-
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <IntervalRelationshipList />
-            </section>
-
-            <section className="bg-surface-1 border border-border rounded-lg p-5 shadow-sm">
-              <CadenceExplorer />
-            </section>
-
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <StaffNotation />
-            </section>
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <PianoKeyboard />
-            </section>
-            <section className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm">
-              <GuitarFretboard />
-            </section>
+            {order.map((id, i) => (
+              <section key={id} className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm relative group">
+                <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  {i > 0 && (
+                    <button onClick={() => moveUp(id)} className="w-5 h-5 rounded flex items-center justify-center bg-surface-3 hover:bg-surface-2 text-muted-foreground">
+                      <ChevronUp size={12} />
+                    </button>
+                  )}
+                  {i < order.length - 1 && (
+                    <button onClick={() => moveDown(id)} className="w-5 h-5 rounded flex items-center justify-center bg-surface-3 hover:bg-surface-2 text-muted-foreground">
+                      <ChevronDown size={12} />
+                    </button>
+                  )}
+                </div>
+                {React.createElement(SECTION_COMPONENTS[id])}
+              </section>
+            ))}
           </div>
         </div>
 
