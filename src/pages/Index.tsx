@@ -69,23 +69,57 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar Control Panel */}
-      <aside className="w-72 min-w-[280px] border-r border-border bg-surface-1 overflow-y-auto p-5 hidden lg:block flex-shrink-0">
+      <aside className="w-72 min-w-[280px] border-r border-border bg-surface-1 overflow-y-auto p-5 hidden lg:flex flex-col flex-shrink-0">
         <div className="mb-6">
-          <h1 className="text-lg font-sans font-bold text-foreground tracking-tight">
-            Harmonic<span className="text-primary"> Geometry</span>
-          </h1>
-          <p className="text-[11px] font-sans text-muted-foreground mt-1">Learn music like a language</p>
+          <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 group/brand">
+            <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-9 h-9 rounded-md" />
+            <div>
+              <h1 className="text-lg font-sans font-bold text-foreground tracking-tight">
+                Harmonic<span className="text-primary"> Geometry</span>
+              </h1>
+              <p className="text-[10px] font-sans text-muted-foreground group-hover/brand:text-primary transition-colors">
+                A Midlife Muso Tool
+              </p>
+            </div>
+          </a>
         </div>
-        <ControlPanel />
+        <div className="flex-1">
+          <ControlPanel />
+        </div>
+        {/* Sidebar footer links */}
+        <div className="mt-6 pt-4 border-t border-border space-y-2">
+          <p className="text-[10px] font-sans font-semibold text-muted-foreground uppercase tracking-wider mb-2">Midlife Muso</p>
+          <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">
+            Home
+          </a>
+          <a href="https://midlifemuso.com/learning" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">
+            Learning Resources
+          </a>
+          <a href="https://midlifemuso.com/about-me" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">
+            About Me
+          </a>
+          <a href="https://midlifemuso.com/tools" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">
+            More Tools
+          </a>
+          <p className="text-[9px] font-sans text-muted-foreground/60 pt-2">
+            Ear-first guitar & piano coaching in Melbourne
+          </p>
+        </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto min-w-0">
         {/* Mobile header */}
-        <div className="lg:hidden border-b border-border bg-surface-1 p-3">
-          <h1 className="text-base font-sans font-bold text-foreground">
-            Harmonic<span className="text-primary"> Geometry</span>
-          </h1>
+        <div className="lg:hidden border-b border-border bg-surface-1 p-3 flex items-center gap-2.5">
+          <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer">
+            <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-7 h-7 rounded-md" />
+          </a>
+          <div>
+            <h1 className="text-base font-sans font-bold text-foreground">
+              Harmonic<span className="text-primary"> Geometry</span>
+            </h1>
+            <p className="text-[9px] font-sans text-muted-foreground">A Midlife Muso Tool</p>
+          </div>
         </div>
 
         {/* Status bar */}
@@ -167,14 +201,29 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Mobile Control Panel */}
-        <div className="lg:hidden p-4">
+        {/* Mobile footer */}
+        <div className="lg:hidden p-4 space-y-4">
           <details className="bg-surface-1 border border-border rounded-lg shadow-sm">
             <summary className="px-4 py-3 font-sans text-sm text-foreground cursor-pointer">Controls</summary>
             <div className="px-4 pb-4">
               <ControlPanel />
             </div>
           </details>
+          <div className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm flex items-center gap-3">
+            <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-8 h-8 rounded-md" />
+            <div className="flex-1">
+              <p className="text-xs font-sans font-semibold text-foreground">Midlife Muso</p>
+              <p className="text-[10px] font-sans text-muted-foreground">Ear-first guitar & piano coaching</p>
+            </div>
+            <a
+              href="https://midlifemuso.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] font-sans font-semibold text-primary hover:text-accent transition-colors px-2.5 py-1.5 rounded bg-surface-3"
+            >
+              Visit
+            </a>
+          </div>
         </div>
       </main>
     </div>
