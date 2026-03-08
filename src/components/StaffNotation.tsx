@@ -209,8 +209,9 @@ export default function StaffNotation() {
 
   const clefAreaW = 52;
   const keySigCount = keySig.sharps.length + keySig.flats.length;
-  const keySigAreaW = keySigCount > 0 ? keySigCount * 14 + 10 : 0;
-  const noteX = 20 + clefAreaW + keySigAreaW + 36;
+  const keySigAreaW = keySigCount > 0 ? keySigCount * 10 + 6 : 0;
+  const accColumnX = 20 + clefAreaW + keySigAreaW + 16;
+  const noteX = accColumnX + (staffNotes.some(n => n.showAccidental) ? 18 : 0) + 10;
   const tensionX = noteX + 56;
   const totalWidth = Math.max(380, tensionX + tensionPairs.length * 16 + 30);
 
