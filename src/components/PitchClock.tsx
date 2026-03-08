@@ -157,8 +157,8 @@ export default function PitchClock() {
 
   return (
     <div className="flex flex-col items-center">
-      {/* Header with Construction Mode toggle */}
-      <div className="flex items-center gap-3 mb-4">
+      {/* Header with toggles */}
+      <div className="flex items-center gap-2 mb-4">
         <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">Pitch Clock</h3>
         <button
           onClick={() => setConstructionMode(!constructionMode)}
@@ -169,6 +169,16 @@ export default function PitchClock() {
           }`}
         >
           {constructionMode ? '✏️ Edit ON' : '✏️ Edit'}
+        </button>
+        <button
+          onClick={() => setCadenceMode(!cadenceMode)}
+          className={`text-[10px] font-mono px-2 py-1 rounded-md border transition-colors ${
+            cadenceMode
+              ? 'bg-primary/20 border-primary text-primary'
+              : 'bg-transparent border-border text-muted-foreground hover:border-primary/50'
+          }`}
+        >
+          {cadenceMode ? '🎯 Cadence ON' : '🎯 Cadence'}
         </button>
       </div>
 
