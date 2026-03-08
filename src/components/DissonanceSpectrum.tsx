@@ -262,7 +262,17 @@ export default function DissonanceSpectrum() {
             />
           ))}
 
-          {/* Note partial bars */}
+          {/* Note silhouette fills (behind bars for depth) */}
+          {noteEnvelopes.map(({ pc, path }) => path && (
+            <path
+              key={`sil-${pc}`}
+              d={path}
+              fill={`url(#note-grad-${pc})`}
+              opacity={0.6}
+            />
+          ))}
+
+          {/* Note partial bars with outlines */}
           {noteBars.map(({ pc, items }) => (
             <g key={`bars-${pc}`}>
               {items.map((bar, i) => {
@@ -274,17 +284,22 @@ export default function DissonanceSpectrum() {
                       y={plotBottom - bar.height}
                       width={bar.width}
                       height={bar.height}
-                      fill={`url(#note-grad-${pc})`}
+                      fill="none"
                       stroke={noteColorStroke(pc)}
-                      strokeWidth={isFundamental ? 1.2 : 0.6}
+                      strokeWidth={isFundamental ? 1.5 : 0.7}
                       rx={1}
                     />
-                    {/* Fundamental label */}
+                    {/* Fundamental: strong accent line at center */}
                     {isFundamental && (
                       <>
-                        <circle cx={bar.x + bar.width / 2} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
+                        <line
+                          x1={bar.cx} y1={plotBottom - bar.height}
+                          x2={bar.cx} y2={plotBottom}
+                          stroke={noteColor(pc, 0.8)} strokeWidth={2}
+                        />
+                        <circle cx={bar.cx} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
                         <text
-                          x={bar.x + bar.width / 2} y={plotTop - 3}
+                          x={bar.cx} y={plotTop - 3}
                           textAnchor="middle" fontSize={7.5}
                           fontFamily="'JetBrains Mono', monospace"
                           fill="hsl(0, 0%, 7%)" fontWeight={700}
@@ -296,7 +311,7 @@ export default function DissonanceSpectrum() {
                     {/* Overtone number */}
                     {!isFundamental && bar.partial.amplitude > 0.35 && (
                       <text
-                        x={bar.x + bar.width / 2}
+                        x={bar.cx}
                         y={plotBottom - bar.height - 3}
                         textAnchor="middle" fontSize={6}
                         fontFamily="'JetBrains Mono', monospace"
