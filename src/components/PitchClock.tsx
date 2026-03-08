@@ -287,7 +287,7 @@ export default function PitchClock() {
             for (const toPC of move.to) {
               if (fromPC === toPC) continue; // common tone, no arrow needed
               const offset = arrows.length;
-              const path = voiceLeadingArcPath(fromPC, toPC, RADIUS - 28, offset);
+              const path = voiceLeadingArcPath(fromPC, toPC, offset);
               if (path) {
                 arrows.push(
                   <ArrowHead key={`vl-${i}-${fromPC}-${toPC}`} path={path} color={color} />
