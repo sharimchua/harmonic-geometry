@@ -190,36 +190,16 @@ export default function ControlPanel() {
 
       {/* Display Settings */}
       <Section title="Display">
-        <div className="space-y-2">
-          <div>
-            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">Labels</p>
-            <div className="flex gap-1">
-              {(['notes', 'intervals', 'scaleDegrees', 'semitones'] as LabelMode[]).map(m => (
-                <button
-                  key={m}
-                  onClick={() => setLabelMode(m)}
-                  className={`px-2 py-1 rounded text-xs font-mono capitalize transition-all ${
-                    labelMode === m
-                      ? 'bg-primary text-primary-foreground font-semibold'
-                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                  }`}
-                >
-                  {m === 'scaleDegrees' ? 'Scale °' : m}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useFlats}
-                onChange={e => setUseFlats(e.target.checked)}
-                className="rounded border-border accent-primary"
-              />
-              <span className="text-xs font-sans text-muted-foreground">♭ Flats</span>
-            </label>
-          </div>
+        <div className="flex gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useFlats}
+              onChange={e => setUseFlats(e.target.checked)}
+              className="rounded border-border accent-primary"
+            />
+            <span className="text-xs font-sans text-muted-foreground">♭ Flats</span>
+          </label>
         </div>
       </Section>
 
