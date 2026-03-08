@@ -350,7 +350,7 @@ export default function DissonanceSpectrum() {
           </div>
         ))}
         <div className="flex items-center gap-1 ml-2">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'hsl(var(--interval-dissonant))' }} />
+          <span className="w-4 h-px" style={{ background: 'hsla(0, 0%, 95%, 0.7)' }} />
           <span>Roughness</span>
         </div>
         <div className="flex items-center gap-1 ml-1">
