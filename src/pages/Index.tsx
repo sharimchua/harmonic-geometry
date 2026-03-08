@@ -12,7 +12,7 @@ import StaffNotation from '@/components/StaffNotation';
 import ChordSynonyms from '@/components/ChordSynonyms';
 import DissonanceSpectrum from '@/components/DissonanceSpectrum';
 import { useSectionOrder, type SectionId } from '@/hooks/useSectionOrder';
-import { ChevronUp, ChevronDown, Lock, Unlock } from 'lucide-react';
+import { ChevronUp, ChevronDown, Lock, Unlock, Tags } from 'lucide-react';
 
 const SECTION_COMPONENTS: Record<SectionId, React.FC> = {
   context: HarmonicContext,
