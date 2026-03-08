@@ -313,6 +313,30 @@ export default function GuitarFretboard() {
             />
           ))}
 
+          {/* Ghost dots for non-selected voicings */}
+          {allVoicings.map((voicing, vIdx) => {
+            const safeIdx = Math.min(voicingIdx, allVoicings.length - 1);
+            if (vIdx === safeIdx) return null;
+            return voicing.map((pos, i) => {
+              const displayRow = displayOrder.indexOf(pos.s);
+              const cx = LEFT_PAD + (pos.f === 0 ? 0 : pos.f * FRET_WIDTH - FRET_WIDTH / 2);
+              const cy = TOP_PAD + displayRow * STRING_SPACING;
+              return (
+                <circle
+                  key={`ghost-${vIdx}-${i}`}
+                  cx={cx} cy={cy} r={DOT_R - 2}
+                  fill="hsl(30, 5%, 16%)"
+                  stroke="hsl(30, 8%, 28%)"
+                  strokeWidth={0.5}
+                  opacity={0.35}
+                  className="cursor-pointer"
+                  onClick={() => setVoicingIdx(vIdx)}
+                />
+              );
+            });
+          })}
+
+          {/* Tension lines for active voicing */}
           {voicingTensionLines.map((lines, posIdx) =>
             lines.map((line, i) => {
               const color = TENSION_COLORS[line.tension] ?? TENSION_COLORS.mild;
@@ -330,6 +354,7 @@ export default function GuitarFretboard() {
             })
           )}
 
+          {/* Active voicing dots */}
           {voicings.map((voicing, posIdx) =>
             voicing.map((pos, i) => {
               const displayRow = displayOrder.indexOf(pos.s);
