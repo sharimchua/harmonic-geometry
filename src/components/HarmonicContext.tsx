@@ -55,16 +55,17 @@ export default function HarmonicContext() {
             </p>
             <div className="flex flex-wrap gap-1.5">
               {compatibleKeys.map(tonic => (
-                <span
+                <button
                   key={tonic}
-                  className={`px-2 py-0.5 rounded text-xs font-mono transition-colors ${
+                  onClick={() => setScaleTonic(tonic)}
+                  className={`px-2 py-0.5 rounded text-xs font-mono transition-colors cursor-pointer ${
                     tonic === scaleTonic
                       ? 'bg-primary text-primary-foreground font-semibold'
-                      : 'bg-secondary text-secondary-foreground'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                   }`}
                 >
                   {getNoteName(tonic, useFlats)}
-                </span>
+                </button>
               ))}
             </div>
             <p className="text-[10px] font-sans text-muted-foreground mt-1 italic">
