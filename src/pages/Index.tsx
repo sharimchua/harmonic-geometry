@@ -150,11 +150,15 @@ const Index = () => {
             {/* Lock mode toggle */}
             <button
               onClick={() => setLockMode(lockMode === 'scale' ? 'quality' : 'scale')}
-              className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-surface-3 hover:bg-surface-2 transition-colors flex items-center gap-1 cursor-pointer"
+              className={`text-xs font-mono px-2.5 py-1 rounded-md border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                lockMode === 'scale'
+                  ? 'bg-primary/15 border-primary/40 text-primary font-semibold'
+                  : 'bg-accent/15 border-accent/40 text-accent-foreground font-semibold'
+              }`}
               title={lockMode === 'scale' ? 'Scale Lock: Click to switch to Quality Lock' : 'Quality Lock: Click to switch to Scale Lock'}
             >
-              {lockMode === 'scale' ? <Lock size={10} /> : <Unlock size={10} />}
-              {lockMode === 'scale' ? 'Scale' : 'Quality'}
+              {lockMode === 'scale' ? <Lock size={12} /> : <Unlock size={12} />}
+              {lockMode === 'scale' ? 'Scale Lock' : 'Quality Lock'}
             </button>
             <span className="font-mono text-[10px] text-muted-foreground">
               [{intervalStr}]
