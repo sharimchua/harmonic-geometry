@@ -141,25 +141,51 @@ export default function DissonanceSpectrum() {
     return allBars;
   }, [partialsByNote, svgWidth, plotHeight]);
 
-  // Dissonance overlap bars
-  const dissonanceBars = useMemo(() => {
-    if (interactions.length === 0) return [];
+  // Additive dissonance curve — accumulate roughness into frequency bins
+  const dissonancePath = useMemo(() => {
+    if (interactions.length === 0) return { line: '', fill: '', peak: 0 };
 
-    return interactions
-      .filter(i => i.dissonance > 0.3)
-      .sort((a, b) => b.dissonance - a.dissonance)
-      .slice(0, 40)
-      .map(pair => {
-        const f1 = Math.min(pair.partial1.frequency, pair.partial2.frequency);
-        const f2 = Math.max(pair.partial1.frequency, pair.partial2.frequency);
-        const x1 = freqToX(f1, svgWidth);
-        const x2 = freqToX(f2, svgWidth);
-        const barW = Math.max(3, x2 - x1);
-        const height = Math.min(pair.dissonance * 3, plotHeight * 0.5);
-        const opacity = Math.min(0.45, pair.dissonance * 0.12);
-        return { x: x1, width: barW, height, opacity };
-      });
-  }, [interactions, svgWidth, plotHeight]);
+    const numBins = svgWidth;
+    const bins = new Float32Array(numBins);
+
+    for (const pair of interactions) {
+      if (pair.dissonance < 0.05) continue;
+      const f1 = Math.min(pair.partial1.frequency, pair.partial2.frequency);
+      const f2 = Math.max(pair.partial1.frequency, pair.partial2.frequency);
+      const fMid = (f1 + f2) / 2;
+      const xMid = freqToX(fMid, svgWidth);
+      // Spread based on frequency separation
+      const xSpread = Math.max(4, Math.abs(freqToX(f2, svgWidth) - freqToX(f1, svgWidth)) * 0.6);
+      const sigma = Math.max(3, xSpread);
+
+      for (let bx = Math.max(0, Math.floor(xMid - sigma * 3)); bx < Math.min(numBins, Math.ceil(xMid + sigma * 3)); bx++) {
+        const dx = bx - xMid;
+        bins[bx] += pair.dissonance * Math.exp(-(dx * dx) / (2 * sigma * sigma));
+      }
+    }
+
+    // Find peak for normalization
+    let peak = 0;
+    for (let i = 0; i < numBins; i++) {
+      if (bins[i] > peak) peak = bins[i];
+    }
+
+    if (peak === 0) return { line: '', fill: '', peak: 0 };
+
+    // Build SVG path — scale to use up to 70% of plot height
+    const maxH = plotHeight * 0.7;
+    const points: string[] = [];
+    for (let x = 0; x < numBins; x++) {
+      const h = (bins[x] / peak) * maxH;
+      const y = plotBottom - h;
+      points.push(`${x},${y.toFixed(1)}`);
+    }
+
+    const line = `M${points.join(' L')}`;
+    const fill = `${line} L${numBins - 1},${plotBottom} L0,${plotBottom} Z`;
+
+    return { line, fill, peak };
+  }, [interactions, svgWidth, plotHeight, plotBottom]);
 
   return (
     <div className="flex flex-col gap-3">
