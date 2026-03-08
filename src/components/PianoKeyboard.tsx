@@ -136,7 +136,7 @@ export default function PianoKeyboard() {
                     fontFamily="'JetBrains Mono', monospace"
                     fill="hsl(0, 0%, 10%)" fontWeight={600}
                   >
-                    {getLabel(key.pc, root, labelMode, useFlats)}
+                    {getLabel(key.pc, root, labelMode, useFlats, scaleTonic)}
                   </text>
                 )}
                 {/* Ghost label for non-voicing active notes */}
