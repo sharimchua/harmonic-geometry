@@ -119,8 +119,11 @@ export default function DissonanceSpectrum() {
 
         for (const p of notePartials) {
           const cx = freqToX(p.frequency, svgWidth);
-          // Sigma scales with frequency (wider peaks at higher freqs on log scale)
-          const sigma = Math.max(3, svgWidth * 0.012 * (1 + Math.log2(p.frequency / minFreq) * 0.08));
+          // Sigma based on critical bandwidth — low freqs get wide bands, high freqs narrow
+          const cbHz = criticalBandwidth(p.frequency);
+          const freqLo = Math.max(minFreq, p.frequency - cbHz / 2);
+          const freqHi = p.frequency + cbHz / 2;
+          const sigma = Math.max(4, (freqToX(freqHi, svgWidth) - freqToX(freqLo, svgWidth)) * 0.45);
           const amp = p.amplitude * plotHeight * 0.85;
           totalY += gaussianPeak(cx, amp, sigma, x);
         }
