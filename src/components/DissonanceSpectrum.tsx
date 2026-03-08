@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
 import {
-  getChordPartials,
+  getChordPartialsFromVoicing,
   calculatePartialInteractions,
   calculateChordDissonance,
   getNoteName,
