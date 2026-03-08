@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getLabel, getNoteName, type LabelMode } from '@/lib/musicTheory';
+import { getLabel, getNoteName } from '@/lib/musicTheory';
 
 const RADIUS = 140;
 const DIAL_RADIUS = RADIUS + 30;
@@ -59,8 +59,8 @@ function voiceLeadingArcPath(
   return `M ${x1} ${y1} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${x2} ${y2}`;
 }
 
-function ArrowHead({ path, color }: { path: string; color: string }) {
-  const id = `arrowhead-${Math.random().toString(36).slice(2, 8)}`;
+function ArrowHead({ path, color, stableId }: { path: string; color: string; stableId: string }) {
+  const id = `arrowhead-${stableId}`;
   return (
     <>
       <defs>
@@ -93,7 +93,7 @@ export default function PitchClock() {
   const {
     root, scaleTonic, setScaleTonic, setRoot,
     activePitchClasses, scalePitchClasses,
-    intervalTensions, labelMode, setLabelMode, useFlats, setUseFlats,
+    intervalTensions, labelMode, useFlats,
     constructionMode, setConstructionMode, togglePitchClass,
     cadenceMode, setCadenceMode, lockedPitchClasses, lockedRoot, lockedChord, voiceLeading,
     chord: chordObj,
@@ -301,7 +301,7 @@ export default function PitchClock() {
               const path = voiceLeadingArcPath(fromPC, toPC, offset);
               if (path) {
                 arrows.push(
-                  <ArrowHead key={`vl-${i}-${fromPC}-${toPC}`} path={path} color={color} />
+                  <ArrowHead key={`vl-${i}-${fromPC}-${toPC}`} path={path} color={color} stableId={`${i}-${fromPC}-${toPC}`} />
                 );
               }
             }
@@ -449,33 +449,8 @@ export default function PitchClock() {
         })}
       </svg>
 
-      {/* Controls row */}
+      {/* Controls row — key rotation only (label/flat controls live in ControlPanel) */}
       <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
-        <div className="flex gap-0.5 bg-secondary rounded p-0.5">
-          {(['notes', 'intervals', 'semitones'] as LabelMode[]).map(m => (
-            <button
-              key={m}
-              onClick={() => setLabelMode(m)}
-              className={`px-2 py-1 rounded text-[10px] font-mono capitalize transition-all ${
-                labelMode === m
-                  ? 'bg-primary text-primary-foreground font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => setUseFlats(!useFlats)}
-          className={`text-[10px] font-mono px-2 py-1 rounded border transition-colors ${
-            useFlats
-              ? 'bg-primary/20 border-primary text-primary'
-              : 'border-border text-muted-foreground hover:border-primary/50'
-          }`}
-        >
-          ♭
-        </button>
         <div className="flex items-center gap-1">
           <button
             onClick={() => stepTonic(-1)}

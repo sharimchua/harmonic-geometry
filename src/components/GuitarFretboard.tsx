@@ -137,6 +137,7 @@ export default function GuitarFretboard() {
     labelMode, useFlats,
     activeIntervals, inversion,
   } = useHarmony();
+  const [voicingIdx, setVoicingIdx] = React.useState(0);
 
   const bassPc = useMemo(() => {
     if (inversion === 0) return root;
@@ -159,9 +160,17 @@ export default function GuitarFretboard() {
     return order;
   }, [numStrings]);
 
-  const voicings = useMemo(() => {
+  const allVoicings = useMemo(() => {
     return generateVoicings(activePitchClasses, bassPc, tuning, NUM_FRETS);
   }, [bassPc, tuning, activePitchClasses]);
+
+  // Reset voicing index when chord changes
+  React.useEffect(() => {
+    setVoicingIdx(0);
+  }, [activePitchClasses, bassPc, tuning]);
+
+  // Show only the selected voicing (or none if empty)
+  const voicings = allVoicings.length > 0 ? [allVoicings[Math.min(voicingIdx, allVoicings.length - 1)]] : [];
 
   const voicingTensionLines = useMemo(() => {
     return voicings.map(voicing => {
@@ -206,9 +215,29 @@ export default function GuitarFretboard() {
             <option key={preset.name} value={i}>{preset.name}</option>
           ))}
         </select>
-        <span className="text-[10px] font-mono text-muted-foreground">
-          {voicings.length} voicing{voicings.length !== 1 ? 's' : ''} found
-        </span>
+        <div className="flex items-center gap-2">
+          {allVoicings.length > 1 && (
+            <button
+              onClick={() => setVoicingIdx(i => (i - 1 + allVoicings.length) % allVoicings.length)}
+              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+            >
+              ◀
+            </button>
+          )}
+          <span className="text-[10px] font-mono text-muted-foreground">
+            {allVoicings.length > 0
+              ? `${Math.min(voicingIdx, allVoicings.length - 1) + 1} / ${allVoicings.length}`
+              : '0 voicings'}
+          </span>
+          {allVoicings.length > 1 && (
+            <button
+              onClick={() => setVoicingIdx(i => (i + 1) % allVoicings.length)}
+              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+            >
+              ▶
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto w-full">

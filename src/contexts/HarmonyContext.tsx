@@ -58,6 +58,7 @@ interface HarmonyContextValue extends HarmonyState {
   togglePitchClass: (pc: PitchClass) => void;
   // Cadence mode
   setCadenceMode: (on: boolean) => void;
+  relockCadence: () => void;
   // MIDI
   midi: MidiState;
   midiEnabled: boolean;
@@ -98,7 +99,6 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
 
   const setCadenceMode = useCallback((on: boolean) => {
     if (on) {
-      // Lock the current harmony
       setLockedRoot(harmonicRoot);
       setLockedChord(chord);
     } else {
@@ -106,6 +106,12 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
       setLockedChord(null);
     }
     setCadenceModeRaw(on);
+  }, [harmonicRoot, chord]);
+
+  // Atomically re-lock the current harmony as the cadence reference
+  const relockCadence = useCallback(() => {
+    setLockedRoot(harmonicRoot);
+    setLockedChord(chord);
   }, [harmonicRoot, chord]);
 
   // MIDI integration — update harmony when chords are played
@@ -240,7 +246,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     lockMode, setLockMode,
     constructionMode, setConstructionMode,
     togglePitchClass,
-    cadenceMode, lockedRoot, lockedChord, setCadenceMode,
+    cadenceMode, lockedRoot, lockedChord, setCadenceMode, relockCadence,
     midi,
     midiEnabled, setMidiEnabled,
     activeIntervals,

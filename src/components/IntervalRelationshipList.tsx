@@ -99,7 +99,7 @@ export default function IntervalRelationshipList() {
 
               {/* Semitone count */}
               <span className="text-xs font-mono text-muted-foreground">
-                {pair.semitones}st
+                {pair.semitones} sem
               </span>
 
               {/* Pedagogical label */}

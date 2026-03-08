@@ -12,7 +12,7 @@ import {
 export default function CadenceExplorer() {
   const {
     root, chord, useFlats, setRoot, setChord, setScaleTonic,
-    cadenceMode, setCadenceMode, lockedRoot, lockedChord,
+    cadenceMode, setCadenceMode, relockCadence, lockedRoot, lockedChord,
   } = useHarmony();
   const [direction, setDirection] = useState<CadenceDirection>('leadTo');
 
@@ -34,12 +34,9 @@ export default function CadenceExplorer() {
   }, [suggestions]);
 
   const handleSelect = (option: CadenceOption) => {
-    // When already in cadence mode, lock the CURRENT harmony before moving to the new one
-    // This creates a chain: the current chord becomes the "from" and the selected becomes the "to"
     if (cadenceMode) {
-      // Re-lock to current harmony so voice leading shows current → new
-      setCadenceMode(false); // clear old lock
-      setCadenceMode(true);  // re-lock with current harmony
+      // Atomically re-lock current harmony as reference before moving
+      relockCadence();
     } else {
       // First selection: activate cadence mode (locks current harmony)
       setCadenceMode(true);
@@ -70,6 +67,16 @@ export default function CadenceExplorer() {
       </div>
 
       {/* Direction Toggle */}
+      {/* Exit cadence button */}
+      {cadenceMode && (
+        <button
+          onClick={() => setCadenceMode(false)}
+          className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-destructive/50 text-destructive hover:bg-destructive/10 transition-colors"
+        >
+          ✕ Exit Cadence Mode
+        </button>
+      )}
+
       <div className="flex gap-1 bg-secondary rounded-lg p-0.5">
         {([
           ['leadTo', 'Lead To →', 'Where to go next'] as const,
