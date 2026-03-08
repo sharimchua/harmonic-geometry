@@ -39,6 +39,31 @@ export function getIntervalTension(semitones: number): IntervalTension {
   return 'dissonant'; // 1, 11
 }
 
+// ─── Shared Tension Visual Constants ─────────────────────
+export const TENSION_COLORS: Record<IntervalTension, string> = {
+  perfect: 'hsl(220, 55%, 58%)',
+  consonant: 'hsl(150, 55%, 42%)',
+  mild: 'hsl(42, 55%, 52%)',
+  dissonant: 'hsl(0, 65%, 52%)',
+  tritone: 'hsl(340, 60%, 50%)',
+};
+
+export const TENSION_WIDTHS: Record<IntervalTension, number> = {
+  perfect: 3,
+  consonant: 2.5,
+  mild: 2,
+  dissonant: 2,
+  tritone: 2.5,
+};
+
+export const TENSION_LABELS: Record<IntervalTension, string> = {
+  perfect: 'Perfect',
+  consonant: 'Consonant',
+  mild: 'Mild',
+  dissonant: 'Dissonant',
+  tritone: 'Tritone',
+};
+
 export function getIntervalName(semitones: number): string {
   return INTERVAL_NAMES[((semitones % 12) + 12) % 12];
 }

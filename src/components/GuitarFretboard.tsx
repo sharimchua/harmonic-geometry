@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getLabel, getIntervalTension } from '@/lib/musicTheory';
+import { getLabel, getIntervalTension, TENSION_COLORS } from '@/lib/musicTheory';
 
 const FRET_WIDTH = 50;
 const STRING_SPACING = 24;
@@ -9,14 +9,6 @@ const LEFT_PAD = 30;
 const DOT_R = 8;
 
 const FRET_MARKERS = [3, 5, 7, 9, 12, 15];
-
-const TENSION_COLORS: Record<string, string> = {
-  perfect: 'hsl(220, 55%, 58%)',
-  consonant: 'hsl(150, 55%, 42%)',
-  mild: 'hsl(42, 55%, 52%)',
-  dissonant: 'hsl(0, 65%, 52%)',
-  tritone: 'hsl(340, 60%, 50%)',
-};
 
 const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[] = [
   { name: 'Standard', tuning: [40, 45, 50, 55, 59, 64], stringNames: ['E', 'A', 'D', 'G', 'B', 'e'] },
@@ -285,7 +277,7 @@ function generateVoicings(
   return voicings;
 }
 
-export default function GuitarFretboard() {
+const GuitarFretboard = React.memo(function GuitarFretboard() {
   const {
     root, setRoot, scaleTonic, activePitchClasses, scalePitchClasses,
     labelMode, useFlats,
@@ -467,10 +459,12 @@ export default function GuitarFretboard() {
             />
           ))}
 
-          {/* Ghost dots for non-selected voicings */}
+          {/* Ghost dots for adjacent voicings only (±2) */}
           {allVoicings.map((voicing, vIdx) => {
             const safeIdx = Math.min(voicingIdx, allVoicings.length - 1);
             if (vIdx === safeIdx) return null;
+            // Only render ghosts within ±2 of current voicing for performance
+            if (Math.abs(vIdx - safeIdx) > 2) return null;
             return voicing.map((pos, i) => {
               const displayRow = displayOrder.indexOf(pos.s);
               const cx = LEFT_PAD + (pos.f === 0 ? 0 : pos.f * FRET_WIDTH - FRET_WIDTH / 2);
@@ -539,4 +533,6 @@ export default function GuitarFretboard() {
       </div>
     </div>
   );
-}
+});
+
+export default GuitarFretboard;
