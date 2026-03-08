@@ -251,14 +251,19 @@ function generateVoicings(
   }
 
   for (const anchor of bassPositions) {
+    // Generate more window positions for better coverage
     const windows: [number, number][] = [
       [anchor.f, Math.min(maxFret, anchor.f + MAX_SPAN)],
+      [Math.max(0, anchor.f - 1), Math.min(maxFret, anchor.f + MAX_SPAN - 1)],
       [Math.max(0, anchor.f - 2), Math.min(maxFret, anchor.f + 2)],
       [Math.max(0, anchor.f - MAX_SPAN), anchor.f],
+      // Wider window for barre chords
+      [anchor.f, Math.min(maxFret, anchor.f + MAX_SPAN_BARRE)],
+      [Math.max(0, anchor.f - 1), Math.min(maxFret, anchor.f + MAX_SPAN_BARRE - 1)],
     ];
 
     for (const [wMin, wMax] of windows) {
-      if (wMax - wMin > MAX_SPAN + 1) continue;
+      if (wMax - wMin > MAX_SPAN_BARRE + 1) continue;
       const voicing = buildVoicing(chordPcs, anchor.s, anchor.f, bassPc, tuning, wMin, wMax);
       if (!voicing) continue;
 
