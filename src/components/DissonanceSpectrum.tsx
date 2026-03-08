@@ -276,7 +276,7 @@ export default function DissonanceSpectrum() {
                         key={si}
                         x={sb.x}
                         y={plotBottom - sb.h}
-                        width={sb.w}
+                        width={SUB_BAR_W}
                         height={sb.h}
                         fill={noteColor(pc, isFundamental ? 0.7 : 0.4)}
                         rx={0.5}
