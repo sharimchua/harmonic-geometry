@@ -302,6 +302,7 @@ function buildVoicing(
 function generateVoicings(
   chordPcs: number[],
   bassPc: number,
+  root: number,
   tuning: number[],
   maxFret: number = NUM_FRETS
 ): VoicingPosition[][] {
