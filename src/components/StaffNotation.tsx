@@ -355,6 +355,23 @@ export default function StaffNotation() {
               );
             })}
 
+            {/* Note accidentals — aligned in a single column */}
+            {staffNotes.map((note, i) => {
+              if (!note.showAccidental) return null;
+              const y = getY(note.staffPos);
+              return (
+                <text
+                  key={`acc-${i}`}
+                  x={accColumnX} y={y + 6}
+                  fontSize={17} fontFamily="serif"
+                  fill="hsl(30, 10%, 75%)"
+                  textAnchor="middle"
+                >
+                  {accidentalSymbol(note.accidental)}
+                </text>
+              );
+            })}
+
             {/* Note heads */}
             {staffNotes.map((note, i) => {
               const y = getY(note.staffPos);
@@ -364,16 +381,6 @@ export default function StaffNotation() {
 
               return (
                 <g key={`n-${i}`}>
-                  {note.showAccidental && (
-                    <text
-                      x={x - NOTE_RX - 12} y={y + 6}
-                      fontSize={17} fontFamily="serif"
-                      fill="hsl(30, 10%, 75%)"
-                      textAnchor="middle"
-                    >
-                      {accidentalSymbol(note.accidental)}
-                    </text>
-                  )}
                   <ellipse
                     cx={x} cy={y} rx={NOTE_RX} ry={NOTE_RY}
                     fill={fillColor}
