@@ -31,6 +31,7 @@ const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[
 const NUM_FRETS = 15;
 const MAX_SPAN = 4;    // max fret span for the fretting hand
 const MAX_FINGERS = 4; // index, middle, ring, pinky
+const MAX_SPAN_BARRE = 5; // slightly wider span when a barre is anchoring
 
 interface VoicingPosition {
   s: number;  // string index (0 = lowest)
@@ -44,32 +45,27 @@ interface VoicingPosition {
  * - Fretted notes on the same fret can share a barre (1 finger for all).
  * - Each additional distinct fret costs 1 finger.
  */
-function countFingers(voicing: VoicingPosition[]): number {
+function countFingers(voicing: VoicingPosition[]): { fingers: number; hasBarre: boolean } {
   const frettedFrets = voicing.filter(v => v.f > 0).map(v => v.f);
-  if (frettedFrets.length === 0) return 0;
+  if (frettedFrets.length === 0) return { fingers: 0, hasBarre: false };
 
-  // Group by fret — each distinct fret costs at least 1 finger
   const fretCounts = new Map<number, number>();
   for (const f of frettedFrets) {
     fretCounts.set(f, (fretCounts.get(f) || 0) + 1);
   }
 
-  // The lowest fret with 2+ notes can be a barre (1 finger).
-  // All other frets cost 1 finger per fret.
-  // A barre must cover consecutive strings from the lowest played string at that fret.
   const sortedFrets = [...fretCounts.entries()].sort((a, b) => a[0] - b[0]);
   let fingers = 0;
+  let hasBarre = false;
 
+  // Try barre on the lowest fret first (most common), then any fret with 2+ notes
   let barreUsed = false;
   for (const [fret, count] of sortedFrets) {
     if (!barreUsed && count >= 2) {
-      // Check if barre is feasible: all strings between the lowest and highest
-      // at this fret should not have a lower fret note (which would block the barre).
       const stringsAtFret = voicing.filter(v => v.f === fret).map(v => v.s);
       const minS = Math.min(...stringsAtFret);
       const maxS = Math.max(...stringsAtFret);
       
-      // A barre is feasible if no intermediate string has a note at a LOWER fret
       let barreFeasible = true;
       for (let s = minS; s <= maxS; s++) {
         const noteOnString = voicing.find(v => v.s === s);
@@ -80,17 +76,22 @@ function countFingers(voicing: VoicingPosition[]): number {
       }
 
       if (barreFeasible) {
-        fingers += 1; // barre = 1 finger
+        fingers += 1;
         barreUsed = true;
+        hasBarre = true;
       } else {
-        fingers += count; // each note needs its own finger
+        fingers += count;
       }
+    } else if (!barreUsed && count === 1) {
+      // Even a single note at lowest fret could become a partial barre
+      // if higher strings at the same fret are muted/open — just count 1
+      fingers += 1;
     } else {
       fingers += count;
     }
   }
 
-  return fingers;
+  return { fingers, hasBarre };
 }
 
 /**
@@ -104,14 +105,14 @@ function openStringsRealistic(voicing: VoicingPosition[]): boolean {
   if (!hasOpen) return true;
 
   const frettedPositions = voicing.filter(v => v.f > 0);
-  if (frettedPositions.length === 0) return true; // all open is fine
+  if (frettedPositions.length === 0) return true;
 
   const maxFret = Math.max(...frettedPositions.map(v => v.f));
 
-  // Open strings are natural up to ~fret 5 (with stretching)
-  if (maxFret <= 5) return true;
+  // Open strings are natural up to fret 7 (common in fingerstyle)
+  if (maxFret <= 7) return true;
 
-  // Beyond fret 5, only allow open if it's the lowest string (bass drone)
+  // Beyond fret 7, only allow open if it's below the lowest fretted string (bass drone)
   const openPositions = voicing.filter(v => v.f === 0);
   const lowestFrettedString = Math.min(...frettedPositions.map(v => v.s));
   return openPositions.every(v => v.s < lowestFrettedString);
@@ -184,19 +185,26 @@ function buildVoicing(
 
     // Try each candidate and pick the first that keeps the voicing playable
     let picked = false;
-    for (const pick of candidates) {
+    // Sort candidates: prefer fretted notes closer to existing fretted notes
+    const sortedCandidates = [...candidates].sort((a, b) => {
+      // Prefer fretted over open when higher up the neck
+      if (a.f === 0 && b.f > 0) return 1;
+      if (b.f === 0 && a.f > 0) return -1;
+      return 0;
+    });
+    for (const pick of sortedCandidates) {
       const tentative = [...voicing, pick];
       const fretted = tentative.filter(v => v.f > 0);
 
-      // Check fret span
       if (fretted.length > 1) {
         const min = Math.min(...fretted.map(v => v.f));
         const max = Math.max(...fretted.map(v => v.f));
-        if (max - min > MAX_SPAN) continue;
+        const { hasBarre } = countFingers(tentative);
+        const spanLimit = hasBarre ? MAX_SPAN_BARRE : MAX_SPAN;
+        if (max - min > spanLimit) continue;
       }
 
-      // Check finger count
-      if (countFingers(tentative) > MAX_FINGERS) continue;
+      if (countFingers(tentative).fingers > MAX_FINGERS) continue;
 
       voicing.push(pick);
       usedPcs.add(pick.pc);
@@ -208,12 +216,17 @@ function buildVoicing(
 
   // Validate final voicing
   const covered = new Set(voicing.map(v => v.pc));
-  const minCoverage = Math.min(3, chordPcs.length);
+  // For chords with 4+ notes, allow shell voicings (root + 3rd + 7th minimum = 2 unique beyond root)
+  const minCoverage = chordPcs.length >= 4 ? Math.min(3, chordPcs.length) : Math.min(3, chordPcs.length);
+  // Allow 2-note partial voicings for very high positions (fret 10+) or complex chords
+  const avgFret = voicing.reduce((s, v) => s + v.f, 0) / voicing.length;
+  const isHighPosition = avgFret >= 9;
+  const minNotes = isHighPosition ? 2 : 3;
 
-  if (covered.size < minCoverage || voicing.length < 3) return null;
+  if (covered.size < Math.min(2, chordPcs.length) || voicing.length < minNotes) return null;
   if (!openStringsRealistic(voicing)) return null;
   if (!noProblematicGaps(voicing)) return null;
-  if (countFingers(voicing) > MAX_FINGERS) return null;
+  if (countFingers(voicing).fingers > MAX_FINGERS) return null;
 
   return voicing.sort((a, b) => a.s - b.s);
 }
@@ -238,14 +251,19 @@ function generateVoicings(
   }
 
   for (const anchor of bassPositions) {
+    // Generate more window positions for better coverage
     const windows: [number, number][] = [
       [anchor.f, Math.min(maxFret, anchor.f + MAX_SPAN)],
+      [Math.max(0, anchor.f - 1), Math.min(maxFret, anchor.f + MAX_SPAN - 1)],
       [Math.max(0, anchor.f - 2), Math.min(maxFret, anchor.f + 2)],
       [Math.max(0, anchor.f - MAX_SPAN), anchor.f],
+      // Wider window for barre chords
+      [anchor.f, Math.min(maxFret, anchor.f + MAX_SPAN_BARRE)],
+      [Math.max(0, anchor.f - 1), Math.min(maxFret, anchor.f + MAX_SPAN_BARRE - 1)],
     ];
 
     for (const [wMin, wMax] of windows) {
-      if (wMax - wMin > MAX_SPAN + 1) continue;
+      if (wMax - wMin > MAX_SPAN_BARRE + 1) continue;
       const voicing = buildVoicing(chordPcs, anchor.s, anchor.f, bassPc, tuning, wMin, wMax);
       if (!voicing) continue;
 
