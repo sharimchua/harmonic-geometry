@@ -327,25 +327,6 @@ export default function GuitarFretboard() {
             })
           )}
 
-          {showArpeggio && displayOrder.map((dataIdx, row) =>
-            Array.from({ length: NUM_FRETS + 1 }, (_, f) => {
-              const key = `${dataIdx}-${f}`;
-              if (voicedSet.has(key)) return null;
-              const midi = tuning[dataIdx] + f;
-              const pc = midi % 12;
-              if (!scalePitchClasses.includes(pc) || activePitchClasses.includes(pc)) return null;
-              const cx = LEFT_PAD + (f === 0 ? 0 : f * FRET_WIDTH - FRET_WIDTH / 2);
-              const cy = TOP_PAD + row * STRING_SPACING;
-              return (
-                <circle
-                  key={`ghost-${key}`}
-                  cx={cx} cy={cy} r={3}
-                  fill="hsl(30, 15%, 32%)" opacity={0.5}
-                  onClick={() => setRoot(pc)} className="cursor-pointer"
-                />
-              );
-            })
-          )}
         </svg>
       </div>
     </div>

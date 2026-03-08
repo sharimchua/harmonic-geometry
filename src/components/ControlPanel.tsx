@@ -213,15 +213,6 @@ export default function ControlPanel() {
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={showArpeggio}
-                onChange={e => setShowArpeggio(e.target.checked)}
-                className="rounded border-border accent-primary"
-              />
-              <span className="text-xs font-sans text-muted-foreground">Arpeggio Mode</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
                 checked={useFlats}
                 onChange={e => setUseFlats(e.target.checked)}
                 className="rounded border-border accent-primary"

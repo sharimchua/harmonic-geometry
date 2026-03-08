@@ -234,7 +234,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     inversion, setInversion,
     dropVoicingType, setDropVoicing,
     labelMode, setLabelMode,
-    showArpeggio, setShowArpeggio,
+    
     cagedPosition, setCagedPosition,
     useFlats, setUseFlats,
     lockMode, setLockMode,
