@@ -34,12 +34,9 @@ export default function CadenceExplorer() {
   }, [suggestions]);
 
   const handleSelect = (option: CadenceOption) => {
-    // When already in cadence mode, lock the CURRENT harmony before moving to the new one
-    // This creates a chain: the current chord becomes the "from" and the selected becomes the "to"
     if (cadenceMode) {
-      // Re-lock to current harmony so voice leading shows current → new
-      setCadenceMode(false); // clear old lock
-      setCadenceMode(true);  // re-lock with current harmony
+      // Atomically re-lock current harmony as reference before moving
+      relockCadence();
     } else {
       // First selection: activate cadence mode (locks current harmony)
       setCadenceMode(true);
