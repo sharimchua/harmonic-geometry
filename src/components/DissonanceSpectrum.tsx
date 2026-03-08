@@ -229,70 +229,66 @@ export default function DissonanceSpectrum() {
             );
           })}
 
-          {/* Dissonance overlap envelope (behind note curves) */}
-          {dissonanceEnvelope && (
-            <path
-              d={dissonanceEnvelope}
-              fill="url(#dissonance-fill)"
-              stroke="hsl(var(--interval-dissonant))"
-              strokeWidth={0.5}
-              strokeOpacity={0.3}
+          {/* Dissonance overlap bars (behind note bars) */}
+          {dissonanceBars.map((bar, i) => (
+            <rect
+              key={`diss-${i}`}
+              x={bar.x}
+              y={plotBottom - bar.height}
+              width={bar.width}
+              height={bar.height}
+              fill="hsl(var(--interval-dissonant))"
+              opacity={bar.opacity}
+              rx={1}
             />
-          )}
+          ))}
 
-          {/* Note envelope curves */}
-          {noteEnvelopes.map(({ pc, path, peaks }) => (
-            <g key={`env-${pc}`}>
-              {/* Filled area */}
-              <path
-                d={path}
-                fill={`url(#note-grad-${pc})`}
-                stroke={noteColorStroke(pc)}
-                strokeWidth={1.5}
-              />
-              {/* Fundamental marker */}
-              {peaks.filter(p => p.partial.partialNumber === 1).map((p, i) => {
-                const x = p.x;
+          {/* Note partial bars */}
+          {noteBars.map(({ pc, items }) => (
+            <g key={`bars-${pc}`}>
+              {items.map((bar, i) => {
+                const isFundamental = bar.partial.partialNumber === 1;
                 return (
-                  <g key={`fund-${pc}-${i}`}>
-                    {/* Vertical stem line */}
-                    <line
-                      x1={x} y1={p.y} x2={x} y2={plotBottom}
-                      stroke={noteColor(pc, 0.6)} strokeWidth={1.5}
+                  <g key={`b-${pc}-${i}`}>
+                    <rect
+                      x={bar.x}
+                      y={plotBottom - bar.height}
+                      width={bar.width}
+                      height={bar.height}
+                      fill={`url(#note-grad-${pc})`}
+                      stroke={noteColorStroke(pc)}
+                      strokeWidth={isFundamental ? 1.2 : 0.6}
+                      rx={1}
                     />
-                    {/* Note label */}
-                    <circle cx={x} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
-                    <text
-                      x={x} y={plotTop - 3}
-                      textAnchor="middle" fontSize={7.5}
-                      fontFamily="'JetBrains Mono', monospace"
-                      fill="hsl(0, 0%, 7%)" fontWeight={700}
-                    >
-                      {getNoteName(pc, useFlats)}
-                    </text>
+                    {/* Fundamental label */}
+                    {isFundamental && (
+                      <>
+                        <circle cx={bar.x + bar.width / 2} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
+                        <text
+                          x={bar.x + bar.width / 2} y={plotTop - 3}
+                          textAnchor="middle" fontSize={7.5}
+                          fontFamily="'JetBrains Mono', monospace"
+                          fill="hsl(0, 0%, 7%)" fontWeight={700}
+                        >
+                          {getNoteName(pc, useFlats)}
+                        </text>
+                      </>
+                    )}
+                    {/* Overtone number */}
+                    {!isFundamental && bar.partial.amplitude > 0.35 && (
+                      <text
+                        x={bar.x + bar.width / 2}
+                        y={plotBottom - bar.height - 3}
+                        textAnchor="middle" fontSize={6}
+                        fontFamily="'JetBrains Mono', monospace"
+                        fill={noteColor(pc, 0.6)}
+                      >
+                        {bar.partial.partialNumber}×
+                      </text>
+                    )}
                   </g>
                 );
               })}
-              {/* Overtone markers — thin vertical ticks */}
-              {peaks.filter(p => p.partial.partialNumber > 1).map((p, i) => (
-                <g key={`ot-${pc}-${i}`}>
-                  <line
-                    x1={p.x} y1={p.y} x2={p.x} y2={plotBottom}
-                    stroke={noteColor(pc, 0.25)} strokeWidth={0.8}
-                    strokeDasharray="2,3"
-                  />
-                  {p.partial.amplitude > 0.35 && (
-                    <text
-                      x={p.x} y={p.y - 3}
-                      textAnchor="middle" fontSize={6}
-                      fontFamily="'JetBrains Mono', monospace"
-                      fill={noteColor(pc, 0.6)}
-                    >
-                      {p.partial.partialNumber}×
-                    </text>
-                  )}
-                </g>
-              ))}
             </g>
           ))}
 
