@@ -225,9 +225,9 @@ export default function GuitarFretboard() {
             </button>
           )}
           <span className="text-[10px] font-mono text-muted-foreground">
-            {allVoicings.length > 0
+            Voicing {allVoicings.length > 0
               ? `${Math.min(voicingIdx, allVoicings.length - 1) + 1} / ${allVoicings.length}`
-              : '0 voicings'}
+              : '— none found'}
           </span>
           {allVoicings.length > 1 && (
             <button
