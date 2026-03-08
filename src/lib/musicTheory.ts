@@ -876,12 +876,14 @@ export function calculateChordDissonance(frequencies: number[]): number {
 
   const actual = rawDissonance(frequencies);
 
-  // Reference max: chromatic cluster of same note count (or semitone above for single note)
-  const baseFreq = Math.min(...frequencies);
+  // Reference max: chromatic cluster of same note count starting from a FIXED frequency
+  // Using a fixed reference (C3 = ~130.81 Hz) ensures that the same chord quality
+  // at different roots produces the same dissonance percentage in equal temperament.
+  const fixedRefFreq = 130.81; // C3
   const noteCount = Math.max(2, frequencies.length); // at least 2 for meaningful reference
   const referenceFreqs: number[] = [];
   for (let i = 0; i < noteCount; i++) {
-    referenceFreqs.push(baseFreq * Math.pow(2, i / 12)); // chromatic cluster
+    referenceFreqs.push(fixedRefFreq * Math.pow(2, i / 12)); // chromatic cluster
   }
   const referenceMax = rawDissonance(referenceFreqs);
 
