@@ -42,21 +42,19 @@ function pitchClassToXY(pc: number, radius = RADIUS): [number, number] {
 function voiceLeadingArcPath(
   fromPC: number,
   toPC: number,
-  radius: number = RADIUS - 28,
   offset: number = 0
 ): string {
-  const r = radius - offset * 12;
+  // Draw arcs OUTSIDE the note circles, between DIAL_RADIUS and RADIUS
+  const r = RADIUS + 24 + offset * 10;
   const [x1, y1] = pitchClassToXY(fromPC, r);
   const [x2, y2] = pitchClassToXY(toPC, r);
 
-  if (fromPC === toPC) return ''; // common tone, no arrow
+  if (fromPC === toPC) return '';
 
-  // Determine shortest path direction
   const diff = ((toPC - fromPC) % 12 + 12) % 12;
   const sweepFlag = diff <= 6 ? 1 : 0;
 
-  // Arc radius — larger for nearby notes, smaller for distant
-  const arcR = Math.max(40, r * 0.7);
+  const arcR = Math.max(50, r * 0.8);
 
   return `M ${x1} ${y1} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${x2} ${y2}`;
 }
@@ -97,7 +95,8 @@ export default function PitchClock() {
     activePitchClasses, scalePitchClasses,
     intervalTensions, labelMode, setLabelMode, useFlats, setUseFlats,
     constructionMode, setConstructionMode, togglePitchClass,
-    cadenceMode, lockedPitchClasses, lockedRoot, lockedChord, voiceLeading,
+    cadenceMode, setCadenceMode, lockedPitchClasses, lockedRoot, lockedChord, voiceLeading,
+    chord: chordObj,
   } = useHarmony();
   const isSameTonicAndRoot = root === scaleTonic;
   const allPitchClasses = Array.from({ length: 12 }, (_, i) => i);
@@ -159,8 +158,8 @@ export default function PitchClock() {
 
   return (
     <div className="flex flex-col items-center">
-      {/* Header with Construction Mode toggle */}
-      <div className="flex items-center gap-3 mb-4">
+      {/* Header with toggles */}
+      <div className="flex items-center gap-2 mb-4">
         <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">Pitch Clock</h3>
         <button
           onClick={() => setConstructionMode(!constructionMode)}
@@ -172,6 +171,16 @@ export default function PitchClock() {
         >
           {constructionMode ? '✏️ Edit ON' : '✏️ Edit'}
         </button>
+        <button
+          onClick={() => setCadenceMode(!cadenceMode)}
+          className={`text-[10px] font-mono px-2 py-1 rounded-md border transition-colors ${
+            cadenceMode
+              ? 'bg-primary/20 border-primary text-primary'
+              : 'bg-transparent border-border text-muted-foreground hover:border-primary/50'
+          }`}
+        >
+          {cadenceMode ? '🎯 Cadence ON' : '🎯 Cadence'}
+        </button>
       </div>
 
       {/* Cadence mode locked chord indicator */}
@@ -182,7 +191,7 @@ export default function PitchClock() {
           </span>
           <span className="text-[10px] font-mono text-primary">→</span>
           <span className="text-[10px] font-mono text-primary font-semibold">
-            {getNoteName(root, useFlats)} {useHarmony().chord.name}
+            {getNoteName(root, useFlats)} {chordObj.name}
           </span>
         </div>
       )}
@@ -289,7 +298,7 @@ export default function PitchClock() {
             for (const toPC of move.to) {
               if (fromPC === toPC) continue; // common tone, no arrow needed
               const offset = arrows.length;
-              const path = voiceLeadingArcPath(fromPC, toPC, RADIUS - 28, offset);
+              const path = voiceLeadingArcPath(fromPC, toPC, offset);
               if (path) {
                 arrows.push(
                   <ArrowHead key={`vl-${i}-${fromPC}-${toPC}`} path={path} color={color} />
