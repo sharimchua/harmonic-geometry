@@ -96,8 +96,8 @@ export default function PitchClock() {
     intervalTensions, labelMode, setLabelMode, useFlats, setUseFlats,
     constructionMode, setConstructionMode, togglePitchClass,
     cadenceMode, setCadenceMode, lockedPitchClasses, lockedRoot, lockedChord, voiceLeading,
+    chord: chordObj,
   } = useHarmony();
-  const chordObj = useHarmony().chord;
   const isSameTonicAndRoot = root === scaleTonic;
   const allPitchClasses = Array.from({ length: 12 }, (_, i) => i);
 
