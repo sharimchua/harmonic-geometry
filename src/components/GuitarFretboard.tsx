@@ -105,14 +105,14 @@ function openStringsRealistic(voicing: VoicingPosition[]): boolean {
   if (!hasOpen) return true;
 
   const frettedPositions = voicing.filter(v => v.f > 0);
-  if (frettedPositions.length === 0) return true; // all open is fine
+  if (frettedPositions.length === 0) return true;
 
   const maxFret = Math.max(...frettedPositions.map(v => v.f));
 
-  // Open strings are natural up to ~fret 5 (with stretching)
-  if (maxFret <= 5) return true;
+  // Open strings are natural up to fret 7 (common in fingerstyle)
+  if (maxFret <= 7) return true;
 
-  // Beyond fret 5, only allow open if it's the lowest string (bass drone)
+  // Beyond fret 7, only allow open if it's below the lowest fretted string (bass drone)
   const openPositions = voicing.filter(v => v.f === 0);
   const lowestFrettedString = Math.min(...frettedPositions.map(v => v.s));
   return openPositions.every(v => v.s < lowestFrettedString);
