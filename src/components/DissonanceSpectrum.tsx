@@ -44,7 +44,7 @@ function gaussianPeak(centerX: number, amplitude: number, sigma: number, x: numb
 
 export default function DissonanceSpectrum() {
   const { activePitchClasses, activeIntervals, root, harmonicRoot, useFlats } = useHarmony();
-  const [baseOctave, setBaseOctave] = useState(3);
+  const [baseOctave, setBaseOctave] = useState(4);
 
   const { partials, noteFrequencies } = useMemo(
     () => getChordPartialsFromVoicing(harmonicRoot, activeIntervals, baseOctave),
