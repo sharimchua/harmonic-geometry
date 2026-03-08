@@ -189,29 +189,9 @@ export default function DissonanceSpectrum() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">
-          Psychoacoustical Dissonance
-        </h3>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-muted-foreground">Octave:</span>
-          <div className="flex gap-0.5">
-            {OCTAVE_OPTIONS.map(oct => (
-              <button
-                key={oct}
-                onClick={() => setBaseOctave(oct)}
-                className={`text-[10px] font-mono px-1.5 py-0.5 rounded transition-colors ${
-                  baseOctave === oct
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-surface-3 text-muted-foreground hover:bg-surface-2'
-                }`}
-              >
-                C{oct}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">
+        Psychoacoustical Dissonance
+      </h3>
 
       {/* Dissonance score */}
       <div className="flex items-center gap-3">
