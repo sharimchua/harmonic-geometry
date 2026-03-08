@@ -59,8 +59,9 @@ function voiceLeadingArcPath(
   return `M ${x1} ${y1} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${x2} ${y2}`;
 }
 
-function ArrowHead({ path, color }: { path: string; color: string }) {
-  const id = `arrowhead-${Math.random().toString(36).slice(2, 8)}`;
+let arrowCounter = 0;
+function ArrowHead({ path, color, stableId }: { path: string; color: string; stableId: string }) {
+  const id = `arrowhead-${stableId}`;
   return (
     <>
       <defs>
