@@ -338,7 +338,7 @@ export default function PitchClock() {
                 fontWeight={400}
                 opacity={0.7}
               >
-                {getLabel(pc, lockedRoot ?? root, labelMode, useFlats)}
+                {getLabel(pc, lockedRoot ?? root, labelMode, useFlats, scaleTonic)}
               </text>
             </g>
           );
