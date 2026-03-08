@@ -212,10 +212,22 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
 
   const chordVibe = useMemo(() => getChordVibe(chord.name), [chord.name]);
 
+  const lockedPitchClasses = useMemo(
+    () => lockedRoot !== null && lockedChord ? getPitchClasses(lockedRoot, lockedChord.intervals) : [],
+    [lockedRoot, lockedChord]
+  );
+
+  const voiceLeading = useMemo(
+    () => cadenceMode && lockedPitchClasses.length > 0
+      ? calculateVoiceLeading(lockedPitchClasses, activePitchClasses)
+      : [],
+    [cadenceMode, lockedPitchClasses, activePitchClasses]
+  );
+
   const value: HarmonyContextValue = {
     scaleTonic, setScaleTonic: useCallback((t: PitchClass) => setScaleTonic(t), []),
     harmonicRoot,
-    root: harmonicRoot, // alias
+    root: harmonicRoot,
     setRoot,
     chord, setChord,
     scale, setScale,
@@ -228,14 +240,17 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     lockMode, setLockMode,
     constructionMode, setConstructionMode,
     togglePitchClass,
+    cadenceMode, lockedRoot, lockedChord, setCadenceMode,
     midi,
     midiEnabled, setMidiEnabled,
     activeIntervals,
     activePitchClasses,
+    lockedPitchClasses,
     scalePitchClasses,
     intervalTensions,
     functionalAnalysis,
     chordVibe,
+    voiceLeading,
   };
 
   return <HarmonyContext.Provider value={value}>{children}</HarmonyContext.Provider>;
