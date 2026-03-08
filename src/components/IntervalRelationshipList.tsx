@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getNoteName, getIntervalName, getIntervalTension, FULL_INTERVAL_NAMES, type IntervalTension } from '@/lib/musicTheory';
+import { getNoteName, getIntervalName, getIntervalTension, FULL_INTERVAL_NAMES, TENSION_COLORS, type IntervalTension } from '@/lib/musicTheory';
 
 /** Map raw tension categories to PRD pedagogical labels */
 const TENSION_LABEL: Record<IntervalTension, string> = {
@@ -11,13 +11,7 @@ const TENSION_LABEL: Record<IntervalTension, string> = {
   tritone: 'Crunch',
 };
 
-const TENSION_COLOR: Record<IntervalTension, string> = {
-  perfect: 'hsl(220, 55%, 58%)',
-  consonant: 'hsl(150, 55%, 42%)',
-  mild: 'hsl(42, 55%, 52%)',
-  dissonant: 'hsl(0, 65%, 52%)',
-  tritone: 'hsl(340, 60%, 50%)',
-};
+const TENSION_COLOR = TENSION_COLORS;
 
 const TENSION_DESCRIPTION: Record<IntervalTension, string> = {
   perfect: 'Open and stable — the skeleton of the chord',

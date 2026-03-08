@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getIntervalTension } from '@/lib/musicTheory';
+import { getIntervalTension, TENSION_COLORS, TENSION_WIDTHS } from '@/lib/musicTheory';
 
 type ClefType = 'treble' | 'bass';
 
@@ -27,17 +27,6 @@ const KEY_SIG_FLAT_POS: Record<ClefType, number[]> = {
 
 const SHARP_ORDER = [3, 0, 4, 1, 5, 2, 6];
 const FLAT_ORDER  = [6, 2, 5, 1, 4, 0, 3];
-
-const TENSION_COLORS: Record<string, string> = {
-  perfect:   'hsl(220, 55%, 58%)',
-  consonant: 'hsl(150, 55%, 42%)',
-  mild:      'hsl(42, 55%, 52%)',
-  dissonant: 'hsl(0, 65%, 52%)',
-  tritone:   'hsl(340, 60%, 50%)',
-};
-const TENSION_WIDTHS: Record<string, number> = {
-  perfect: 2.5, consonant: 2, mild: 1.5, dissonant: 1.5, tritone: 2,
-};
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -89,7 +78,7 @@ function computeKeySignature(
 
 // ── Component ────────────────────────────────────────────
 
-export default function StaffNotation() {
+const StaffNotation = React.memo(function StaffNotation() {
   const {
     root, scaleTonic, scale, activeIntervals,
     useFlats,
@@ -235,13 +224,11 @@ export default function StaffNotation() {
 
   const ledgerHalf = NOTE_RX + 5;
 
-  // Clef reference lines: treble G is staffPos 32, bass F is staffPos 22
   const trebleGY = getY(32);
   const bassFY = getY(22);
 
   return (
     <div className="flex items-start gap-3">
-      {/* Side controls */}
       <div className="flex flex-col items-center gap-2 pt-1 flex-shrink-0">
         <span className="text-[10px] font-sans font-semibold text-muted-foreground uppercase tracking-widest [writing-mode:vertical-lr] rotate-180">
           Staff
@@ -257,6 +244,7 @@ export default function StaffNotation() {
                   : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
               title={c === 'treble' ? 'Treble Clef' : 'Bass Clef'}
+              aria-label={c === 'treble' ? 'Treble Clef' : 'Bass Clef'}
             >
               {c === 'treble' ? '𝄞' : '𝄢'}
             </button>
@@ -264,11 +252,16 @@ export default function StaffNotation() {
         </div>
       </div>
 
-      {/* Staff SVG */}
       <div className="overflow-x-auto flex-1 min-w-0">
-        <svg width={totalWidth} height={totalHeight} className="block w-full" viewBox={`0 0 ${totalWidth} ${totalHeight}`} preserveAspectRatio="xMidYMid meet">
+        <svg
+          width={totalWidth} height={totalHeight}
+          className="block w-full"
+          viewBox={`0 0 ${totalWidth} ${totalHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={`Staff notation in ${clef} clef showing chord voicing`}
+        >
           <g transform={`translate(0, ${yOffset})`}>
-            {/* Staff lines */}
             {Array.from({ length: 5 }, (_, i) => {
               const y = STAFF_TOP_Y + i * LINE_SP;
               return (
@@ -279,7 +272,6 @@ export default function StaffNotation() {
               );
             })}
 
-            {/* Ledger lines — only note-width */}
             {ledgerLines.map(pos => {
               const y = getY(pos);
               const notesOnLine = staffNotes
@@ -304,11 +296,9 @@ export default function StaffNotation() {
               );
             })}
 
-            {/* Clef symbol — larger, precisely anchored */}
             {clef === 'treble' ? (
               <text
-                x={24}
-                y={trebleGY + 14}
+                x={24} y={trebleGY + 14}
                 fontSize={78}
                 fontFamily="serif, 'Times New Roman', Georgia"
                 fill="hsl(30, 10%, 55%)"
@@ -318,8 +308,7 @@ export default function StaffNotation() {
               </text>
             ) : (
               <text
-                x={24}
-                y={bassFY + 10}
+                x={24} y={bassFY + 10}
                 fontSize={62}
                 fontFamily="serif, 'Times New Roman', Georgia"
                 fill="hsl(30, 10%, 55%)"
@@ -329,17 +318,13 @@ export default function StaffNotation() {
               </text>
             )}
 
-            {/* Key signature */}
             {keySig.sharps.map((letterIdx, i) => {
               const pos = KEY_SIG_SHARP_POS[clef][SHARP_ORDER.indexOf(letterIdx)];
               if (pos === undefined) return null;
               const y = getY(pos);
               const x = 20 + clefAreaW + i * 10;
               return (
-                <text key={`ks-${i}`}
-                  x={x} y={y + 6} fontSize={16}
-                  fontFamily="serif" fill="hsl(30, 10%, 65%)"
-                >♯</text>
+                <text key={`ks-${i}`} x={x} y={y + 6} fontSize={16} fontFamily="serif" fill="hsl(30, 10%, 65%)">♯</text>
               );
             })}
             {keySig.flats.map((letterIdx, i) => {
@@ -348,14 +333,10 @@ export default function StaffNotation() {
               const y = getY(pos);
               const x = 20 + clefAreaW + i * 10;
               return (
-                <text key={`kf-${i}`}
-                  x={x} y={y + 6} fontSize={16}
-                  fontFamily="serif" fill="hsl(30, 10%, 65%)"
-                >♭</text>
+                <text key={`kf-${i}`} x={x} y={y + 6} fontSize={16} fontFamily="serif" fill="hsl(30, 10%, 65%)">♭</text>
               );
             })}
 
-            {/* Note accidentals — aligned in a single column */}
             {staffNotes.map((note, i) => {
               if (!note.showAccidental) return null;
               const y = getY(note.staffPos);
@@ -372,7 +353,6 @@ export default function StaffNotation() {
               );
             })}
 
-            {/* Note heads */}
             {staffNotes.map((note, i) => {
               const y = getY(note.staffPos);
               const x = noteX + noteOffsets[i];
@@ -391,11 +371,10 @@ export default function StaffNotation() {
               );
             })}
 
-            {/* Interval tension lines */}
             {tensionPairs.map((pair, i) => {
               const x = tensionX + i * 16;
-              const color = TENSION_COLORS[pair.tension] ?? TENSION_COLORS.mild;
-              const width = TENSION_WIDTHS[pair.tension] ?? 1.5;
+              const color = TENSION_COLORS[pair.tension as keyof typeof TENSION_COLORS] ?? TENSION_COLORS.mild;
+              const width = TENSION_WIDTHS[pair.tension as keyof typeof TENSION_WIDTHS] ?? 1.5;
               const minPairY = Math.min(pair.y1, pair.y2);
               const maxPairY = Math.max(pair.y1, pair.y2);
 
@@ -424,4 +403,6 @@ export default function StaffNotation() {
       </div>
     </div>
   );
-}
+});
+
+export default StaffNotation;

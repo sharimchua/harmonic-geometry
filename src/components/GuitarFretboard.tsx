@@ -533,4 +533,6 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
       </div>
     </div>
   );
-}
+});
+
+export default GuitarFretboard;

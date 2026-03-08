@@ -1,27 +1,11 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getLabel, getNoteName } from '@/lib/musicTheory';
+import { getLabel, getNoteName, TENSION_COLORS, TENSION_LABELS } from '@/lib/musicTheory';
 
 const RADIUS = 140;
 const DIAL_RADIUS = RADIUS + 30;
 const CENTER = 180;
 const DOT_RADIUS = 18;
-
-const TENSION_COLORS: Record<string, string> = {
-  perfect: 'hsl(220, 55%, 58%)',
-  consonant: 'hsl(150, 55%, 42%)',
-  mild: 'hsl(42, 55%, 52%)',
-  dissonant: 'hsl(0, 65%, 52%)',
-  tritone: 'hsl(340, 60%, 50%)',
-};
-
-const TENSION_LABELS: Record<string, string> = {
-  perfect: 'Perfect',
-  consonant: 'Consonant',
-  mild: 'Mild',
-  dissonant: 'Dissonant',
-  tritone: 'Tritone',
-};
 
 function pitchClassToAngle(pc: number): number {
   return (pc * 30 - 90) * (Math.PI / 180);
@@ -35,27 +19,14 @@ function pitchClassToXY(pc: number, radius = RADIUS): [number, number] {
   ];
 }
 
-/**
- * Generate an SVG arc path for a curved arrow between two pitch classes.
- * The arrow curves inward (toward center) for clockwise motion, outward for counter-clockwise.
- */
-function voiceLeadingArcPath(
-  fromPC: number,
-  toPC: number,
-  offset: number = 0
-): string {
-  // Draw arcs OUTSIDE the note circles, between DIAL_RADIUS and RADIUS
+function voiceLeadingArcPath(fromPC: number, toPC: number, offset: number = 0): string {
   const r = RADIUS + 24 + offset * 10;
   const [x1, y1] = pitchClassToXY(fromPC, r);
   const [x2, y2] = pitchClassToXY(toPC, r);
-
   if (fromPC === toPC) return '';
-
   const diff = ((toPC - fromPC) % 12 + 12) % 12;
   const sweepFlag = diff <= 6 ? 1 : 0;
-
   const arcR = Math.max(50, r * 0.8);
-
   return `M ${x1} ${y1} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${x2} ${y2}`;
 }
 
@@ -64,32 +35,16 @@ function ArrowHead({ path, color, stableId }: { path: string; color: string; sta
   return (
     <>
       <defs>
-        <marker
-          id={id}
-          markerWidth="8"
-          markerHeight="6"
-          refX="7"
-          refY="3"
-          orient="auto"
-          markerUnits="strokeWidth"
-        >
+        <marker id={id} markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
           <polygon points="0 0, 8 3, 0 6" fill={color} />
         </marker>
       </defs>
-      <path
-        d={path}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeDasharray="4 2"
-        markerEnd={`url(#${id})`}
-        opacity={0.85}
-      />
+      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeDasharray="4 2" markerEnd={`url(#${id})`} opacity={0.85} />
     </>
   );
 }
 
-export default function PitchClock() {
+const PitchClock = React.memo(function PitchClock() {
   const {
     root, scaleTonic, setScaleTonic, setRoot,
     activePitchClasses, scalePitchClasses,
@@ -101,7 +56,6 @@ export default function PitchClock() {
   const isSameTonicAndRoot = root === scaleTonic;
   const allPitchClasses = Array.from({ length: 12 }, (_, i) => i);
 
-  // ── Drag-to-spin state for key rotation dial ──
   const svgRef = useRef<SVGSVGElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartAngle = useRef<number>(0);
@@ -151,14 +105,29 @@ export default function PitchClock() {
     }
   };
 
-  // Locked chord label for cadence mode
+  const handleNodeKeyDown = (e: React.KeyboardEvent, pc: number) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleNodeClick(pc);
+    }
+  };
+
+  const handleDialKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      stepTonic(-1);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      stepTonic(1);
+    }
+  };
+
   const lockedLabel = cadenceMode && lockedRoot !== null && lockedChord
     ? `${getNoteName(lockedRoot, useFlats)} ${lockedChord.name}`
     : null;
 
   return (
     <div className="flex flex-col items-center">
-      {/* Header with toggles */}
       <div className="flex items-center gap-2 mb-4">
         <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">Pitch Clock</h3>
         <button
@@ -183,7 +152,6 @@ export default function PitchClock() {
         </button>
       </div>
 
-      {/* Cadence mode locked chord indicator */}
       {cadenceMode && lockedLabel && (
         <div className="mb-3 flex items-center gap-2">
           <span className="text-[10px] font-mono text-muted-foreground bg-surface-3 px-2 py-1 rounded">
@@ -206,6 +174,8 @@ export default function PitchClock() {
         onMouseLeave={handlePointerUp}
         onTouchMove={handlePointerMove}
         onTouchEnd={handlePointerUp}
+        role="img"
+        aria-label="Pitch clock showing chord intervals as a geometric shape on a 12-note circle"
       >
         {/* Outer dial ring (draggable for key rotation) */}
         <circle
@@ -216,6 +186,14 @@ export default function PitchClock() {
           className="cursor-grab active:cursor-grabbing"
           onMouseDown={handleDialPointerDown}
           onTouchStart={handleDialPointerDown}
+          tabIndex={0}
+          onKeyDown={handleDialKeyDown}
+          role="slider"
+          aria-label="Key rotation dial — use arrow keys or drag to change key"
+          aria-valuemin={0}
+          aria-valuemax={11}
+          aria-valuenow={scaleTonic}
+          aria-valuetext={`Key of ${getNoteName(scaleTonic, useFlats)}`}
         />
 
         {/* Dial tick marks */}
@@ -237,7 +215,6 @@ export default function PitchClock() {
           );
         })}
 
-        {/* Inner dashed circle */}
         <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="hsl(30, 5%, 22%)" strokeWidth="1" strokeDasharray="2 4" />
 
         {/* Locked chord polygon (cadence mode) */}
@@ -253,7 +230,7 @@ export default function PitchClock() {
           />
         )}
 
-        {/* Interval lines between active notes */}
+        {/* Interval lines */}
         {intervalTensions.map((t, i) => {
           const [x1, y1] = pitchClassToXY(t.from);
           const [x2, y2] = pitchClassToXY(t.to);
@@ -288,15 +265,14 @@ export default function PitchClock() {
         {cadenceMode && voiceLeading.map((move, i) => {
           const arrows: React.ReactNode[] = [];
           const color = move.semitones === 0
-            ? 'hsl(150, 55%, 45%)'  // common tone - green
+            ? 'hsl(150, 55%, 45%)'
             : Math.abs(move.semitones) <= 2
-              ? 'hsl(42, 75%, 55%)'   // stepwise - gold
-              : 'hsl(220, 60%, 60%)'; // leap - blue
+              ? 'hsl(42, 75%, 55%)'
+              : 'hsl(220, 60%, 60%)';
 
-          // Handle 1→1, 1→many, many→1
           for (const fromPC of move.from) {
             for (const toPC of move.to) {
-              if (fromPC === toPC) continue; // common tone, no arrow needed
+              if (fromPC === toPC) continue;
               const offset = arrows.length;
               const path = voiceLeadingArcPath(fromPC, toPC, offset);
               if (path) {
@@ -309,17 +285,20 @@ export default function PitchClock() {
           return <g key={`vl-group-${i}`}>{arrows}</g>;
         })}
 
-        {/* Locked chord ghost nodes (cadence mode) - clickable to set as new root */}
+        {/* Locked chord ghost nodes */}
         {cadenceMode && lockedPitchClasses.map(pc => {
-          if (activePitchClasses.includes(pc)) return null; // don't double-render
+          if (activePitchClasses.includes(pc)) return null;
           const [x, y] = pitchClassToXY(pc);
+          const noteName = getLabel(pc, lockedRoot ?? root, labelMode, useFlats, scaleTonic);
           return (
             <g
               key={`locked-${pc}`}
               onClick={() => handleNodeClick(pc)}
+              onKeyDown={(e) => handleNodeKeyDown(e, pc)}
               className="cursor-pointer"
               role="button"
               tabIndex={0}
+              aria-label={`Locked chord note ${noteName}`}
             >
               <circle
                 cx={x} cy={y} r={DOT_RADIUS - 3}
@@ -338,7 +317,7 @@ export default function PitchClock() {
                 fontWeight={400}
                 opacity={0.7}
               >
-                {getLabel(pc, lockedRoot ?? root, labelMode, useFlats, scaleTonic)}
+                {noteName}
               </text>
             </g>
           );
@@ -353,7 +332,7 @@ export default function PitchClock() {
           const isInScale = scalePitchClasses.includes(pc);
           const isLockedOnly = cadenceMode && lockedPitchClasses.includes(pc) && !isActive;
 
-          if (isLockedOnly) return null; // rendered above as ghost
+          if (isLockedOnly) return null;
 
           let fillColor = 'hsl(0, 0%, 13%)';
           let strokeColor = 'hsl(30, 5%, 25%)';
@@ -389,18 +368,19 @@ export default function PitchClock() {
             strokeColor = 'hsl(28, 40%, 35%)';
           }
 
-          // In cadence mode, highlight common tones
           const isCommonTone = cadenceMode && lockedPitchClasses.includes(pc) && isActive;
-
           const label = getLabel(pc, root, labelMode, useFlats, scaleTonic);
+          const noteDesc = isRoot ? 'Root' : isActive ? 'Chord tone' : isTonic ? 'Key center' : isInScale ? 'Scale note' : 'Note';
 
           return (
             <g
               key={pc}
               onClick={() => handleNodeClick(pc)}
+              onKeyDown={(e) => handleNodeKeyDown(e, pc)}
               className="cursor-pointer"
               role="button"
               tabIndex={0}
+              aria-label={`${noteDesc}: ${label}`}
             >
               {constructionMode && (
                 <circle
@@ -449,13 +429,14 @@ export default function PitchClock() {
         })}
       </svg>
 
-      {/* Controls row — key rotation only (label/flat controls live in ControlPanel) */}
+      {/* Controls row */}
       <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
         <div className="flex items-center gap-1">
           <button
             onClick={() => stepTonic(-1)}
             className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
             title="Rotate key down a semitone"
+            aria-label="Rotate key down one semitone"
           >
             ◀
           </button>
@@ -464,13 +445,14 @@ export default function PitchClock() {
             onClick={() => stepTonic(1)}
             className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
             title="Rotate key up a semitone"
+            aria-label="Rotate key up one semitone"
           >
             ▶
           </button>
         </div>
       </div>
 
-      {/* Voice leading legend (cadence mode) */}
+      {/* Voice leading legend */}
       {cadenceMode && voiceLeading.length > 0 && (
         <div className="flex gap-4 flex-wrap justify-center mt-3">
           <div className="flex items-center gap-1.5">
@@ -507,4 +489,6 @@ export default function PitchClock() {
       )}
     </div>
   );
-}
+});
+
+export default PitchClock;
