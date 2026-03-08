@@ -631,7 +631,13 @@ const CADENCE_TEMPLATES: CadenceSuggestion[] = [
     description: 'The strongest resolution. Your V7 resolves home.',
     songExample: '"Let It Be" (Beatles)',
     rootOffset: 5, chordName: 'Major 7', resTonic: true,
-    sourceQualities: ['Dominant 7', '7b5', '7#5', '7b9', '7#9', '7#11', '7b13', 'Dominant 9'] },
+    sourceQualities: ['Dominant 7', '7b5', '7#5', '7b9', '7#9', '7#11', '7b13', 'Dominant 9', 'Dominant 11', 'Dominant 13'] },
+
+  { category: 'resolution', direction: 'leadTo', name: 'Resolve to Minor', label: '→ i',
+    description: 'Resolve to the minor tonic. Dark and final.',
+    songExample: '"Stairway to Heaven" (Led Zeppelin)',
+    rootOffset: 5, chordName: 'Minor 7', resTonic: true,
+    sourceQualities: ['Dominant 7', '7b9', '7#9', 'Dominant 9'] },
 
   { category: 'surprise', direction: 'leadTo', name: 'Deceptive Resolution', label: '→ vi',
     description: 'Tricks the ear — resolves to the relative minor instead of tonic.',
@@ -639,31 +645,55 @@ const CADENCE_TEMPLATES: CadenceSuggestion[] = [
     rootOffset: 8, chordName: 'Minor 7', resTonic: false,
     sourceQualities: ['Dominant 7', '7b9', '7#9', 'Dominant 9'] },
 
+  { category: 'surprise', direction: 'leadTo', name: 'Deceptive to ♭VI', label: '→ ♭VI',
+    description: 'A dramatic deceptive move to the flat sixth. Cinematic impact.',
+    songExample: '"Don\'t Stop Believin\'" (Journey)',
+    rootOffset: 8, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Dominant 7', 'Dominant 9'] },
+
   // From Major / Major 7
   { category: 'journey', direction: 'leadTo', name: 'Move to Dominant', label: '→ V',
     description: 'Sets up tension. The classic I → V movement.',
     songExample: '"Twist and Shout" (Beatles)',
     rootOffset: 7, chordName: 'Dominant 7', resTonic: false,
-    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+    sourceQualities: ['Major', 'Major 7', 'Major 9', 'Major 6'] },
 
   { category: 'journey', direction: 'leadTo', name: 'Plagal Float', label: '→ IV',
     description: 'Opens up the harmony. Floating away from home.',
     songExample: '"With or Without You" (U2)',
     rootOffset: 5, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9', 'Major 6'] },
+
+  { category: 'journey', direction: 'leadTo', name: 'Drop to vi', label: '→ vi',
+    description: 'Move to the relative minor. Shifts the mood introspectively.',
+    songExample: '"Africa" (Toto)',
+    rootOffset: 9, chordName: 'Minor 7', resTonic: false,
     sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+
+  { category: 'journey', direction: 'leadTo', name: 'Rise to ii', label: '→ ii',
+    description: 'Classic diatonic movement. Sets up a ii-V-I.',
+    songExample: '"Fly Me to the Moon" (Bart Howard)',
+    rootOffset: 2, chordName: 'Minor 7', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9', 'Major 6'] },
 
   { category: 'surprise', direction: 'leadTo', name: 'Augmented Push', label: '→ IV',
     description: 'The #5 shoves the ear toward the subdominant.',
     songExample: '"Oh! Darling" (Beatles)',
     rootOffset: 5, chordName: 'Major', resTonic: false,
-    sourceQualities: ['Augmented'] },
+    sourceQualities: ['Augmented', 'Augmented 7', 'Augmented Maj 7'] },
+
+  { category: 'surprise', direction: 'leadTo', name: 'Chromatic Passing', label: '→ #I°7',
+    description: 'Passing diminished that leads chromatically upward.',
+    songExample: '"All of Me" (Marks/Simons)',
+    rootOffset: 1, chordName: 'Diminished 7', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 6'] },
 
   // From Minor / Minor 7
   { category: 'resolution', direction: 'leadTo', name: 'Pre-Dominant', label: '→ V7',
     description: 'The classic ii → V motion. Building toward resolution.',
     songExample: '"Autumn Leaves" (Kosma)',
     rootOffset: 7, chordName: 'Dominant 7', resTonic: false,
-    sourceQualities: ['Minor', 'Minor 7', 'Minor 9', 'm7b5'] },
+    sourceQualities: ['Minor', 'Minor 7', 'Minor 9', 'Minor 11', 'm7b5'] },
 
   { category: 'journey', direction: 'leadTo', name: 'Minor to Tonic', label: '→ I',
     description: 'A gentle homecoming from the minor subdominant.',
@@ -671,11 +701,36 @@ const CADENCE_TEMPLATES: CadenceSuggestion[] = [
     rootOffset: 7, chordName: 'Major 7', resTonic: false,
     sourceQualities: ['Minor', 'Minor 7'] },
 
+  { category: 'journey', direction: 'leadTo', name: 'Minor iii to IV', label: '→ IV',
+    description: 'A natural diatonic movement building momentum.',
+    songExample: '"Lean on Me" (Bill Withers)',
+    rootOffset: 5, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Minor', 'Minor 7', 'Minor 9'] },
+
+  // From Half-Diminished (m7b5)
+  { category: 'resolution', direction: 'leadTo', name: 'Half-Dim to V7', label: '→ V7',
+    description: 'Classic minor ii-V movement. Pulls strongly to the dominant.',
+    songExample: '"Blue in Green" (Miles Davis)',
+    rootOffset: 7, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['m7b5'] },
+
+  { category: 'resolution', direction: 'leadTo', name: 'Half-Dim to V7b9', label: '→ V7b9',
+    description: 'Darker minor ii-V with altered dominant tension.',
+    songExample: '"Summertime" (Gershwin)',
+    rootOffset: 7, chordName: '7b9', resTonic: false,
+    sourceQualities: ['m7b5'] },
+
   // From Diminished
   { category: 'resolution', direction: 'leadTo', name: 'Diminished Resolution', label: '→ I',
     description: 'High-tension leading-tone movement demanding resolution.',
     songExample: '"Michelle" (Beatles)',
     rootOffset: 1, chordName: 'Major', resTonic: true,
+    sourceQualities: ['Diminished', 'Diminished 7'] },
+
+  { category: 'resolution', direction: 'leadTo', name: 'Dim to Minor', label: '→ i',
+    description: 'Resolves the tension to a minor chord. Dark resolution.',
+    songExample: '"God Only Knows" (Beach Boys)',
+    rootOffset: 1, chordName: 'Minor', resTonic: true,
     sourceQualities: ['Diminished', 'Diminished 7'] },
 
   // From Sus4
@@ -685,16 +740,41 @@ const CADENCE_TEMPLATES: CadenceSuggestion[] = [
     rootOffset: 0, chordName: 'Dominant 7', resTonic: false,
     sourceQualities: ['Sus4'] },
 
+  { category: 'resolution', direction: 'leadTo', name: 'Sus to Major', label: '→ I',
+    description: 'Resolves the suspended 4th to the major third. Classic release.',
+    songExample: '"A Hard Day\'s Night" (Beatles)',
+    rootOffset: 0, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Sus4', 'Sus2'] },
+
+  // From 6th Chords
+  { category: 'journey', direction: 'leadTo', name: '6th to ii', label: '→ ii',
+    description: 'Sets up a ii-V-I from a sweet 6th chord.',
+    songExample: '"The Way You Look Tonight" (Kern)',
+    rootOffset: 2, chordName: 'Minor 7', resTonic: false,
+    sourceQualities: ['Major 6', 'Minor 6'] },
+
   // Universal lead-to suggestions
   { category: 'journey', direction: 'leadTo', name: 'Step Up', label: '→ II',
     description: 'A whole-step ascent — bright Lydian-flavored movement.',
     songExample: '"Just Like Heaven" (The Cure)',
     rootOffset: 2, chordName: 'Major', resTonic: false },
 
-  { category: 'surprise', direction: 'leadTo', name: 'Chromatic Slide Down', label: '→ bVII',
+  { category: 'surprise', direction: 'leadTo', name: 'Chromatic Slide Down', label: '→ ♭VII',
     description: 'Unexpected drop. A rock and modal-interchange staple.',
     songExample: '"Hey Jude" (Beatles)',
     rootOffset: 10, chordName: 'Major', resTonic: false },
+
+  { category: 'surprise', direction: 'leadTo', name: 'Minor Plagal (iv)', label: '→ iv',
+    description: 'Borrow from parallel minor. Creates the "Hollywood" sadness.',
+    songExample: '"My Funny Valentine" (Rodgers)',
+    rootOffset: 5, chordName: 'Minor', resTonic: false,
+    sourceQualities: ['Major', 'Major 7'] },
+
+  { category: 'surprise', direction: 'leadTo', name: 'Tritone Sub', label: '→ ♭II7',
+    description: 'The jazz player\'s secret. Smooth chromatic bass to tonic.',
+    songExample: '"Girl from Ipanema" (Jobim)',
+    rootOffset: 6, chordName: 'Dominant 7', resTonic: false,
+    sourceQualities: ['Minor 7', 'm7b5'] },
 
   // ═══════════════════════════════════════
   // COME FROM — "What typically leads into this chord?"
@@ -705,12 +785,18 @@ const CADENCE_TEMPLATES: CadenceSuggestion[] = [
     description: 'The ultimate "Full Stop." The strongest resolution.',
     songExample: '"Let It Be" (Beatles)',
     rootOffset: 7, chordName: 'Dominant 7', resTonic: false,
-    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+    sourceQualities: ['Major', 'Major 7', 'Major 9', 'Major 6'] },
 
   { category: 'resolution', direction: 'comeFrom', name: 'Plagal / Amen', label: 'IV →',
     description: 'A softer, grounded homecoming without leading-tone tension.',
     songExample: '"Let It Be" ending (Beatles)',
     rootOffset: 5, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Major', 'Major 7', 'Major 9'] },
+
+  { category: 'resolution', direction: 'comeFrom', name: 'ii-V Arrival', label: 'ii →',
+    description: 'The classic jazz arrival. Coming home from a ii-V.',
+    songExample: '"Autumn Leaves" (Kosma)',
+    rootOffset: 2, chordName: 'Minor 7', resTonic: false,
     sourceQualities: ['Major', 'Major 7', 'Major 9'] },
 
   { category: 'surprise', direction: 'comeFrom', name: 'Minor Plagal', label: 'iv →',
@@ -731,18 +817,36 @@ const CADENCE_TEMPLATES: CadenceSuggestion[] = [
     rootOffset: 1, chordName: 'Dominant 7', resTonic: false,
     sourceQualities: ['Major', 'Major 7', 'Major 9'] },
 
+  { category: 'journey', direction: 'comeFrom', name: 'From ♭VI', label: '♭VI →',
+    description: 'Modal interchange magic. Coming from the Aeolian flat sixth.',
+    songExample: '"Wonderwall" (Oasis)',
+    rootOffset: 8, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Major', 'Major 7'] },
+
   // Into Dominant 7 (pre-dominant targets)
   { category: 'resolution', direction: 'comeFrom', name: 'ii → V Setup', label: 'ii →',
     description: 'The classic pre-dominant motion. Building momentum.',
     songExample: '"Autumn Leaves" (Kosma)',
     rootOffset: 7, chordName: 'Minor 7', resTonic: false,
-    sourceQualities: ['Dominant 7', 'Dominant 9', '7b9', '7#9'] },
+    sourceQualities: ['Dominant 7', 'Dominant 9', '7b9', '7#9', 'Dominant 11', 'Dominant 13'] },
 
   { category: 'journey', direction: 'comeFrom', name: 'Secondary Dominant Chain', label: 'V7/V →',
     description: 'A temporary dominant of this dominant. Circle of fifths energy.',
     songExample: '"Sweet Georgia Brown"',
     rootOffset: 7, chordName: 'Dominant 7', resTonic: false,
     sourceQualities: ['Dominant 7', 'Dominant 9'] },
+
+  { category: 'journey', direction: 'comeFrom', name: 'From I', label: 'I →',
+    description: 'Simple tonic to dominant. The classic opening move.',
+    songExample: '"Twist and Shout" (Beatles)',
+    rootOffset: 5, chordName: 'Major 7', resTonic: false,
+    sourceQualities: ['Dominant 7', 'Dominant 9'] },
+
+  { category: 'surprise', direction: 'comeFrom', name: 'From ♭VII', label: '♭VII →',
+    description: 'Approaching V from the flat-7 for a rock-tinged setup.',
+    songExample: '"With or Without You" (U2)',
+    rootOffset: 3, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Dominant 7'] },
 
   // Into Minor / Minor 7
   { category: 'resolution', direction: 'comeFrom', name: 'Mediant Pivot', label: 'III7 →',
@@ -757,6 +861,25 @@ const CADENCE_TEMPLATES: CadenceSuggestion[] = [
     rootOffset: 4, chordName: 'Dominant 7', resTonic: false,
     sourceQualities: ['Minor', 'Minor 7', 'Minor 9'] },
 
+  { category: 'journey', direction: 'comeFrom', name: 'From IV', label: 'IV →',
+    description: 'Natural diatonic descent from the subdominant.',
+    songExample: '"Mad World" (Tears for Fears)',
+    rootOffset: 8, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Minor', 'Minor 7'] },
+
+  { category: 'journey', direction: 'comeFrom', name: 'From I', label: 'I →',
+    description: 'Stepping down to the vi. Classic melancholic shift.',
+    songExample: '"Africa" (Toto)',
+    rootOffset: 3, chordName: 'Major 7', resTonic: false,
+    sourceQualities: ['Minor', 'Minor 7', 'Minor 9'] },
+
+  // Into Diminished 7
+  { category: 'journey', direction: 'comeFrom', name: 'From I', label: 'I →',
+    description: 'The tonic sets up a chromatic passing diminished.',
+    songExample: '"All of Me" (Marks/Simons)',
+    rootOffset: 11, chordName: 'Major', resTonic: false,
+    sourceQualities: ['Diminished', 'Diminished 7'] },
+
   // Universal come-from suggestions
   { category: 'journey', direction: 'comeFrom', name: 'Chromatic Approach', label: '♭ →',
     description: 'Approaching from a half-step below. Smooth voice leading.',
@@ -767,6 +890,11 @@ const CADENCE_TEMPLATES: CadenceSuggestion[] = [
     description: 'A Lydian-flavored approach from a whole step above.',
     songExample: '"Just Like Heaven" (The Cure)',
     rootOffset: 2, chordName: 'Major', resTonic: false },
+
+  { category: 'surprise', direction: 'comeFrom', name: 'Chromatic Ascent', label: '♯ →',
+    description: 'Approaching from a half-step above. Dramatic tension.',
+    songExample: '"I Got Rhythm" (Gershwin)',
+    rootOffset: 1, chordName: 'Major', resTonic: false },
 ];
 
 export interface CadenceOption {
