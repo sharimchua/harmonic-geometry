@@ -350,23 +350,88 @@ export function calculateVoiceLeading(
 }
 
 // ─── Label Modes ─────────────────────────────────────────
-export type LabelMode = 'notes' | 'intervals' | 'semitones';
+export type LabelMode = 'notes' | 'intervals' | 'scaleDegrees' | 'semitones';
+
+const SCALE_DEGREE_LABELS = ['1', 'b2', '2', 'b3', '3', '4', 'b5', '5', '#5', '6', 'b7', '7'] as const;
+
+/** Get a scale degree label for a pitch class relative to a tonic (e.g. "1", "b3", "#5") */
+export function getScaleDegreeLabel(pc: PitchClass, scaleTonic: PitchClass): string {
+  const semitones = ((pc - scaleTonic) % 12 + 12) % 12;
+  return SCALE_DEGREE_LABELS[semitones];
+}
 
 export function getLabel(
   pc: PitchClass,
   root: PitchClass,
   mode: LabelMode,
-  useFlats = false
+  useFlats = false,
+  scaleTonic?: PitchClass
 ): string {
   switch (mode) {
     case 'notes':
       return getNoteName(pc, useFlats);
     case 'intervals':
       return getIntervalName((pc - root + 12) % 12);
+    case 'scaleDegrees':
+      return getScaleDegreeLabel(pc, scaleTonic ?? root);
     case 'semitones':
       return String((pc - root + 12) % 12);
   }
 }
+
+/** Convert chord intervals to formula notation (e.g. "1 - 3 - 5 - 7") */
+export function getChordFormula(intervals: number[]): string {
+  return intervals.map(i => {
+    const semitones = ((i % 12) + 12) % 12;
+    return SCALE_DEGREE_LABELS[semitones];
+  }).join(' – ');
+}
+
+/** Find all major scale tonics that contain all given pitch classes diatonically */
+export function findCompatibleKeys(pitchClasses: PitchClass[]): PitchClass[] {
+  if (pitchClasses.length === 0) return [];
+  const majorScale = [0, 2, 4, 5, 7, 9, 11]; // Ionian intervals
+  const compatible: PitchClass[] = [];
+  for (let tonic = 0; tonic < 12; tonic++) {
+    const scalePCs = majorScale.map(i => (tonic + i) % 12);
+    if (pitchClasses.every(pc => scalePCs.includes(pc))) {
+      compatible.push(tonic);
+    }
+  }
+  return compatible;
+}
+
+/** Genre/usage hints for chord types */
+export const CHORD_GENRE_HINTS: Record<string, string> = {
+  'Major': 'Pop, Rock, Folk, Country',
+  'Minor': 'Pop, Rock, R&B, Classical',
+  'Diminished': 'Classical, Jazz, Film Scores',
+  'Augmented': 'Jazz, Film Scores, Progressive Rock',
+  'Sus2': 'Indie, Post-Rock, Ambient',
+  'Sus4': 'Rock, Pop, Gospel',
+  'Major 7': 'Jazz, Neo-Soul, Bossa Nova',
+  'Dominant 7': 'Blues, Jazz, Funk, Rock & Roll',
+  'Minor 7': 'Jazz, R&B, Neo-Soul, Lo-Fi',
+  'm7b5': 'Jazz, Latin Jazz, Film Scores',
+  'Diminished 7': 'Classical, Jazz, Ragtime',
+  'Minor Major 7': 'Jazz, Film Noir, Bond Themes',
+  'Augmented 7': 'Jazz, Fusion, Progressive',
+  'Augmented Maj 7': 'Jazz, Contemporary Classical',
+  'Major 6': 'Jazz Standards, Swing, Bossa Nova',
+  'Minor 6': 'Jazz, Film Noir, Gypsy Jazz',
+  'Major 9': 'Jazz, Neo-Soul, Contemporary R&B',
+  'Dominant 9': 'Funk, Jazz, R&B, Blues',
+  'Minor 9': 'Neo-Soul, Lo-Fi, Contemporary Jazz',
+  'MinMaj 9': 'Jazz, Film Scores',
+  'Add 9': 'Pop, Indie, Worship Music',
+  'Minor Add 9': 'Indie, Ambient, Post-Rock',
+  '7b5': 'Bebop, Jazz, Fusion',
+  '7#5': 'Jazz, Blues, Fusion',
+  '7b9': 'Jazz, Flamenco, Latin',
+  '7#9': 'Blues, Rock (Hendrix), Funk',
+  '7#11': 'Jazz, Fusion',
+  '7b13': 'Jazz, Latin Jazz',
+};
 
 // ─── Harmonic Lock Modes ────────────────────────────────
 export type HarmonicLockMode = 'quality' | 'scale';
