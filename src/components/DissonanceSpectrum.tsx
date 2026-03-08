@@ -193,9 +193,9 @@ export default function DissonanceSpectrum() {
         Crunchiness
       </h3>
 
-      {/* Dissonance score */}
+      {/* Crunchiness score */}
       <div className="flex items-center gap-3">
-        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Total Dissonance:</span>
+        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Total Crunch:</span>
         <span className="text-sm font-mono font-bold text-foreground">{Math.round(totalDissonance)}%</span>
         <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
           <div
