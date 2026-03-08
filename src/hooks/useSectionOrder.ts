@@ -4,7 +4,7 @@ const COOKIE_KEY = 'hg_section_order';
 
 export type SectionId = 'context' | 'intervals' | 'cadence' | 'dissonance' | 'staff' | 'piano' | 'fretboard';
 
-const DEFAULT_ORDER: SectionId[] = ['context', 'intervals', 'cadence', 'dissonance', 'staff', 'piano', 'fretboard'];
+const DEFAULT_ORDER: SectionId[] = ['context', 'intervals', 'dissonance', 'cadence', 'staff', 'piano', 'fretboard'];
 
 function readCookie(): SectionId[] | null {
   try {
