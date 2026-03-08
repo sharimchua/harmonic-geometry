@@ -3,7 +3,7 @@ import { useHarmony } from '@/contexts/HarmonyContext';
 import { getChordFormula, findCompatibleKeys, getNoteName, CHORD_GENRE_HINTS } from '@/lib/musicTheory';
 
 export default function HarmonicContext() {
-  const { functionalAnalysis, chordVibe, chord, activePitchClasses, useFlats, scaleTonic } = useHarmony();
+  const { functionalAnalysis, chordVibe, chord, activePitchClasses, useFlats, scaleTonic, setScaleTonic } = useHarmony();
 
   const formula = getChordFormula(chord.intervals);
   const compatibleKeys = findCompatibleKeys(activePitchClasses);
