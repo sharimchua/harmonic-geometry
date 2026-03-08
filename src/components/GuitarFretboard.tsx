@@ -128,6 +128,13 @@ function generateVoicings(
     }
   }
 
+  // Sort by average fret position (nut → bridge)
+  voicings.sort((a, b) => {
+    const avgA = a.reduce((sum, p) => sum + p.f, 0) / a.length;
+    const avgB = b.reduce((sum, p) => sum + p.f, 0) / b.length;
+    return avgA - avgB;
+  });
+
   return voicings;
 }
 
