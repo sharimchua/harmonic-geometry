@@ -344,8 +344,29 @@ function generateVoicings(
     }
   }
 
-  // Sort by average fret position (nut → bridge)
+  // Sort by average fret position (nut → bridge) and missing core tones
+  const coreTones = identifyCoreTones(chordPcs, root);
   voicings.sort((a, b) => {
+    // 1. Missing core tones penalty (lower is better)
+    const coveredA = new Set(a.map(v => v.pc));
+    const coveredB = new Set(b.map(v => v.pc));
+    const missingCoreA = [...coreTones].filter(pc => !coveredA.has(pc)).length;
+    const missingCoreB = [...coreTones].filter(pc => !coveredB.has(pc)).length;
+    
+    if (missingCoreA !== missingCoreB) {
+      return missingCoreA - missingCoreB;
+    }
+    
+    // 2. Number of duplicate notes penalty (fewer duplicates is better, except for simple triads)
+    if (chordPcs.length >= 4) {
+      const dupesA = a.length - coveredA.size;
+      const dupesB = b.length - coveredB.size;
+      if (dupesA !== dupesB) {
+        return dupesA - dupesB;
+      }
+    }
+    
+    // 3. Average fret position (nut -> bridge)
     const avgA = a.reduce((sum, p) => sum + p.f, 0) / a.length;
     const avgB = b.reduce((sum, p) => sum + p.f, 0) / b.length;
     return avgA - avgB;
