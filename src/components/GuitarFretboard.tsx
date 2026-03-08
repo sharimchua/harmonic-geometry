@@ -31,6 +31,7 @@ const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[
 const NUM_FRETS = 15;
 const MAX_SPAN = 4;    // max fret span for the fretting hand
 const MAX_FINGERS = 4; // index, middle, ring, pinky
+const MAX_SPAN_BARRE = 5; // slightly wider span when a barre is anchoring
 
 interface VoicingPosition {
   s: number;  // string index (0 = lowest)
