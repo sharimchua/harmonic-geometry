@@ -56,6 +56,8 @@ interface HarmonyContextValue extends HarmonyState {
   setLockMode: (mode: HarmonicLockMode) => void;
   setConstructionMode: (on: boolean) => void;
   togglePitchClass: (pc: PitchClass) => void;
+  // Cadence mode
+  setCadenceMode: (on: boolean) => void;
   // MIDI
   midi: MidiState;
   midiEnabled: boolean;
@@ -63,10 +65,12 @@ interface HarmonyContextValue extends HarmonyState {
   // Derived data
   activeIntervals: number[];
   activePitchClasses: PitchClass[];
+  lockedPitchClasses: PitchClass[];
   scalePitchClasses: PitchClass[];
   intervalTensions: { from: PitchClass; to: PitchClass; tension: IntervalTension; semitones: number }[];
   functionalAnalysis: FunctionalAnalysis;
   chordVibe: string;
+  voiceLeading: VoiceLeadingMove[];
 }
 
 const HarmonyContext = createContext<HarmonyContextValue | null>(null);
