@@ -101,93 +101,45 @@ export default function DissonanceSpectrum() {
     return map;
   }, [partials]);
 
-  // Resolution for the smooth curves
-  const numSamples = 500;
-  const sampleXStep = svgWidth / numSamples;
-
-  // Build smooth envelope paths per note
-  const noteEnvelopes = useMemo(() => {
-    const envelopes: { pc: number; path: string; peaks: { x: number; y: number; partial: Partial }[] }[] = [];
+  // Build bar data per note (critical-bandwidth-wide bars radiating from each partial)
+  const noteBars = useMemo(() => {
+    const bars: { pc: number; items: { x: number; width: number; height: number; partial: Partial }[] }[] = [];
 
     for (const [pc, notePartials] of partialsByNote.entries()) {
-      const peaks: { x: number; y: number; partial: Partial }[] = [];
-      const yValues: number[] = [];
-
-      for (let i = 0; i <= numSamples; i++) {
-        const x = i * sampleXStep;
-        let totalY = 0;
-
-        for (const p of notePartials) {
-          const cx = freqToX(p.frequency, svgWidth);
-          // Sigma based on critical bandwidth — low freqs get wide bands, high freqs narrow
-          const cbHz = criticalBandwidth(p.frequency);
-          const freqLo = Math.max(minFreq, p.frequency - cbHz / 2);
-          const freqHi = p.frequency + cbHz / 2;
-          const sigma = Math.max(4, (freqToX(freqHi, svgWidth) - freqToX(freqLo, svgWidth)) * 0.45);
-          const amp = p.amplitude * plotHeight * 0.85;
-          totalY += gaussianPeak(cx, amp, sigma, x);
-        }
-
-        yValues.push(totalY);
-      }
-
-      // Build SVG area path
-      let path = `M 0 ${plotBottom}`;
-      for (let i = 0; i <= numSamples; i++) {
-        const x = i * sampleXStep;
-        const y = plotBottom - yValues[i];
-        path += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
-      }
-      path += ` L ${svgWidth} ${plotBottom} Z`;
-
-      // Collect peak positions for labels
-      for (const p of notePartials) {
+      const items = notePartials.map(p => {
         const cx = freqToX(p.frequency, svgWidth);
-        const amp = p.amplitude * plotHeight * 0.85;
-        peaks.push({ x: cx, y: plotBottom - amp, partial: p });
-      }
-
-      envelopes.push({ pc, path, peaks });
+        const cbHz = criticalBandwidth(p.frequency);
+        const xLo = freqToX(Math.max(minFreq, p.frequency - cbHz / 2), svgWidth);
+        const xHi = freqToX(p.frequency + cbHz / 2, svgWidth);
+        const barW = Math.max(3, xHi - xLo);
+        // Normalise height: amplitude is already 0-1, scale to plot area
+        const height = p.amplitude * plotHeight * 0.8;
+        return { x: cx - barW / 2, width: barW, height, partial: p };
+      });
+      bars.push({ pc, items });
     }
+    return bars;
+  }, [partialsByNote, svgWidth, plotHeight]);
 
-    return envelopes;
-  }, [partialsByNote, svgWidth, plotBottom, plotHeight]);
+  // Dissonance overlap bars
+  const dissonanceBars = useMemo(() => {
+    if (interactions.length === 0) return [];
 
-  // Build dissonance overlap envelope
-  const dissonanceEnvelope = useMemo(() => {
-    if (interactions.length === 0) return '';
-
-    const highDissonance = interactions.filter(i => i.dissonance > 0.3).sort((a, b) => b.dissonance - a.dissonance).slice(0, 50);
-    if (highDissonance.length === 0) return '';
-
-    const yValues: number[] = [];
-    for (let i = 0; i <= numSamples; i++) {
-      const x = i * sampleXStep;
-      let totalY = 0;
-
-      for (const pair of highDissonance) {
-        const f1 = pair.partial1.frequency;
-        const f2 = pair.partial2.frequency;
-        const midFreq = (f1 + f2) / 2;
-        const cx = freqToX(midFreq, svgWidth);
-        const spread = Math.abs(freqToX(f2, svgWidth) - freqToX(f1, svgWidth));
-        const sigma = Math.max(4, spread * 1.2);
-        const amp = Math.min(pair.dissonance * 2.5, plotHeight * 0.5);
-        totalY += gaussianPeak(cx, amp, sigma, x);
-      }
-
-      yValues.push(Math.min(totalY, plotHeight * 0.7));
-    }
-
-    let path = `M 0 ${plotBottom}`;
-    for (let i = 0; i <= numSamples; i++) {
-      const x = i * sampleXStep;
-      const y = plotBottom - yValues[i];
-      path += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
-    }
-    path += ` L ${svgWidth} ${plotBottom} Z`;
-    return path;
-  }, [interactions, svgWidth, plotBottom, plotHeight]);
+    return interactions
+      .filter(i => i.dissonance > 0.3)
+      .sort((a, b) => b.dissonance - a.dissonance)
+      .slice(0, 40)
+      .map(pair => {
+        const f1 = Math.min(pair.partial1.frequency, pair.partial2.frequency);
+        const f2 = Math.max(pair.partial1.frequency, pair.partial2.frequency);
+        const x1 = freqToX(f1, svgWidth);
+        const x2 = freqToX(f2, svgWidth);
+        const barW = Math.max(3, x2 - x1);
+        const height = Math.min(pair.dissonance * 3, plotHeight * 0.5);
+        const opacity = Math.min(0.45, pair.dissonance * 0.12);
+        return { x: x1, width: barW, height, opacity };
+      });
+  }, [interactions, svgWidth, plotHeight]);
 
   return (
     <div className="flex flex-col gap-3">
