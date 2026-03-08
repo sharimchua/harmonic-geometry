@@ -85,7 +85,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const [inversion, setInversion] = useState(0);
   const [dropVoicingType, setDropVoicing] = useState(0);
   const [labelMode, setLabelMode] = useState<LabelMode>('notes');
-  const [showArpeggio, setShowArpeggio] = useState(false);
+  
   const [cagedPosition, setCagedPosition] = useState<number | null>(null);
   const [useFlats, setUseFlats] = useState(false);
   const [lockMode, setLockMode] = useState<HarmonicLockMode>('quality');
