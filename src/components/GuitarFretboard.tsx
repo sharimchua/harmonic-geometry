@@ -185,19 +185,26 @@ function buildVoicing(
 
     // Try each candidate and pick the first that keeps the voicing playable
     let picked = false;
-    for (const pick of candidates) {
+    // Sort candidates: prefer fretted notes closer to existing fretted notes
+    const sortedCandidates = [...candidates].sort((a, b) => {
+      // Prefer fretted over open when higher up the neck
+      if (a.f === 0 && b.f > 0) return 1;
+      if (b.f === 0 && a.f > 0) return -1;
+      return 0;
+    });
+    for (const pick of sortedCandidates) {
       const tentative = [...voicing, pick];
       const fretted = tentative.filter(v => v.f > 0);
 
-      // Check fret span
       if (fretted.length > 1) {
         const min = Math.min(...fretted.map(v => v.f));
         const max = Math.max(...fretted.map(v => v.f));
-        if (max - min > MAX_SPAN) continue;
+        const { hasBarre } = countFingers(tentative);
+        const spanLimit = hasBarre ? MAX_SPAN_BARRE : MAX_SPAN;
+        if (max - min > spanLimit) continue;
       }
 
-      // Check finger count
-      if (countFingers(tentative) > MAX_FINGERS) continue;
+      if (countFingers(tentative).fingers > MAX_FINGERS) continue;
 
       voicing.push(pick);
       usedPcs.add(pick.pc);
