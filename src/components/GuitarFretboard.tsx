@@ -216,12 +216,17 @@ function buildVoicing(
 
   // Validate final voicing
   const covered = new Set(voicing.map(v => v.pc));
-  const minCoverage = Math.min(3, chordPcs.length);
+  // For chords with 4+ notes, allow shell voicings (root + 3rd + 7th minimum = 2 unique beyond root)
+  const minCoverage = chordPcs.length >= 4 ? Math.min(3, chordPcs.length) : Math.min(3, chordPcs.length);
+  // Allow 2-note partial voicings for very high positions (fret 10+) or complex chords
+  const avgFret = voicing.reduce((s, v) => s + v.f, 0) / voicing.length;
+  const isHighPosition = avgFret >= 9;
+  const minNotes = isHighPosition ? 2 : 3;
 
-  if (covered.size < minCoverage || voicing.length < 3) return null;
+  if (covered.size < Math.min(2, chordPcs.length) || voicing.length < minNotes) return null;
   if (!openStringsRealistic(voicing)) return null;
   if (!noProblematicGaps(voicing)) return null;
-  if (countFingers(voicing) > MAX_FINGERS) return null;
+  if (countFingers(voicing).fingers > MAX_FINGERS) return null;
 
   return voicing.sort((a, b) => a.s - b.s);
 }
