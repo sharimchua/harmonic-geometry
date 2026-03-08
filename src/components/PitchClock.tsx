@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getLabel, getNoteName, type LabelMode } from '@/lib/musicTheory';
+import { getLabel, getNoteName } from '@/lib/musicTheory';
 
 const RADIUS = 140;
 const DIAL_RADIUS = RADIUS + 30;
