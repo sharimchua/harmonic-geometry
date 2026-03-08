@@ -249,20 +249,6 @@ export default function DissonanceSpectrum() {
             );
           })}
 
-          {/* Dissonance overlap bars (behind note bars) */}
-          {dissonanceBars.map((bar, i) => (
-            <rect
-              key={`diss-${i}`}
-              x={bar.x}
-              y={plotBottom - bar.height}
-              width={bar.width}
-              height={bar.height}
-              fill="hsl(var(--interval-dissonant))"
-              opacity={bar.opacity}
-              rx={1}
-            />
-          ))}
-
           {/* Note waveform bars */}
           {noteBars.map(({ pc, items }) => (
             <g key={`bars-${pc}`}>
@@ -270,7 +256,6 @@ export default function DissonanceSpectrum() {
                 const isFundamental = bar.partial.partialNumber === 1;
                 return (
                   <g key={`b-${pc}-${i}`}>
-                    {/* Sub-bars creating waveform shape */}
                     {bar.subBars.map((sb, si) => (
                       <rect
                         key={si}
@@ -282,7 +267,6 @@ export default function DissonanceSpectrum() {
                         rx={0.5}
                       />
                     ))}
-                    {/* Fundamental label */}
                     {isFundamental && (
                       <>
                         <circle cx={bar.cx} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
@@ -296,7 +280,6 @@ export default function DissonanceSpectrum() {
                         </text>
                       </>
                     )}
-                    {/* Overtone number */}
                     {!isFundamental && bar.partial.amplitude > 0.35 && (
                       <text
                         x={bar.cx}
@@ -312,6 +295,20 @@ export default function DissonanceSpectrum() {
                 );
               })}
             </g>
+          ))}
+
+          {/* Dissonance overlap bars (rendered ON TOP of note bars) */}
+          {dissonanceBars.map((bar, i) => (
+            <rect
+              key={`diss-${i}`}
+              x={bar.x}
+              y={plotBottom - bar.height}
+              width={bar.width}
+              height={bar.height}
+              fill="hsl(var(--interval-dissonant))"
+              opacity={bar.opacity}
+              rx={1}
+            />
           ))}
 
           {/* Axis line */}
