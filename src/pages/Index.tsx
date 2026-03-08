@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
 import { getNoteName, type LabelMode } from '@/lib/musicTheory';
 import PitchClock from '@/components/PitchClock';
@@ -12,7 +12,9 @@ import StaffNotation from '@/components/StaffNotation';
 import ChordSynonyms from '@/components/ChordSynonyms';
 import DissonanceSpectrum from '@/components/DissonanceSpectrum';
 import { useSectionOrder, type SectionId, type ColumnId } from '@/hooks/useSectionOrder';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Lock, Unlock, Tags } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Lock, Unlock, Tags, Settings2 } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const SECTION_COMPONENTS: Record<SectionId, React.FC> = {
   context: HarmonicContext,
@@ -37,18 +39,17 @@ const SECTION_LABELS: Record<SectionId, string> = {
 const Index = () => {
   const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, labelMode, setLabelMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
   const { order, columns, moveUp, moveDown, moveToColumn } = useSectionOrder();
+  const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
 
   const chordLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
   const keyLabel = scale ? `Key of ${getNoteName(scaleTonic, useFlats)} ${scale.name}` : 'No key';
   const intervalStr = activeIntervals.map(i => ((i % 12) + 12) % 12).join('-');
 
-  // For 2-column (xl): use default analysis/instruments split
   const defaultAnalysis: SectionId[] = ['context', 'intervals', 'cadence', 'dissonance'];
   const defaultInstruments: SectionId[] = ['staff', 'piano', 'fretboard'];
   const orderedAnalysis2col = order.filter(id => defaultAnalysis.includes(id));
   const orderedInstruments2col = order.filter(id => defaultInstruments.includes(id));
 
-  // For 3-column (3xl): use user column assignments, cadence is always promoted to col 3
   const nonCadenceSections = order.filter(id => id !== 'cadence');
   const orderedAnalysis3col = nonCadenceSections.filter(id => columns[id] === 'analysis');
   const orderedInstruments3col = nonCadenceSections.filter(id => columns[id] === 'instruments');
@@ -66,7 +67,6 @@ const Index = () => {
     return (
       <section key={id} className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-6 shadow-sm relative group">
         <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-          {/* Cross-column arrows (3xl only, rendered via CSS) */}
           {canMoveLeft && (
             <button
               onClick={() => moveToColumn(id, 'analysis')}
@@ -121,24 +121,13 @@ const Index = () => {
         <div className="flex-1">
           <ControlPanel />
         </div>
-        {/* Sidebar footer links */}
         <div className="mt-6 pt-4 border-t border-border space-y-2">
           <p className="text-[10px] font-sans font-semibold text-muted-foreground uppercase tracking-wider mb-2">Midlife Muso</p>
-          <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">
-            Home
-          </a>
-          <a href="https://midlifemuso.com/learning" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">
-            Learning Resources
-          </a>
-          <a href="https://midlifemuso.com/about-me" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">
-            About Me
-          </a>
-          <a href="https://midlifemuso.com/tools" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">
-            More Tools
-          </a>
-          <p className="text-[9px] font-sans text-muted-foreground/60 pt-2">
-            Ear-first guitar & piano coaching in Melbourne
-          </p>
+          <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">Home</a>
+          <a href="https://midlifemuso.com/learning" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">Learning Resources</a>
+          <a href="https://midlifemuso.com/about-me" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">About Me</a>
+          <a href="https://midlifemuso.com/tools" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">More Tools</a>
+          <p className="text-[9px] font-sans text-muted-foreground/60 pt-2">Ear-first guitar & piano coaching in Melbourne</p>
         </div>
       </aside>
 
@@ -149,30 +138,62 @@ const Index = () => {
           <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer">
             <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-7 h-7 rounded-md" />
           </a>
-          <div>
+          <div className="flex-1">
             <h1 className="text-base font-sans font-bold text-foreground">
               Harmonic<span className="text-primary"> Geometry</span>
             </h1>
             <p className="text-[9px] font-sans text-muted-foreground">A Midlife Muso Tool</p>
           </div>
+          {/* Mobile controls button */}
+          <button
+            onClick={() => setMobileControlsOpen(true)}
+            className="w-9 h-9 rounded-md flex items-center justify-center bg-surface-3 hover:bg-surface-2 text-muted-foreground hover:text-primary transition-colors border border-border"
+            aria-label="Open controls"
+          >
+            <Settings2 size={18} />
+          </button>
         </div>
 
+        {/* Mobile controls Sheet */}
+        <Sheet open={mobileControlsOpen} onOpenChange={setMobileControlsOpen}>
+          <SheetContent side="left" className="w-[300px] sm:w-[340px] overflow-y-auto bg-surface-1">
+            <SheetHeader>
+              <SheetTitle className="text-foreground">Controls</SheetTitle>
+              <SheetDescription className="text-muted-foreground">
+                Adjust key, chord, scale, and voicing settings.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-4">
+              <ControlPanel />
+            </div>
+          </SheetContent>
+        </Sheet>
+
         {/* Status bar */}
-        <div className="border-b border-border bg-surface-2 px-4 py-2.5 flex items-center gap-4 flex-wrap">
+        <div className="border-b border-border bg-surface-2 px-4 py-2.5 flex items-center gap-3 sm:gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-note-root" />
+            <span className="w-2 h-2 rounded-full bg-note-root flex-shrink-0" />
             <span className="font-sans text-sm font-semibold text-foreground">{chordLabel}</span>
             {functionalAnalysis.isDiatonic && (
               <span className="font-mono text-xs text-primary font-bold">{functionalAnalysis.degreeName}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-accent" />
+            <span className="w-2 h-2 rounded-full bg-accent flex-shrink-0" />
             <span className="font-sans text-xs text-muted-foreground">{keyLabel}</span>
           </div>
-          {/* Chord synonyms */}
-          <ChordSynonyms />
-          <div className="flex items-center gap-2 ml-auto">
+          {/* Chord synonyms — popover on small screens, inline on larger */}
+          <div className="hidden sm:block">
+            <ChordSynonyms />
+          </div>
+          <div className="sm:hidden">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ChordSynonyms />
+              </TooltipTrigger>
+            </Tooltip>
+          </div>
+          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
             {midiEnabled && midi.isConnected && (
               <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-surface-3 flex items-center gap-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${midi.heldNotes.length > 0 ? 'bg-primary animate-pulse' : 'bg-green-500'}`} />
@@ -182,7 +203,7 @@ const Index = () => {
             {/* Lock mode toggle */}
             <button
               onClick={() => setLockMode(lockMode === 'scale' ? 'quality' : 'scale')}
-              className={`text-xs font-mono px-2.5 py-1 rounded-md border transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`text-xs font-mono px-2 sm:px-2.5 py-1 rounded-md border transition-colors flex items-center gap-1 sm:gap-1.5 cursor-pointer ${
                 lockMode === 'scale'
                   ? 'bg-primary/15 border-primary/40 text-primary font-semibold'
                   : 'bg-accent/15 border-accent/40 text-accent-foreground font-semibold'
@@ -190,7 +211,7 @@ const Index = () => {
               title={lockMode === 'scale' ? 'Scale Lock: Click to switch to Quality Lock' : 'Quality Lock: Click to switch to Scale Lock'}
             >
               {lockMode === 'scale' ? <Lock size={12} /> : <Unlock size={12} />}
-              {lockMode === 'scale' ? 'Scale Lock' : 'Quality Lock'}
+              <span className="hidden sm:inline">{lockMode === 'scale' ? 'Scale Lock' : 'Quality Lock'}</span>
             </button>
             {/* Label mode dropdown */}
             <div className="relative flex items-center">
@@ -206,7 +227,8 @@ const Index = () => {
                 <option value="semitones">Semitones</option>
               </select>
             </div>
-            <span className="font-mono text-[10px] text-muted-foreground">
+            {/* Interval string — hidden on small screens */}
+            <span className="font-mono text-[10px] text-muted-foreground hidden md:inline">
               [{intervalStr}]
             </span>
           </div>
@@ -214,22 +236,17 @@ const Index = () => {
 
         <div className="p-4 xl:p-6">
 
-          {/* ── 3xl+: Three-column layout — Analysis | Instruments | Cadence ── */}
+          {/* ── 3xl+: Three-column layout ── */}
           <div className="hidden 3xl:grid 3xl:grid-cols-3 gap-6 items-start">
-            {/* LEFT COLUMN: Analysis (Pitch Clock hero + ordered analysis sections) */}
             <div className="flex flex-col gap-6">
               <section className="bg-surface-1 border border-border rounded-lg p-8 shadow-sm">
                 <PitchClock />
               </section>
               {orderedAnalysis3col.map((id, i) => renderSection(id, i, orderedAnalysis3col, { currentCol: 'analysis' }))}
             </div>
-
-            {/* CENTER COLUMN: Instruments */}
             <div className="flex flex-col gap-6 sticky top-4">
               {orderedInstruments3col.map((id, i) => renderSection(id, i, orderedInstruments3col, { currentCol: 'instruments' }))}
             </div>
-
-            {/* RIGHT COLUMN: Cadence Explorer (dedicated, always visible) */}
             <div className="flex flex-col gap-6 sticky top-4">
               <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm">
                 <CadenceExplorer />
@@ -237,17 +254,14 @@ const Index = () => {
             </div>
           </div>
 
-          {/* ── xl to 3xl: Two-column layout — Analysis | Instruments ── */}
+          {/* ── xl to 3xl: Two-column layout ── */}
           <div className="hidden xl:grid 3xl:hidden xl:grid-cols-2 gap-6 items-start">
-            {/* LEFT COLUMN: Analysis (Pitch Clock hero + ordered sections) */}
             <div className="flex flex-col gap-6">
               <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm">
                 <PitchClock />
               </section>
               {orderedAnalysis2col.map((id, i) => renderSection(id, i, orderedAnalysis2col))}
             </div>
-
-            {/* RIGHT COLUMN: Instruments */}
             <div className="flex flex-col gap-6 sticky top-4">
               {orderedInstruments2col.map((id, i) => renderSection(id, i, orderedInstruments2col))}
             </div>
@@ -278,14 +292,8 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Mobile footer */}
-        <div className="lg:hidden p-4 space-y-4">
-          <details className="bg-surface-1 border border-border rounded-lg shadow-sm">
-            <summary className="px-4 py-3 font-sans text-sm text-foreground cursor-pointer">Controls</summary>
-            <div className="px-4 pb-4">
-              <ControlPanel />
-            </div>
-          </details>
+        {/* Mobile footer — simplified (controls moved to Sheet) */}
+        <div className="lg:hidden p-4">
           <div className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm flex items-center gap-3">
             <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-8 h-8 rounded-md" />
             <div className="flex-1">
