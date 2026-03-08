@@ -131,8 +131,8 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
         ? current.filter(p => p !== pc)
         : [...current, pc].sort((a, b) => a - b);
       
-      // Try to identify the resulting chord (supports dyads with 2+ notes)
-      if (next.length >= 2) {
+      // Try to identify the resulting chord (supports single notes, dyads, and full chords)
+      if (next.length >= 1) {
         const identified = identifyChordFromPitchClasses(next);
         if (identified) {
           setHarmonicRoot(identified.root);

@@ -551,8 +551,19 @@ export function getChordVibe(chordName: string): string {
  * Supports dyads (2 notes) as intervals, and full chords (3+ notes).
  */
 export function identifyChordFromPitchClasses(pitchClasses: PitchClass[]): { root: PitchClass; chord: ChordType } | null {
-  if (pitchClasses.length < 2) return null;
+  if (pitchClasses.length < 1) return null;
   const allChords = Object.values(CHORD_CATEGORIES).flat();
+
+  // Single note — unison
+  if (pitchClasses.length === 1) {
+    const pc = pitchClasses[0];
+    const unison: ChordType = {
+      name: 'Single Note',
+      intervals: [0],
+      category: 'Single Note',
+    };
+    return { root: pc, chord: unison };
+  }
   
   // For 3+ notes, try to match against known chord types
   if (pitchClasses.length >= 3) {
