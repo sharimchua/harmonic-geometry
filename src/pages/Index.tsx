@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getNoteName } from '@/lib/musicTheory';
+import { getNoteName, type LabelMode } from '@/lib/musicTheory';
 import PitchClock from '@/components/PitchClock';
 import PianoKeyboard from '@/components/PianoKeyboard';
 import GuitarFretboard from '@/components/GuitarFretboard';
