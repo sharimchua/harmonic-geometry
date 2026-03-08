@@ -204,7 +204,7 @@ export default function ControlPanel() {
                       : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                   }`}
                 >
-                  {m}
+                  {m === 'scaleDegrees' ? 'Scale °' : m}
                 </button>
               ))}
             </div>
