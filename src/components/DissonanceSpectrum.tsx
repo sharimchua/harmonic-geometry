@@ -193,9 +193,9 @@ export default function DissonanceSpectrum() {
         Crunchiness
       </h3>
 
-      {/* Dissonance score */}
+      {/* Crunchiness score */}
       <div className="flex items-center gap-3">
-        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Total Dissonance:</span>
+        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Total Crunch:</span>
         <span className="text-sm font-mono font-bold text-foreground">{Math.round(totalDissonance)}%</span>
         <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
           <div
@@ -217,7 +217,7 @@ export default function DissonanceSpectrum() {
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
-            {/* Dissonance curve fill gradient — white to transparent */}
+            {/* Crunch curve fill gradient — white to transparent */}
             <linearGradient id="dissonance-curve-fill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="hsl(0, 0%, 100%)" stopOpacity="0.15" />
               <stop offset="100%" stopColor="hsl(0, 0%, 100%)" stopOpacity="0.02" />
@@ -332,7 +332,7 @@ export default function DissonanceSpectrum() {
             </g>
           ))}
 
-          {/* Additive dissonance curve (white line + fill) */}
+          {/* Additive crunchiness curve (white line + fill) */}
           {dissonancePath.fill && (
             <>
               <path d={dissonancePath.fill} fill="url(#dissonance-curve-fill)" />
@@ -360,7 +360,7 @@ export default function DissonanceSpectrum() {
         ))}
         <div className="flex items-center gap-1 ml-2">
           <span className="w-4 h-px" style={{ background: 'hsla(0, 0%, 95%, 0.7)' }} />
-          <span>Roughness</span>
+          <span>Crunch</span>
         </div>
         <div className="flex items-center gap-1 ml-1">
           <span className="w-3 h-px border-t border-dashed" style={{ borderColor: 'hsl(30, 8%, 40%)' }} />
