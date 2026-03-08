@@ -334,10 +334,10 @@ export default function StaffNotation() {
               const pos = KEY_SIG_SHARP_POS[clef][SHARP_ORDER.indexOf(letterIdx)];
               if (pos === undefined) return null;
               const y = getY(pos);
-              const x = 20 + clefAreaW + i * 14;
+              const x = 20 + clefAreaW + i * 10;
               return (
                 <text key={`ks-${i}`}
-                  x={x} y={y + 6} fontSize={18}
+                  x={x} y={y + 6} fontSize={16}
                   fontFamily="serif" fill="hsl(30, 10%, 65%)"
                 >♯</text>
               );
@@ -346,10 +346,10 @@ export default function StaffNotation() {
               const pos = KEY_SIG_FLAT_POS[clef][FLAT_ORDER.indexOf(letterIdx)];
               if (pos === undefined) return null;
               const y = getY(pos);
-              const x = 20 + clefAreaW + i * 14;
+              const x = 20 + clefAreaW + i * 10;
               return (
                 <text key={`kf-${i}`}
-                  x={x} y={y + 6} fontSize={18}
+                  x={x} y={y + 6} fontSize={16}
                   fontFamily="serif" fill="hsl(30, 10%, 65%)"
                 >♭</text>
               );
