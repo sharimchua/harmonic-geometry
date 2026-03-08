@@ -360,7 +360,7 @@ export default function DissonanceSpectrum() {
         ))}
         <div className="flex items-center gap-1 ml-2">
           <span className="w-4 h-px" style={{ background: 'hsla(0, 0%, 95%, 0.7)' }} />
-          <span>Roughness</span>
+          <span>Crunch</span>
         </div>
         <div className="flex items-center gap-1 ml-1">
           <span className="w-3 h-px border-t border-dashed" style={{ borderColor: 'hsl(30, 8%, 40%)' }} />
