@@ -375,9 +375,11 @@ export function calculateVoiceLeading(
 }
 
 // ─── Label Modes ─────────────────────────────────────────
-export type LabelMode = 'notes' | 'intervals' | 'scaleDegrees' | 'semitones';
+export type LabelMode = 'notes' | 'intervals' | 'scaleDegrees' | 'semitones' | 'solfege';
 
 const SCALE_DEGREE_LABELS = ['1', 'b2', '2', 'b3', '3', '4', 'b5', '5', '#5', '6', 'b7', '7'] as const;
+
+const SOLFEGE_LABELS = ['Do', 'Ra', 'Re', 'Me', 'Mi', 'Fa', 'Se', 'Sol', 'Le', 'La', 'Te', 'Ti'] as const;
 
 /** Get a scale degree label for a pitch class relative to a tonic (e.g. "1", "b3", "#5") */
 export function getScaleDegreeLabel(pc: PitchClass, scaleTonic: PitchClass): string {
@@ -401,6 +403,10 @@ export function getLabel(
       return getScaleDegreeLabel(pc, scaleTonic ?? root);
     case 'semitones':
       return String((pc - root + 12) % 12);
+    case 'solfege': {
+      const semitones = ((pc - (scaleTonic ?? root)) % 12 + 12) % 12;
+      return SOLFEGE_LABELS[semitones];
+    }
   }
 }
 
