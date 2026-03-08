@@ -325,10 +325,10 @@ export default function GuitarFretboard() {
                 <circle
                   key={`ghost-${vIdx}-${i}`}
                   cx={cx} cy={cy} r={DOT_R - 2}
-                  fill="hsl(30, 5%, 16%)"
-                  stroke="hsl(30, 8%, 28%)"
-                  strokeWidth={0.5}
-                  opacity={0.35}
+                  fill="hsl(28, 15%, 24%)"
+                  stroke="hsl(28, 20%, 38%)"
+                  strokeWidth={0.75}
+                  opacity={0.55}
                   className="cursor-pointer"
                   onClick={() => setVoicingIdx(vIdx)}
                 />
