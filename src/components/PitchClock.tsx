@@ -309,12 +309,18 @@ export default function PitchClock() {
           return <g key={`vl-group-${i}`}>{arrows}</g>;
         })}
 
-        {/* Locked chord ghost nodes (cadence mode) */}
+        {/* Locked chord ghost nodes (cadence mode) - clickable to set as new root */}
         {cadenceMode && lockedPitchClasses.map(pc => {
           if (activePitchClasses.includes(pc)) return null; // don't double-render
           const [x, y] = pitchClassToXY(pc);
           return (
-            <g key={`locked-${pc}`}>
+            <g
+              key={`locked-${pc}`}
+              onClick={() => handleNodeClick(pc)}
+              className="cursor-pointer"
+              role="button"
+              tabIndex={0}
+            >
               <circle
                 cx={x} cy={y} r={DOT_RADIUS - 3}
                 fill="hsl(220, 40%, 18%)"
