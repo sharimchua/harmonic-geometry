@@ -10,6 +10,7 @@ import HarmonicContext from '@/components/HarmonicContext';
 import ControlPanel from '@/components/ControlPanel';
 import StaffNotation from '@/components/StaffNotation';
 import ChordSynonyms from '@/components/ChordSynonyms';
+import DissonanceSpectrum from '@/components/DissonanceSpectrum';
 import { useSectionOrder, type SectionId } from '@/hooks/useSectionOrder';
 import { ChevronUp, ChevronDown, Lock, Unlock } from 'lucide-react';
 
