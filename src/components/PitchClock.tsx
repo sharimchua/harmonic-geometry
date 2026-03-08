@@ -302,7 +302,7 @@ export default function PitchClock() {
               const path = voiceLeadingArcPath(fromPC, toPC, offset);
               if (path) {
                 arrows.push(
-                  <ArrowHead key={`vl-${i}-${fromPC}-${toPC}`} path={path} color={color} />
+                  <ArrowHead key={`vl-${i}-${fromPC}-${toPC}`} path={path} color={color} stableId={`${i}-${fromPC}-${toPC}`} />
                 );
               }
             }
