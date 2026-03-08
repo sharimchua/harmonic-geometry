@@ -43,7 +43,7 @@ const Index = () => {
   const intervalStr = activeIntervals.map(i => ((i % 12) + 12) % 12).join('-');
 
   // Split ordered sections into analysis vs instruments
-  const analysisSections: SectionId[] = ['context', 'intervals', 'cadence'];
+  const analysisSections: SectionId[] = ['context', 'intervals', 'cadence', 'dissonance'];
   const instrumentSections: SectionId[] = ['staff', 'piano', 'fretboard'];
   const orderedAnalysis = order.filter(id => analysisSections.includes(id));
   const orderedInstruments = order.filter(id => instrumentSections.includes(id));
