@@ -101,25 +101,44 @@ export default function DissonanceSpectrum() {
     return map;
   }, [partials]);
 
-  // Build bar data per note (critical-bandwidth-wide bars radiating from each partial)
+  // Build bar data per note — fundamental is full height, overtones taper down
+  // Each bar width = critical bandwidth at that frequency (wide at low, narrow at high)
   const noteBars = useMemo(() => {
-    const bars: { pc: number; items: { x: number; width: number; height: number; partial: Partial }[] }[] = [];
+    const allBars: { pc: number; items: { x: number; cx: number; width: number; height: number; partial: Partial }[] }[] = [];
 
     for (const [pc, notePartials] of partialsByNote.entries()) {
-      const items = notePartials.map(p => {
+      const sorted = [...notePartials].sort((a, b) => a.frequency - b.frequency);
+      const items = sorted.map(p => {
         const cx = freqToX(p.frequency, svgWidth);
         const cbHz = criticalBandwidth(p.frequency);
         const xLo = freqToX(Math.max(minFreq, p.frequency - cbHz / 2), svgWidth);
         const xHi = freqToX(p.frequency + cbHz / 2, svgWidth);
-        const barW = Math.max(3, xHi - xLo);
-        // Normalise height: amplitude is already 0-1, scale to plot area
-        const height = p.amplitude * plotHeight * 0.8;
-        return { x: cx - barW / 2, width: barW, height, partial: p };
+        const barW = Math.max(2, xHi - xLo);
+        const height = p.amplitude * plotHeight * 0.85;
+        return { x: cx - barW / 2, cx, width: barW, height, partial: p };
       });
-      bars.push({ pc, items });
+      allBars.push({ pc, items });
     }
-    return bars;
+    return allBars;
   }, [partialsByNote, svgWidth, plotHeight]);
+
+  // Build connected silhouette path per note (envelope connecting bar tops)
+  const noteEnvelopes = useMemo(() => {
+    return noteBars.map(({ pc, items }) => {
+      if (items.length === 0) return { pc, path: '' };
+      // Build path: go along the top of each bar left-to-right, then back along bottom
+      let path = `M ${items[0].x.toFixed(1)} ${plotBottom}`;
+      for (const bar of items) {
+        const top = plotBottom - bar.height;
+        path += ` L ${bar.x.toFixed(1)} ${plotBottom}`;
+        path += ` L ${bar.x.toFixed(1)} ${top.toFixed(1)}`;
+        path += ` L ${(bar.x + bar.width).toFixed(1)} ${top.toFixed(1)}`;
+        path += ` L ${(bar.x + bar.width).toFixed(1)} ${plotBottom}`;
+      }
+      path += ' Z';
+      return { pc, path };
+    });
+  }, [noteBars, plotBottom]);
 
   // Dissonance overlap bars
   const dissonanceBars = useMemo(() => {
