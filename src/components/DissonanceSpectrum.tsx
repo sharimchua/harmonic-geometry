@@ -323,19 +323,18 @@ export default function DissonanceSpectrum() {
             </g>
           ))}
 
-          {/* Dissonance overlap bars (rendered ON TOP of note bars) */}
-          {dissonanceBars.map((bar, i) => (
-            <rect
-              key={`diss-${i}`}
-              x={bar.x}
-              y={plotBottom - bar.height}
-              width={bar.width}
-              height={bar.height}
-              fill="hsl(var(--interval-dissonant))"
-              opacity={bar.opacity}
-              rx={1}
-            />
-          ))}
+          {/* Additive dissonance curve (white line + fill) */}
+          {dissonancePath.fill && (
+            <>
+              <path d={dissonancePath.fill} fill="url(#dissonance-curve-fill)" />
+              <path
+                d={dissonancePath.line}
+                fill="none"
+                stroke="hsla(0, 0%, 95%, 0.7)"
+                strokeWidth={1.2}
+              />
+            </>
+          )}
 
           {/* Axis line */}
           <line x1={0} y1={plotBottom} x2={svgWidth} y2={plotBottom} stroke="hsl(30, 5%, 25%)" strokeWidth={1} />
