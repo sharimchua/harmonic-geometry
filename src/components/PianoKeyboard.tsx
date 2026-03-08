@@ -148,7 +148,7 @@ export default function PianoKeyboard() {
                     fill="hsl(30, 15%, 45%)" fontWeight={400}
                     opacity={0.6}
                   >
-                    {getLabel(key.pc, root, labelMode, useFlats)}
+                    {getLabel(key.pc, root, labelMode, useFlats, scaleTonic)}
                   </text>
                 )}
               </g>
