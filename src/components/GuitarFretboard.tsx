@@ -381,7 +381,7 @@ export default function GuitarFretboard() {
                     fontFamily="'JetBrains Mono', monospace"
                     fill="hsl(0, 0%, 92%)"
                   >
-                    {getLabel(pos.pc, root, labelMode, useFlats)}
+                    {getLabel(pos.pc, root, labelMode, useFlats, scaleTonic)}
                   </text>
                 </g>
               );

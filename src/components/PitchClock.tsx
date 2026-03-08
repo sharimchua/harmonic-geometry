@@ -392,7 +392,7 @@ export default function PitchClock() {
           // In cadence mode, highlight common tones
           const isCommonTone = cadenceMode && lockedPitchClasses.includes(pc) && isActive;
 
-          const label = getLabel(pc, root, labelMode, useFlats);
+          const label = getLabel(pc, root, labelMode, useFlats, scaleTonic);
 
           return (
             <g
