@@ -459,10 +459,12 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             />
           ))}
 
-          {/* Ghost dots for non-selected voicings */}
+          {/* Ghost dots for adjacent voicings only (±2) */}
           {allVoicings.map((voicing, vIdx) => {
             const safeIdx = Math.min(voicingIdx, allVoicings.length - 1);
             if (vIdx === safeIdx) return null;
+            // Only render ghosts within ±2 of current voicing for performance
+            if (Math.abs(vIdx - safeIdx) > 2) return null;
             return voicing.map((pos, i) => {
               const displayRow = displayOrder.indexOf(pos.s);
               const cx = LEFT_PAD + (pos.f === 0 ? 0 : pos.f * FRET_WIDTH - FRET_WIDTH / 2);
