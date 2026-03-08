@@ -223,9 +223,9 @@ const Index = () => {
               >
                 <option value="notes">Notes</option>
                 <option value="intervals">Intervals</option>
-                <option value="scaleDegrees">Scale °</option>
-                <option value="semitones">Semitones</option>
                 <option value="solfege">Solfège</option>
+                <option value="scaleDegrees">Scale Degree</option>
+                <option value="semitones">Semitones</option>
               </select>
             </div>
             {/* Interval string — hidden on small screens */}
