@@ -11,8 +11,8 @@ import ControlPanel from '@/components/ControlPanel';
 import StaffNotation from '@/components/StaffNotation';
 import ChordSynonyms from '@/components/ChordSynonyms';
 import DissonanceSpectrum from '@/components/DissonanceSpectrum';
-import { useSectionOrder, type SectionId } from '@/hooks/useSectionOrder';
-import { ChevronUp, ChevronDown, Lock, Unlock, Tags } from 'lucide-react';
+import { useSectionOrder, type SectionId, type ColumnId } from '@/hooks/useSectionOrder';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Lock, Unlock, Tags } from 'lucide-react';
 
 const SECTION_COMPONENTS: Record<SectionId, React.FC> = {
   context: HarmonicContext,
@@ -36,23 +36,55 @@ const SECTION_LABELS: Record<SectionId, string> = {
 
 const Index = () => {
   const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, labelMode, setLabelMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
-  const { order, moveUp, moveDown } = useSectionOrder();
+  const { order, columns, moveUp, moveDown, moveToColumn } = useSectionOrder();
 
   const chordLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
   const keyLabel = scale ? `Key of ${getNoteName(scaleTonic, useFlats)} ${scale.name}` : 'No key';
   const intervalStr = activeIntervals.map(i => ((i % 12) + 12) % 12).join('-');
 
-  // Split ordered sections into analysis vs instruments
-  const analysisSections: SectionId[] = ['context', 'intervals', 'cadence', 'dissonance'];
-  const instrumentSections: SectionId[] = ['staff', 'piano', 'fretboard'];
-  const orderedAnalysis = order.filter(id => analysisSections.includes(id));
-  const orderedInstruments = order.filter(id => instrumentSections.includes(id));
+  // For 2-column (xl): use default analysis/instruments split
+  const defaultAnalysis: SectionId[] = ['context', 'intervals', 'cadence', 'dissonance'];
+  const defaultInstruments: SectionId[] = ['staff', 'piano', 'fretboard'];
+  const orderedAnalysis2col = order.filter(id => defaultAnalysis.includes(id));
+  const orderedInstruments2col = order.filter(id => defaultInstruments.includes(id));
 
-  const renderSection = (id: SectionId, idx: number, list: SectionId[]) => {
+  // For 3-column (3xl): use user column assignments, cadence is always promoted to col 3
+  const nonCadenceSections = order.filter(id => id !== 'cadence');
+  const orderedAnalysis3col = nonCadenceSections.filter(id => columns[id] === 'analysis');
+  const orderedInstruments3col = nonCadenceSections.filter(id => columns[id] === 'instruments');
+
+  const renderSection = (
+    id: SectionId,
+    idx: number,
+    list: SectionId[],
+    showColumnArrows?: { currentCol: ColumnId }
+  ) => {
     const Comp = SECTION_COMPONENTS[id];
+    const canMoveLeft = showColumnArrows && showColumnArrows.currentCol === 'instruments';
+    const canMoveRight = showColumnArrows && showColumnArrows.currentCol === 'analysis';
+
     return (
-      <section key={id} className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-8 shadow-sm relative group">
+      <section key={id} className="bg-surface-1 border border-border rounded-lg p-5 3xl:p-6 shadow-sm relative group">
         <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          {/* Cross-column arrows (3xl only, rendered via CSS) */}
+          {canMoveLeft && (
+            <button
+              onClick={() => moveToColumn(id, 'analysis')}
+              className="w-5 h-5 rounded flex items-center justify-center bg-surface-3 hover:bg-surface-2 text-muted-foreground hidden 3xl:flex"
+              title="Move to Analysis column"
+            >
+              <ChevronLeft size={12} />
+            </button>
+          )}
+          {canMoveRight && (
+            <button
+              onClick={() => moveToColumn(id, 'instruments')}
+              className="w-5 h-5 rounded flex items-center justify-center bg-surface-3 hover:bg-surface-2 text-muted-foreground hidden 3xl:flex"
+              title="Move to Instruments column"
+            >
+              <ChevronRight size={12} />
+            </button>
+          )}
           {idx > 0 && (
             <button onClick={() => moveUp(id)} className="w-5 h-5 rounded flex items-center justify-center bg-surface-3 hover:bg-surface-2 text-muted-foreground" title="Move up">
               <ChevronUp size={12} />
@@ -181,19 +213,43 @@ const Index = () => {
         </div>
 
         <div className="p-4 xl:p-6">
-          {/* ── xl+: Two-column layout — Analysis | Instruments ── */}
-          <div className="hidden xl:grid xl:grid-cols-2 3xl:grid-cols-[1fr_1fr] gap-6 3xl:gap-8 items-start">
-            {/* LEFT COLUMN: Analysis (Pitch Clock hero + ordered sections) */}
-            <div className="flex flex-col gap-6 3xl:gap-8">
-              <section className="bg-surface-1 border border-border rounded-lg p-6 3xl:p-10 shadow-sm">
+
+          {/* ── 3xl+: Three-column layout — Analysis | Instruments | Cadence ── */}
+          <div className="hidden 3xl:grid 3xl:grid-cols-3 gap-6 items-start">
+            {/* LEFT COLUMN: Analysis (Pitch Clock hero + ordered analysis sections) */}
+            <div className="flex flex-col gap-6">
+              <section className="bg-surface-1 border border-border rounded-lg p-8 shadow-sm">
                 <PitchClock />
               </section>
-              {orderedAnalysis.map((id, i) => renderSection(id, i, orderedAnalysis))}
+              {orderedAnalysis3col.map((id, i) => renderSection(id, i, orderedAnalysis3col, { currentCol: 'analysis' }))}
+            </div>
+
+            {/* CENTER COLUMN: Instruments */}
+            <div className="flex flex-col gap-6 sticky top-4">
+              {orderedInstruments3col.map((id, i) => renderSection(id, i, orderedInstruments3col, { currentCol: 'instruments' }))}
+            </div>
+
+            {/* RIGHT COLUMN: Cadence Explorer (dedicated, always visible) */}
+            <div className="flex flex-col gap-6 sticky top-4">
+              <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm">
+                <CadenceExplorer />
+              </section>
+            </div>
+          </div>
+
+          {/* ── xl to 3xl: Two-column layout — Analysis | Instruments ── */}
+          <div className="hidden xl:grid 3xl:hidden xl:grid-cols-2 gap-6 items-start">
+            {/* LEFT COLUMN: Analysis (Pitch Clock hero + ordered sections) */}
+            <div className="flex flex-col gap-6">
+              <section className="bg-surface-1 border border-border rounded-lg p-6 shadow-sm">
+                <PitchClock />
+              </section>
+              {orderedAnalysis2col.map((id, i) => renderSection(id, i, orderedAnalysis2col))}
             </div>
 
             {/* RIGHT COLUMN: Instruments */}
-            <div className="flex flex-col gap-6 3xl:gap-8 sticky top-4">
-              {orderedInstruments.map((id, i) => renderSection(id, i, orderedInstruments))}
+            <div className="flex flex-col gap-6 sticky top-4">
+              {orderedInstruments2col.map((id, i) => renderSection(id, i, orderedInstruments2col))}
             </div>
           </div>
 
