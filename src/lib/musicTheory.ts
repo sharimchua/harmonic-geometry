@@ -872,16 +872,16 @@ export function calculateChordDissonance(frequencies: number[]): number {
 
   const actual = rawDissonance(frequencies);
 
-  // Reference: a minor 2nd (1 semitone) at the same base frequency = near-maximum dissonance
-  // Use the lowest frequency as the reference base
+  // Reference: a cluster of minor 2nds stacked from the base frequency
+  // This represents near-maximum dissonance for the same number of notes
   const baseFreq = Math.min(...frequencies);
-  const referenceMax = rawDissonance([baseFreq, baseFreq * Math.pow(2, 1 / 12)]);
+  const referenceFreqs: number[] = [];
+  for (let i = 0; i < frequencies.length; i++) {
+    referenceFreqs.push(baseFreq * Math.pow(2, i / 12)); // chromatic cluster
+  }
+  const referenceMax = rawDissonance(referenceFreqs);
 
-  // Scale by number of note pairs to account for chords with many notes
-  const numPairs = (frequencies.length * (frequencies.length - 1)) / 2;
-  const referencePairs = 1; // the reference is a single pair
-
-  const normalised = (actual / (referenceMax * numPairs)) * 100;
+  const normalised = referenceMax > 0 ? (actual / referenceMax) * 100 : 0;
   return Math.min(100, Math.max(0, normalised));
 }
 
