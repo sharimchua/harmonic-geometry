@@ -237,20 +237,49 @@ export default function DissonanceSpectrum() {
           {/* Octave marker lines */}
           {octaveMarkers.map(m => {
             const x = freqToX(m.freq, svgWidth);
+            const oct = parseInt(m.label.replace('C', ''));
+            const isSelectable = OCTAVE_OPTIONS.includes(oct);
+            const isSelected = baseOctave === oct;
             return (
               <g key={m.label}>
                 <line
                   x1={x} y1={plotTop} x2={x} y2={plotBottom}
                   stroke="hsl(30, 8%, 22%)" strokeWidth={1} strokeDasharray="3,4"
                 />
-                <text
-                  x={x} y={plotBottom + 14}
-                  textAnchor="middle" fontSize={9}
-                  fontFamily="'JetBrains Mono', monospace"
-                  fill="hsl(30, 8%, 40%)"
-                >
-                  {m.label}
-                </text>
+                {isSelectable ? (
+                  <g
+                    className="cursor-pointer"
+                    onClick={() => setBaseOctave(oct)}
+                  >
+                    <rect
+                      x={x - 14} y={plotBottom + 3}
+                      width={28} height={16} rx={4}
+                      fill={isSelected ? 'hsl(var(--primary))' : 'transparent'}
+                      stroke={isSelected ? 'none' : 'hsl(30, 8%, 30%)'}
+                      strokeWidth={0.5}
+                      className="transition-colors"
+                    />
+                    <text
+                      x={x} y={plotBottom + 14.5}
+                      textAnchor="middle" fontSize={9}
+                      fontFamily="'JetBrains Mono', monospace"
+                      fill={isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(30, 8%, 50%)'}
+                      fontWeight={isSelected ? 700 : 400}
+                      className="transition-colors select-none"
+                    >
+                      {m.label}
+                    </text>
+                  </g>
+                ) : (
+                  <text
+                    x={x} y={plotBottom + 14}
+                    textAnchor="middle" fontSize={9}
+                    fontFamily="'JetBrains Mono', monospace"
+                    fill="hsl(30, 8%, 40%)"
+                  >
+                    {m.label}
+                  </text>
+                )}
               </g>
             );
           })}
