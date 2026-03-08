@@ -11,7 +11,6 @@ export default function ControlPanel() {
     scaleTonic, setScaleTonic,
     root, setRoot, chord, setChord, scale, setScale,
     inversion, setInversion, dropVoicingType, setDropVoicing,
-    labelMode, setLabelMode,
     useFlats, setUseFlats,
     lockMode, setLockMode,
     midi, midiEnabled, setMidiEnabled,
