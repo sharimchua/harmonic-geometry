@@ -215,9 +215,29 @@ export default function GuitarFretboard() {
             <option key={preset.name} value={i}>{preset.name}</option>
           ))}
         </select>
-        <span className="text-[10px] font-mono text-muted-foreground">
-          {voicings.length} voicing{voicings.length !== 1 ? 's' : ''} found
-        </span>
+        <div className="flex items-center gap-2">
+          {allVoicings.length > 1 && (
+            <button
+              onClick={() => setVoicingIdx(i => (i - 1 + allVoicings.length) % allVoicings.length)}
+              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+            >
+              ◀
+            </button>
+          )}
+          <span className="text-[10px] font-mono text-muted-foreground">
+            {allVoicings.length > 0
+              ? `${Math.min(voicingIdx, allVoicings.length - 1) + 1} / ${allVoicings.length}`
+              : '0 voicings'}
+          </span>
+          {allVoicings.length > 1 && (
+            <button
+              onClick={() => setVoicingIdx(i => (i + 1) % allVoicings.length)}
+              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+            >
+              ▶
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto w-full">
