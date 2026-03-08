@@ -333,7 +333,7 @@ function generateVoicings(
 
     for (const [wMin, wMax] of windows) {
       if (wMax - wMin > MAX_SPAN_BARRE + 1) continue;
-      const voicing = buildVoicing(chordPcs, anchor.s, anchor.f, bassPc, tuning, wMin, wMax);
+      const voicing = buildVoicing(chordPcs, anchor.s, anchor.f, bassPc, tuning, wMin, wMax, root);
       if (!voicing) continue;
 
       const key = voicing.map(p => `${p.s}:${p.f}`).join(',');
