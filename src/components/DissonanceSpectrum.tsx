@@ -218,12 +218,12 @@ export default function DissonanceSpectrum() {
       {/* Dissonance score */}
       <div className="flex items-center gap-3">
         <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Total Dissonance:</span>
-        <span className="text-sm font-mono font-bold text-foreground">{Math.round(totalDissonance)}</span>
+        <span className="text-sm font-mono font-bold text-foreground">{Math.round(totalDissonance)}%</span>
         <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-300"
             style={{
-              width: `${Math.min(100, (totalDissonance / 30) * 100)}%`,
+              width: `${Math.min(100, totalDissonance)}%`,
               background: `linear-gradient(90deg, hsl(var(--interval-consonant)), hsl(var(--interval-mild)), hsl(var(--interval-dissonant)))`,
             }}
           />
