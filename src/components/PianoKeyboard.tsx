@@ -24,7 +24,7 @@ const TENSION_WIDTHS: Record<string, number> = {
 };
 
 export default function PianoKeyboard() {
-  const { root, setRoot, activeIntervals, activePitchClasses, scalePitchClasses, labelMode, useFlats } = useHarmony();
+  const { root, setRoot, scaleTonic, activeIntervals, activePitchClasses, scalePitchClasses, labelMode, useFlats } = useHarmony();
 
   // Build all keys
   const keys: { pc: number; octave: number; isBlack: boolean; midi: number }[] = [];

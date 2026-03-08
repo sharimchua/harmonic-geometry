@@ -140,7 +140,7 @@ function generateVoicings(
 
 export default function GuitarFretboard() {
   const {
-    root, setRoot, activePitchClasses, scalePitchClasses,
+    root, setRoot, scaleTonic, activePitchClasses, scalePitchClasses,
     labelMode, useFlats,
     activeIntervals, inversion,
   } = useHarmony();
