@@ -847,10 +847,13 @@ function plompLeveltDissonance(f1: number, a1: number, f2: number, a2: number): 
   return a1 * a2 * (Math.exp(-3.5 * sb) - Math.exp(-5.75 * sb));
 }
 
-/** Calculate total psychoacoustical dissonance for a set of frequencies, normalised 0-100 */
+/** Calculate total psychoacoustical dissonance for a set of frequencies, normalised 0-100.
+ *  Includes INTRA-note partial interference (a single low note has overtone roughness)
+ *  as well as INTER-note interference. */
 export function calculateChordDissonance(frequencies: number[]): number {
-  if (frequencies.length < 2) return 0;
+  if (frequencies.length === 0) return 0;
 
+  // Build all partials (including intra-note pairs)
   const rawDissonance = (freqs: number[]) => {
     let total = 0;
     const allPartials: { freq: number; amp: number }[] = [];
@@ -859,6 +862,7 @@ export function calculateChordDissonance(frequencies: number[]): number {
         allPartials.push({ freq: f * i, amp: Math.pow(AMPLITUDE_DECAY, i - 1) });
       }
     }
+    // All pairwise interactions including within-note overtones
     for (let i = 0; i < allPartials.length; i++) {
       for (let j = i + 1; j < allPartials.length; j++) {
         total += plompLeveltDissonance(
@@ -872,11 +876,11 @@ export function calculateChordDissonance(frequencies: number[]): number {
 
   const actual = rawDissonance(frequencies);
 
-  // Reference: a cluster of minor 2nds stacked from the base frequency
-  // This represents near-maximum dissonance for the same number of notes
+  // Reference max: chromatic cluster of same note count (or semitone above for single note)
   const baseFreq = Math.min(...frequencies);
+  const noteCount = Math.max(2, frequencies.length); // at least 2 for meaningful reference
   const referenceFreqs: number[] = [];
-  for (let i = 0; i < frequencies.length; i++) {
+  for (let i = 0; i < noteCount; i++) {
     referenceFreqs.push(baseFreq * Math.pow(2, i / 12)); // chromatic cluster
   }
   const referenceMax = rawDissonance(referenceFreqs);
@@ -899,6 +903,7 @@ export function calculatePartialInteractions(
   const interactions: PartialInteraction[] = [];
   const notePartials = noteFrequencies.map(n => generatePartials(n.freq, n.pc));
 
+  // Inter-note interactions
   for (let i = 0; i < notePartials.length; i++) {
     for (let j = i + 1; j < notePartials.length; j++) {
       for (const p1 of notePartials[i]) {
@@ -916,6 +921,25 @@ export function calculatePartialInteractions(
       }
     }
   }
+
+  // Intra-note interactions (overtone-to-overtone roughness within each note)
+  for (let i = 0; i < notePartials.length; i++) {
+    const ps = notePartials[i];
+    for (let a = 0; a < ps.length; a++) {
+      for (let b = a + 1; b < ps.length; b++) {
+        const d = plompLeveltDissonance(ps[a].frequency, ps[a].amplitude, ps[b].frequency, ps[b].amplitude);
+        if (d > 0.0001) {
+          interactions.push({
+            partial1: ps[a],
+            partial2: ps[b],
+            dissonance: d * 100,
+            freqDiff: Math.abs(ps[a].frequency - ps[b].frequency),
+          });
+        }
+      }
+    }
+  }
+
   return interactions;
 }
 
