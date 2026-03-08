@@ -140,6 +140,63 @@ function noProblematicGaps(voicing: VoicingPosition[]): boolean {
   return maxGap <= 1;
 }
 
+/**
+ * Identify "core tones" for a chord based on jazz voicing principles.
+ * For triads: all notes are core.
+ * For 7th chords: root, 3rd, 7th (shell voicing principle — 5th is droppable).
+ * For extensions (9, 11, 13): root, 3rd, 7th, extension (drop 5th, optionally drop root on inner strings).
+ */
+function identifyCoreTones(chordPcs: number[], root: number): Set<number> {
+  const core = new Set<number>();
+  
+  // Always include root and 3rd if present
+  core.add(root);
+  const third = chordPcs.find(pc => {
+    const interval = ((pc - root) % 12 + 12) % 12;
+    return interval === 3 || interval === 4; // m3 or M3
+  });
+  if (third !== undefined) core.add(third);
+  
+  // For 4+ note chords, prioritize the 7th over the 5th
+  if (chordPcs.length >= 4) {
+    const seventh = chordPcs.find(pc => {
+      const interval = ((pc - root) % 12 + 12) % 12;
+      return interval === 10 || interval === 11 || interval === 9; // m7, M7, dim7
+    });
+    if (seventh !== undefined) core.add(seventh);
+  }
+  
+  // For 5+ note chords (extensions), include the highest extension
+  if (chordPcs.length >= 5) {
+    const extensions = chordPcs.filter(pc => {
+      const interval = ((pc - root) % 12 + 12) % 12;
+      return interval === 2 || interval === 5 || interval === 9; // 9th, 11th, 13th (relative to root)
+    });
+    if (extensions.length > 0) {
+      // Add the most "colorful" extension
+      extensions.forEach(ext => core.add(ext));
+    }
+  }
+  
+  return core;
+}
+
+/**
+ * Determine if a pitch class is droppable in guitar voicings.
+ * 5th is typically droppable. Root can be dropped on inner strings if it's already in the bass.
+ */
+function isDroppable(pc: number, root: number, bassString: number, currentString: number): boolean {
+  const interval = ((pc - root) % 12 + 12) % 12;
+  
+  // 5th (7 semitones) is always droppable for chords with 4+ notes
+  if (interval === 7) return true;
+  
+  // Root can be dropped on inner strings (but not bass) for extended chords
+  if (pc === root && currentString > bassString) return true;
+  
+  return false;
+}
+
 function buildVoicing(
   chordPcs: number[],
   bassString: number,
@@ -148,10 +205,12 @@ function buildVoicing(
   tuning: number[],
   windowMin: number,
   windowMax: number,
+  root: number,
 ): VoicingPosition[] | null {
   const numStrings = tuning.length;
   const voicing: VoicingPosition[] = [];
   const usedPcs = new Set<number>();
+  const coreTones = identifyCoreTones(chordPcs, root);
 
   voicing.push({ s: bassString, f: bassFret, pc: bassPc });
   usedPcs.add(bassPc);
@@ -171,20 +230,21 @@ function buildVoicing(
     }
     if (opts.length === 0) continue;
 
-    // Prefer notes we haven't used yet for better pitch coverage
-    const unused = opts.filter(o => !usedPcs.has(o.pc));
-    const candidates = unused.length > 0 ? unused : opts;
+    // PRIORITY SYSTEM for extended chords:
+    // 1. Core tones not yet used (root, 3rd, 7th, extensions)
+    // 2. Any chord tone not yet used
+    // 3. Core tones (even if duplicated)
+    // 4. Any chord tone
+    const coreUnused = opts.filter(o => coreTones.has(o.pc) && !usedPcs.has(o.pc));
+    const nonCoreUnused = opts.filter(o => !coreTones.has(o.pc) && !usedPcs.has(o.pc));
+    const coreUsed = opts.filter(o => coreTones.has(o.pc) && usedPcs.has(o.pc));
+    const nonCoreUsed = opts.filter(o => !coreTones.has(o.pc) && usedPcs.has(o.pc));
+    
+    const candidates = [...coreUnused, ...nonCoreUnused, ...coreUsed, ...nonCoreUsed];
 
     // Try each candidate and pick the first that keeps the voicing playable
     let picked = false;
-    // Sort candidates: prefer fretted notes closer to existing fretted notes
-    const sortedCandidates = [...candidates].sort((a, b) => {
-      // Prefer fretted over open when higher up the neck
-      if (a.f === 0 && b.f > 0) return 1;
-      if (b.f === 0 && a.f > 0) return -1;
-      return 0;
-    });
-    for (const pick of sortedCandidates) {
+    for (const pick of candidates) {
       const tentative = [...voicing, pick];
       const fretted = tentative.filter(v => v.f > 0);
 
@@ -208,14 +268,30 @@ function buildVoicing(
 
   // Validate final voicing
   const covered = new Set(voicing.map(v => v.pc));
-  // For chords with 4+ notes, allow shell voicings (root + 3rd + 7th minimum = 2 unique beyond root)
-  const minCoverage = chordPcs.length >= 4 ? Math.min(3, chordPcs.length) : Math.min(3, chordPcs.length);
-  // Allow 2-note partial voicings for very high positions (fret 10+) or complex chords
+  const coresCovered = [...coreTones].filter(pc => covered.has(pc)).length;
+  
+  // For extended chords (5+ notes), require at least 3 core tones (root, 3rd, 7th OR extension)
+  // For 7th chords (4 notes), require at least 3 unique pitch classes
+  // For triads, require at least 2-3 notes
+  const isExtended = chordPcs.length >= 5;
+  const is7thChord = chordPcs.length === 4;
+  
+  let minCoverage = 2;
+  if (isExtended) {
+    minCoverage = Math.min(3, coreTones.size); // Require core tones for extensions
+  } else if (is7thChord) {
+    minCoverage = 3; // Shell voicing minimum
+  } else {
+    minCoverage = Math.min(2, chordPcs.length);
+  }
+  
+  // High position exception: allow 2-note voicings
   const avgFret = voicing.reduce((s, v) => s + v.f, 0) / voicing.length;
   const isHighPosition = avgFret >= 9;
   const minNotes = isHighPosition ? 2 : 3;
 
-  if (covered.size < Math.min(2, chordPcs.length) || voicing.length < minNotes) return null;
+  if (covered.size < minCoverage || voicing.length < minNotes) return null;
+  if (isExtended && coresCovered < Math.min(3, coreTones.size)) return null;
   if (!openStringsRealistic(voicing)) return null;
   if (!noProblematicGaps(voicing)) return null;
   if (countFingers(voicing).fingers > MAX_FINGERS) return null;
