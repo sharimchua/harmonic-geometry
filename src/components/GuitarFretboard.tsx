@@ -29,12 +29,122 @@ const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[
 ];
 
 const NUM_FRETS = 15;
-const MAX_SPAN = 4;
+const MAX_SPAN = 4;    // max fret span for the fretting hand
+const MAX_FINGERS = 4; // index, middle, ring, pinky
 
 interface VoicingPosition {
-  s: number;
-  f: number;
-  pc: number;
+  s: number;  // string index (0 = lowest)
+  f: number;  // fret (0 = open)
+  pc: number; // pitch class
+}
+
+/**
+ * Count how many fingers a voicing requires.
+ * - Open strings (f=0) cost 0 fingers.
+ * - Fretted notes on the same fret can share a barre (1 finger for all).
+ * - Each additional distinct fret costs 1 finger.
+ */
+function countFingers(voicing: VoicingPosition[]): number {
+  const frettedFrets = voicing.filter(v => v.f > 0).map(v => v.f);
+  if (frettedFrets.length === 0) return 0;
+
+  // Group by fret — each distinct fret costs at least 1 finger
+  const fretCounts = new Map<number, number>();
+  for (const f of frettedFrets) {
+    fretCounts.set(f, (fretCounts.get(f) || 0) + 1);
+  }
+
+  // The lowest fret with 2+ notes can be a barre (1 finger).
+  // All other frets cost 1 finger per fret.
+  // A barre must cover consecutive strings from the lowest played string at that fret.
+  const sortedFrets = [...fretCounts.entries()].sort((a, b) => a[0] - b[0]);
+  let fingers = 0;
+
+  let barreUsed = false;
+  for (const [fret, count] of sortedFrets) {
+    if (!barreUsed && count >= 2) {
+      // Check if barre is feasible: all strings between the lowest and highest
+      // at this fret should not have a lower fret note (which would block the barre).
+      const stringsAtFret = voicing.filter(v => v.f === fret).map(v => v.s);
+      const minS = Math.min(...stringsAtFret);
+      const maxS = Math.max(...stringsAtFret);
+      
+      // A barre is feasible if no intermediate string has a note at a LOWER fret
+      let barreFeasible = true;
+      for (let s = minS; s <= maxS; s++) {
+        const noteOnString = voicing.find(v => v.s === s);
+        if (noteOnString && noteOnString.f > 0 && noteOnString.f < fret) {
+          barreFeasible = false;
+          break;
+        }
+      }
+
+      if (barreFeasible) {
+        fingers += 1; // barre = 1 finger
+        barreUsed = true;
+      } else {
+        fingers += count; // each note needs its own finger
+      }
+    } else {
+      fingers += count;
+    }
+  }
+
+  return fingers;
+}
+
+/**
+ * Check if open strings are realistic given the fretted positions.
+ * Open strings are only natural when:
+ * - All fretted notes are within the first 5 frets, OR
+ * - The open string is the bass note (lowest string in the voicing)
+ */
+function openStringsRealistic(voicing: VoicingPosition[]): boolean {
+  const hasOpen = voicing.some(v => v.f === 0);
+  if (!hasOpen) return true;
+
+  const frettedPositions = voicing.filter(v => v.f > 0);
+  if (frettedPositions.length === 0) return true; // all open is fine
+
+  const maxFret = Math.max(...frettedPositions.map(v => v.f));
+
+  // Open strings are natural up to ~fret 5 (with stretching)
+  if (maxFret <= 5) return true;
+
+  // Beyond fret 5, only allow open if it's the lowest string (bass drone)
+  const openPositions = voicing.filter(v => v.f === 0);
+  const lowestFrettedString = Math.min(...frettedPositions.map(v => v.s));
+  return openPositions.every(v => v.s < lowestFrettedString);
+}
+
+/**
+ * Check that muted (skipped) strings don't create unplayable gaps.
+ * A gap of 1 muted string between played strings is acceptable.
+ * A gap of 2+ muted strings is suspicious but sometimes needed.
+ * Muted strings below (lower than) the lowest played string are fine.
+ */
+function noProblematicGaps(voicing: VoicingPosition[]): boolean {
+  const playedStrings = voicing.map(v => v.s).sort((a, b) => a - b);
+  if (playedStrings.length < 2) return true;
+
+  const lowest = playedStrings[0];
+  const highest = playedStrings[playedStrings.length - 1];
+  const playedSet = new Set(playedStrings);
+
+  // Count consecutive interior gaps
+  let maxGap = 0;
+  let currentGap = 0;
+  for (let s = lowest + 1; s < highest; s++) {
+    if (!playedSet.has(s)) {
+      currentGap++;
+      maxGap = Math.max(maxGap, currentGap);
+    } else {
+      currentGap = 0;
+    }
+  }
+
+  // Allow at most 1 consecutive muted interior string
+  return maxGap <= 1;
 }
 
 function buildVoicing(
@@ -56,7 +166,8 @@ function buildVoicing(
   for (let s = bassString + 1; s < numStrings; s++) {
     const opts: VoicingPosition[] = [];
     const openPc = tuning[s] % 12;
-    if (chordPcs.includes(openPc) && windowMin <= 3) {
+    // Only consider open strings if the window is near the nut
+    if (chordPcs.includes(openPc)) {
       opts.push({ s, f: 0, pc: openPc });
     }
     for (let f = Math.max(1, windowMin); f <= windowMax; f++) {
@@ -67,26 +178,44 @@ function buildVoicing(
     }
     if (opts.length === 0) continue;
 
+    // Prefer notes we haven't used yet for better pitch coverage
     const unused = opts.filter(o => !usedPcs.has(o.pc));
-    const pick = unused.length > 0 ? unused[0] : opts[0];
+    const candidates = unused.length > 0 ? unused : opts;
 
-    const fretted = [...voicing, pick].filter(v => v.f > 0);
-    if (fretted.length > 1) {
-      const min = Math.min(...fretted.map(v => v.f));
-      const max = Math.max(...fretted.map(v => v.f));
-      if (max - min > MAX_SPAN) continue;
+    // Try each candidate and pick the first that keeps the voicing playable
+    let picked = false;
+    for (const pick of candidates) {
+      const tentative = [...voicing, pick];
+      const fretted = tentative.filter(v => v.f > 0);
+
+      // Check fret span
+      if (fretted.length > 1) {
+        const min = Math.min(...fretted.map(v => v.f));
+        const max = Math.max(...fretted.map(v => v.f));
+        if (max - min > MAX_SPAN) continue;
+      }
+
+      // Check finger count
+      if (countFingers(tentative) > MAX_FINGERS) continue;
+
+      voicing.push(pick);
+      usedPcs.add(pick.pc);
+      picked = true;
+      break;
     }
-
-    voicing.push(pick);
-    usedPcs.add(pick.pc);
+    // If no candidate works, skip this string (it will be muted)
   }
 
+  // Validate final voicing
   const covered = new Set(voicing.map(v => v.pc));
   const minCoverage = Math.min(3, chordPcs.length);
-  if (covered.size >= minCoverage && voicing.length >= 3) {
-    return voicing.sort((a, b) => a.s - b.s);
-  }
-  return null;
+
+  if (covered.size < minCoverage || voicing.length < 3) return null;
+  if (!openStringsRealistic(voicing)) return null;
+  if (!noProblematicGaps(voicing)) return null;
+  if (countFingers(voicing) > MAX_FINGERS) return null;
+
+  return voicing.sort((a, b) => a.s - b.s);
 }
 
 function generateVoicings(
