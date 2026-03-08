@@ -246,7 +246,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     lockMode, setLockMode,
     constructionMode, setConstructionMode,
     togglePitchClass,
-    cadenceMode, lockedRoot, lockedChord, setCadenceMode,
+    cadenceMode, lockedRoot, lockedChord, setCadenceMode, relockCadence,
     midi,
     midiEnabled, setMidiEnabled,
     activeIntervals,

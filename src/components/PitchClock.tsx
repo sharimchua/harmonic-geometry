@@ -94,7 +94,7 @@ export default function PitchClock() {
   const {
     root, scaleTonic, setScaleTonic, setRoot,
     activePitchClasses, scalePitchClasses,
-    intervalTensions, labelMode, setLabelMode, useFlats, setUseFlats,
+    intervalTensions, labelMode, useFlats,
     constructionMode, setConstructionMode, togglePitchClass,
     cadenceMode, setCadenceMode, lockedPitchClasses, lockedRoot, lockedChord, voiceLeading,
     chord: chordObj,

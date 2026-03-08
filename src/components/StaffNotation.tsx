@@ -414,7 +414,7 @@ export default function StaffNotation() {
                     fontFamily="'JetBrains Mono', monospace"
                     fill={color} opacity={0.7}
                   >
-                    {pair.semitones}st
+                    {pair.semitones} sem
                   </text>
                 </g>
               );
