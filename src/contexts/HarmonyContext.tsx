@@ -31,7 +31,7 @@ interface HarmonyState {
   inversion: number;
   dropVoicingType: number;
   labelMode: LabelMode;
-  showArpeggio: boolean;
+  
   cagedPosition: number | null;
   useFlats: boolean;
   lockMode: HarmonicLockMode;
@@ -50,7 +50,7 @@ interface HarmonyContextValue extends HarmonyState {
   setInversion: (inv: number) => void;
   setDropVoicing: (drop: number) => void;
   setLabelMode: (mode: LabelMode) => void;
-  setShowArpeggio: (show: boolean) => void;
+  
   setCagedPosition: (pos: number | null) => void;
   setUseFlats: (useFlats: boolean) => void;
   setLockMode: (mode: HarmonicLockMode) => void;
@@ -85,7 +85,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const [inversion, setInversion] = useState(0);
   const [dropVoicingType, setDropVoicing] = useState(0);
   const [labelMode, setLabelMode] = useState<LabelMode>('notes');
-  const [showArpeggio, setShowArpeggio] = useState(false);
+  
   const [cagedPosition, setCagedPosition] = useState<number | null>(null);
   const [useFlats, setUseFlats] = useState(false);
   const [lockMode, setLockMode] = useState<HarmonicLockMode>('quality');
@@ -234,7 +234,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     inversion, setInversion,
     dropVoicingType, setDropVoicing,
     labelMode, setLabelMode,
-    showArpeggio, setShowArpeggio,
+    
     cagedPosition, setCagedPosition,
     useFlats, setUseFlats,
     lockMode, setLockMode,

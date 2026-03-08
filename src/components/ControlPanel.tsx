@@ -11,7 +11,7 @@ export default function ControlPanel() {
     scaleTonic, setScaleTonic,
     root, setRoot, chord, setChord, scale, setScale,
     inversion, setInversion, dropVoicingType, setDropVoicing,
-    labelMode, setLabelMode, showArpeggio, setShowArpeggio,
+    labelMode, setLabelMode,
     useFlats, setUseFlats,
     lockMode, setLockMode,
     midi, midiEnabled, setMidiEnabled,
@@ -210,15 +210,6 @@ export default function ControlPanel() {
             </div>
           </div>
           <div className="flex gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showArpeggio}
-                onChange={e => setShowArpeggio(e.target.checked)}
-                className="rounded border-border accent-primary"
-              />
-              <span className="text-xs font-sans text-muted-foreground">Arpeggio Mode</span>
-            </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
