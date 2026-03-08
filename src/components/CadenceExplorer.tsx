@@ -12,7 +12,7 @@ import {
 export default function CadenceExplorer() {
   const {
     root, chord, useFlats, setRoot, setChord, setScaleTonic,
-    cadenceMode, setCadenceMode, lockedRoot, lockedChord,
+    cadenceMode, setCadenceMode, relockCadence, lockedRoot, lockedChord,
   } = useHarmony();
   const [direction, setDirection] = useState<CadenceDirection>('leadTo');
 
