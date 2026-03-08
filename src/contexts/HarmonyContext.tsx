@@ -89,7 +89,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   
   const [cagedPosition, setCagedPosition] = useState<number | null>(null);
   const [useFlats, setUseFlats] = useState(false);
-  const [lockMode, setLockMode] = useState<HarmonicLockMode>('quality');
+  const [lockMode, setLockMode] = useState<HarmonicLockMode>('scale');
   const [constructionMode, setConstructionMode] = useState(false);
   const [customPitchClasses, setCustomPitchClasses] = useState<PitchClass[] | null>(null);
   const [midiEnabled, setMidiEnabled] = useState(false);
