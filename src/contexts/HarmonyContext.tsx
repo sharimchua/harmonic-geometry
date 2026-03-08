@@ -31,7 +31,7 @@ interface HarmonyState {
   inversion: number;
   dropVoicingType: number;
   labelMode: LabelMode;
-  showArpeggio: boolean;
+  
   cagedPosition: number | null;
   useFlats: boolean;
   lockMode: HarmonicLockMode;
