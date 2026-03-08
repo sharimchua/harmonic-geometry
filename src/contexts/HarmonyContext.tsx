@@ -24,8 +24,8 @@ import {
 import { useMidi, type MidiState } from '@/hooks/use-midi';
 
 interface HarmonyState {
-  scaleTonic: PitchClass; // key center
-  harmonicRoot: PitchClass; // chord root
+  scaleTonic: PitchClass;
+  harmonicRoot: PitchClass;
   chord: ChordType;
   scale: ScaleType | null;
   inversion: number;
@@ -36,6 +36,9 @@ interface HarmonyState {
   useFlats: boolean;
   lockMode: HarmonicLockMode;
   constructionMode: boolean;
+  cadenceMode: boolean;
+  lockedRoot: PitchClass | null;
+  lockedChord: ChordType | null;
 }
 
 interface HarmonyContextValue extends HarmonyState {
