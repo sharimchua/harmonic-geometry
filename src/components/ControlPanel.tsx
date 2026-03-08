@@ -3,7 +3,7 @@ import { useHarmony } from '@/contexts/HarmonyContext';
 import {
   NOTE_NAMES_SHARP, NOTE_NAMES_FLAT,
   CHORD_CATEGORIES, SCALE_CATEGORIES,
-  type LabelMode, type HarmonicLockMode,
+  type HarmonicLockMode,
 } from '@/lib/musicTheory';
 
 export default function ControlPanel() {
