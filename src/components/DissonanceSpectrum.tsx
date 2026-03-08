@@ -101,13 +101,13 @@ export default function DissonanceSpectrum() {
     return map;
   }, [partials]);
 
-  // Number of thin bars per partial to create waveform look
-  const BARS_PER_PARTIAL = 11; // odd number so there's a center bar
-  const BAR_GAP = 1; // px gap between bars
+  // Fixed bar width for uniform granularity across the spectrum
+  const SUB_BAR_W = 2; // px — consistent width for every bar
+  const BAR_GAP = 1;   // px gap between bars
 
   // Build waveform bar data per note
   const noteBars = useMemo(() => {
-    const allBars: { pc: number; items: { x: number; cx: number; width: number; height: number; partial: Partial; subBars: { x: number; w: number; h: number }[] }[] }[] = [];
+    const allBars: { pc: number; items: { cx: number; height: number; partial: Partial; subBars: { x: number; h: number }[] }[] }[] = [];
 
     for (const [pc, notePartials] of partialsByNote.entries()) {
       const sorted = [...notePartials].sort((a, b) => a.frequency - b.frequency);
@@ -119,21 +119,22 @@ export default function DissonanceSpectrum() {
         const totalW = Math.max(6, xHi - xLo);
         const peakHeight = p.amplitude * plotHeight * 0.85;
 
-        // Create sub-bars with Gaussian falloff from center
-        const subBarW = Math.max(1, (totalW - (BARS_PER_PARTIAL - 1) * BAR_GAP) / BARS_PER_PARTIAL);
-        const mid = (BARS_PER_PARTIAL - 1) / 2;
-        const subBars: { x: number; w: number; h: number }[] = [];
+        // How many fixed-width bars fit in the critical bandwidth
+        const numBars = Math.max(3, Math.floor(totalW / (SUB_BAR_W + BAR_GAP)));
+        const mid = (numBars - 1) / 2;
+        const subBars: { x: number; h: number }[] = [];
+        const actualTotalW = numBars * (SUB_BAR_W + BAR_GAP) - BAR_GAP;
 
-        for (let j = 0; j < BARS_PER_PARTIAL; j++) {
-          const dist = Math.abs(j - mid) / mid; // 0 at center, 1 at edges
-          const h = peakHeight * Math.exp(-2.5 * dist * dist); // Gaussian envelope
-          const bx = cx - totalW / 2 + j * (subBarW + BAR_GAP);
+        for (let j = 0; j < numBars; j++) {
+          const dist = mid > 0 ? Math.abs(j - mid) / mid : 0;
+          const h = peakHeight * Math.exp(-2.5 * dist * dist);
+          const bx = cx - actualTotalW / 2 + j * (SUB_BAR_W + BAR_GAP);
           if (h > 1) {
-            subBars.push({ x: bx, w: subBarW, h });
+            subBars.push({ x: bx, h });
           }
         }
 
-        return { x: cx - totalW / 2, cx, width: totalW, height: peakHeight, partial: p, subBars };
+        return { cx, height: peakHeight, partial: p, subBars };
       });
       allBars.push({ pc, items });
     }
@@ -248,20 +249,6 @@ export default function DissonanceSpectrum() {
             );
           })}
 
-          {/* Dissonance overlap bars (behind note bars) */}
-          {dissonanceBars.map((bar, i) => (
-            <rect
-              key={`diss-${i}`}
-              x={bar.x}
-              y={plotBottom - bar.height}
-              width={bar.width}
-              height={bar.height}
-              fill="hsl(var(--interval-dissonant))"
-              opacity={bar.opacity}
-              rx={1}
-            />
-          ))}
-
           {/* Note waveform bars */}
           {noteBars.map(({ pc, items }) => (
             <g key={`bars-${pc}`}>
@@ -269,19 +256,17 @@ export default function DissonanceSpectrum() {
                 const isFundamental = bar.partial.partialNumber === 1;
                 return (
                   <g key={`b-${pc}-${i}`}>
-                    {/* Sub-bars creating waveform shape */}
                     {bar.subBars.map((sb, si) => (
                       <rect
                         key={si}
                         x={sb.x}
                         y={plotBottom - sb.h}
-                        width={sb.w}
+                        width={SUB_BAR_W}
                         height={sb.h}
                         fill={noteColor(pc, isFundamental ? 0.7 : 0.4)}
                         rx={0.5}
                       />
                     ))}
-                    {/* Fundamental label */}
                     {isFundamental && (
                       <>
                         <circle cx={bar.cx} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
@@ -295,7 +280,6 @@ export default function DissonanceSpectrum() {
                         </text>
                       </>
                     )}
-                    {/* Overtone number */}
                     {!isFundamental && bar.partial.amplitude > 0.35 && (
                       <text
                         x={bar.cx}
@@ -311,6 +295,20 @@ export default function DissonanceSpectrum() {
                 );
               })}
             </g>
+          ))}
+
+          {/* Dissonance overlap bars (rendered ON TOP of note bars) */}
+          {dissonanceBars.map((bar, i) => (
+            <rect
+              key={`diss-${i}`}
+              x={bar.x}
+              y={plotBottom - bar.height}
+              width={bar.width}
+              height={bar.height}
+              fill="hsl(var(--interval-dissonant))"
+              opacity={bar.opacity}
+              rx={1}
+            />
           ))}
 
           {/* Axis line */}
