@@ -160,6 +160,20 @@ const Index = () => {
               {lockMode === 'scale' ? <Lock size={12} /> : <Unlock size={12} />}
               {lockMode === 'scale' ? 'Scale Lock' : 'Quality Lock'}
             </button>
+            {/* Label mode dropdown */}
+            <div className="relative flex items-center">
+              <Tags size={12} className="absolute left-2 text-muted-foreground pointer-events-none" />
+              <select
+                value={labelMode}
+                onChange={e => setLabelMode(e.target.value as LabelMode)}
+                className="text-xs font-mono bg-surface-3 border border-border text-foreground rounded-md pl-7 pr-6 py-1 appearance-none cursor-pointer hover:bg-surface-2 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/40"
+              >
+                <option value="notes">Notes</option>
+                <option value="intervals">Intervals</option>
+                <option value="scaleDegrees">Scale °</option>
+                <option value="semitones">Semitones</option>
+              </select>
+            </div>
             <span className="font-mono text-[10px] text-muted-foreground">
               [{intervalStr}]
             </span>
