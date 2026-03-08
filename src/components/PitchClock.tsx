@@ -450,33 +450,8 @@ export default function PitchClock() {
         })}
       </svg>
 
-      {/* Controls row */}
+      {/* Controls row — key rotation only (label/flat controls live in ControlPanel) */}
       <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
-        <div className="flex gap-0.5 bg-secondary rounded p-0.5">
-          {(['notes', 'intervals', 'semitones'] as LabelMode[]).map(m => (
-            <button
-              key={m}
-              onClick={() => setLabelMode(m)}
-              className={`px-2 py-1 rounded text-[10px] font-mono capitalize transition-all ${
-                labelMode === m
-                  ? 'bg-primary text-primary-foreground font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => setUseFlats(!useFlats)}
-          className={`text-[10px] font-mono px-2 py-1 rounded border transition-colors ${
-            useFlats
-              ? 'bg-primary/20 border-primary text-primary'
-              : 'border-border text-muted-foreground hover:border-primary/50'
-          }`}
-        >
-          ♭
-        </button>
         <div className="flex items-center gap-1">
           <button
             onClick={() => stepTonic(-1)}
