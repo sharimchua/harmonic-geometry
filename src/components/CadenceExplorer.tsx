@@ -56,34 +56,12 @@ export default function CadenceExplorer() {
         <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">
           Cadence Explorer
         </h3>
-        <div className="flex items-center gap-2">
-          {cadenceMode && (
-            <span className="text-[10px] font-mono text-muted-foreground">
-              🔒 {lockedLabel} → {currentLabel}
-            </span>
-          )}
-          <button
-            onClick={() => setCadenceMode(!cadenceMode)}
-            className={`text-[10px] font-mono px-2 py-1 rounded-md border transition-colors ${
-              cadenceMode
-                ? 'bg-primary/20 border-primary text-primary font-semibold'
-                : 'bg-transparent border-border text-muted-foreground hover:border-primary/50'
-            }`}
-          >
-            {cadenceMode ? '🎯 Cadence ON' : '🎯 Cadence'}
-          </button>
-        </div>
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {cadenceMode
+            ? `🔒 ${lockedLabel} → ${currentLabel}`
+            : `${direction === 'leadTo' ? 'from' : 'to'} ${currentLabel}`}
+        </span>
       </div>
-
-      {cadenceMode && (
-        <div className="bg-surface-3 border border-border rounded-lg p-3 space-y-2">
-          <p className="text-[11px] font-sans text-muted-foreground leading-relaxed">
-            <span className="font-semibold text-foreground">Cadence Mode</span> — The pitch clock shows 
-            voice leading from <span className="font-mono text-primary">{lockedLabel}</span> to the 
-            current harmony. Select a suggestion below or change the chord manually to explore voice leading.
-          </p>
-        </div>
-      )}
 
       {/* Direction Toggle */}
       <div className="flex gap-1 bg-secondary rounded-lg p-0.5">
