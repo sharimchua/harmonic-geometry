@@ -42,21 +42,19 @@ function pitchClassToXY(pc: number, radius = RADIUS): [number, number] {
 function voiceLeadingArcPath(
   fromPC: number,
   toPC: number,
-  radius: number = RADIUS - 28,
   offset: number = 0
 ): string {
-  const r = radius - offset * 12;
+  // Draw arcs OUTSIDE the note circles, between DIAL_RADIUS and RADIUS
+  const r = RADIUS + 24 + offset * 10;
   const [x1, y1] = pitchClassToXY(fromPC, r);
   const [x2, y2] = pitchClassToXY(toPC, r);
 
-  if (fromPC === toPC) return ''; // common tone, no arrow
+  if (fromPC === toPC) return '';
 
-  // Determine shortest path direction
   const diff = ((toPC - fromPC) % 12 + 12) % 12;
   const sweepFlag = diff <= 6 ? 1 : 0;
 
-  // Arc radius — larger for nearby notes, smaller for distant
-  const arcR = Math.max(40, r * 0.7);
+  const arcR = Math.max(50, r * 0.8);
 
   return `M ${x1} ${y1} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${x2} ${y2}`;
 }
