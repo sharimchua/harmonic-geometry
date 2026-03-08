@@ -137,6 +137,7 @@ export default function GuitarFretboard() {
     labelMode, useFlats,
     activeIntervals, inversion,
   } = useHarmony();
+  const [voicingIdx, setVoicingIdx] = React.useState(0);
 
   const bassPc = useMemo(() => {
     if (inversion === 0) return root;
