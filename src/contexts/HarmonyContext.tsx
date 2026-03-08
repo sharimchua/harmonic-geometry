@@ -50,7 +50,7 @@ interface HarmonyContextValue extends HarmonyState {
   setInversion: (inv: number) => void;
   setDropVoicing: (drop: number) => void;
   setLabelMode: (mode: LabelMode) => void;
-  setShowArpeggio: (show: boolean) => void;
+  
   setCagedPosition: (pos: number | null) => void;
   setUseFlats: (useFlats: boolean) => void;
   setLockMode: (mode: HarmonicLockMode) => void;
