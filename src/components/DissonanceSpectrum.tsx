@@ -31,6 +31,11 @@ function noteColorStroke(pc: number): string {
 
 const OCTAVE_OPTIONS = [1, 2, 3, 4, 5, 6];
 
+// Critical bandwidth in Hz (Bark scale approximation) — wider at low frequencies
+function criticalBandwidth(freq: number): number {
+  return 25 + 75 * Math.pow(1 + 1.4 * (freq / 1000) * (freq / 1000), 0.69);
+}
+
 // Generate a smooth Gaussian-like peak for a partial
 function gaussianPeak(centerX: number, amplitude: number, sigma: number, x: number): number {
   const dx = x - centerX;

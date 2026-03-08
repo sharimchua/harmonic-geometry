@@ -847,24 +847,42 @@ function plompLeveltDissonance(f1: number, a1: number, f2: number, a2: number): 
   return a1 * a2 * (Math.exp(-3.5 * sb) - Math.exp(-5.75 * sb));
 }
 
-/** Calculate total psychoacoustical dissonance for a set of frequencies */
+/** Calculate total psychoacoustical dissonance for a set of frequencies, normalised 0-100 */
 export function calculateChordDissonance(frequencies: number[]): number {
-  let total = 0;
-  const allPartials: { freq: number; amp: number }[] = [];
-  for (const f of frequencies) {
-    for (let i = 1; i <= NUM_PARTIALS; i++) {
-      allPartials.push({ freq: f * i, amp: Math.pow(AMPLITUDE_DECAY, i - 1) });
+  if (frequencies.length < 2) return 0;
+
+  const rawDissonance = (freqs: number[]) => {
+    let total = 0;
+    const allPartials: { freq: number; amp: number }[] = [];
+    for (const f of freqs) {
+      for (let i = 1; i <= NUM_PARTIALS; i++) {
+        allPartials.push({ freq: f * i, amp: Math.pow(AMPLITUDE_DECAY, i - 1) });
+      }
     }
-  }
-  for (let i = 0; i < allPartials.length; i++) {
-    for (let j = i + 1; j < allPartials.length; j++) {
-      total += plompLeveltDissonance(
-        allPartials[i].freq, allPartials[i].amp,
-        allPartials[j].freq, allPartials[j].amp
-      );
+    for (let i = 0; i < allPartials.length; i++) {
+      for (let j = i + 1; j < allPartials.length; j++) {
+        total += plompLeveltDissonance(
+          allPartials[i].freq, allPartials[i].amp,
+          allPartials[j].freq, allPartials[j].amp
+        );
+      }
     }
-  }
-  return total * 100;
+    return total;
+  };
+
+  const actual = rawDissonance(frequencies);
+
+  // Reference: a minor 2nd (1 semitone) at the same base frequency = near-maximum dissonance
+  // Use the lowest frequency as the reference base
+  const baseFreq = Math.min(...frequencies);
+  const referenceMax = rawDissonance([baseFreq, baseFreq * Math.pow(2, 1 / 12)]);
+
+  // Scale by number of note pairs to account for chords with many notes
+  const numPairs = (frequencies.length * (frequencies.length - 1)) / 2;
+  const referencePairs = 1; // the reference is a single pair
+
+  const normalised = (actual / (referenceMax * numPairs)) * 100;
+  return Math.min(100, Math.max(0, normalised));
 }
 
 /** Find pairwise dissonance between every pair of partials from different notes */
