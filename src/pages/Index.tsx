@@ -35,7 +35,7 @@ const SECTION_LABELS: Record<SectionId, string> = {
 };
 
 const Index = () => {
-  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
+  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, labelMode, setLabelMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
   const { order, moveUp, moveDown } = useSectionOrder();
 
   const chordLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
