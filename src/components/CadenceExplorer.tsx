@@ -10,7 +10,10 @@ import {
 } from '@/lib/musicTheory';
 
 export default function CadenceExplorer() {
-  const { root, chord, useFlats, setRoot, setChord, setScaleTonic } = useHarmony();
+  const {
+    root, chord, useFlats, setRoot, setChord, setScaleTonic,
+    cadenceMode, setCadenceMode, lockedRoot, lockedChord,
+  } = useHarmony();
   const [direction, setDirection] = useState<CadenceDirection>('leadTo');
 
   const suggestions = useMemo(
@@ -39,6 +42,9 @@ export default function CadenceExplorer() {
   };
 
   const currentLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
+  const lockedLabel = lockedRoot !== null && lockedChord
+    ? `${getNoteName(lockedRoot, useFlats)} ${lockedChord.name}`
+    : '';
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,10 +52,34 @@ export default function CadenceExplorer() {
         <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">
           Cadence Explorer
         </h3>
-        <span className="text-[10px] font-mono text-muted-foreground">
-          {direction === 'leadTo' ? 'from' : 'to'} {currentLabel}
-        </span>
+        <div className="flex items-center gap-2">
+          {cadenceMode && (
+            <span className="text-[10px] font-mono text-muted-foreground">
+              🔒 {lockedLabel} → {currentLabel}
+            </span>
+          )}
+          <button
+            onClick={() => setCadenceMode(!cadenceMode)}
+            className={`text-[10px] font-mono px-2 py-1 rounded-md border transition-colors ${
+              cadenceMode
+                ? 'bg-primary/20 border-primary text-primary font-semibold'
+                : 'bg-transparent border-border text-muted-foreground hover:border-primary/50'
+            }`}
+          >
+            {cadenceMode ? '🎯 Cadence ON' : '🎯 Cadence'}
+          </button>
+        </div>
       </div>
+
+      {cadenceMode && (
+        <div className="bg-surface-3 border border-border rounded-lg p-3 space-y-2">
+          <p className="text-[11px] font-sans text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Cadence Mode</span> — The pitch clock shows 
+            voice leading from <span className="font-mono text-primary">{lockedLabel}</span> to the 
+            current harmony. Select a suggestion below or change the chord manually to explore voice leading.
+          </p>
+        </div>
+      )}
 
       {/* Direction Toggle */}
       <div className="flex gap-1 bg-secondary rounded-lg p-0.5">
