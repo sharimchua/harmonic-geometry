@@ -955,3 +955,22 @@ export function getChordPartials(
   const partials = noteFrequencies.flatMap(n => generatePartials(n.freq, n.pc));
   return { partials, noteFrequencies };
 }
+
+/** Get all partials for a chord using voicing-aware intervals (accounts for inversions & drop voicings) */
+export function getChordPartialsFromVoicing(
+  root: PitchClass,
+  intervals: number[],
+  baseOctave: number
+): { partials: Partial[]; noteFrequencies: { freq: number; pc: PitchClass }[] } {
+  const noteFrequencies = intervals.map(semitones => {
+    const pc = ((root + semitones) % 12 + 12) % 12 as PitchClass;
+    // Calculate the actual octave offset from the interval
+    const octaveOffset = Math.floor(semitones / 12);
+    const remainder = ((semitones % 12) + 12) % 12;
+    // If the remainder pushes past the root's position, it's still in the same octave
+    const freq = pitchClassToFrequency(pc, baseOctave + octaveOffset);
+    return { freq, pc };
+  });
+  const partials = noteFrequencies.flatMap(n => generatePartials(n.freq, n.pc));
+  return { partials, noteFrequencies };
+}
