@@ -34,6 +34,10 @@ export default function CadenceExplorer() {
   }, [suggestions]);
 
   const handleSelect = (option: CadenceOption) => {
+    // Auto-activate cadence mode when selecting a cadence
+    if (!cadenceMode) {
+      setCadenceMode(true);
+    }
     if (option.suggestion.resTonic) {
       setScaleTonic(option.targetRoot);
     }
