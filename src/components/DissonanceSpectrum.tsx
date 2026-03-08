@@ -101,25 +101,44 @@ export default function DissonanceSpectrum() {
     return map;
   }, [partials]);
 
-  // Build bar data per note (critical-bandwidth-wide bars radiating from each partial)
+  // Build bar data per note — fundamental is full height, overtones taper down
+  // Each bar width = critical bandwidth at that frequency (wide at low, narrow at high)
   const noteBars = useMemo(() => {
-    const bars: { pc: number; items: { x: number; width: number; height: number; partial: Partial }[] }[] = [];
+    const allBars: { pc: number; items: { x: number; cx: number; width: number; height: number; partial: Partial }[] }[] = [];
 
     for (const [pc, notePartials] of partialsByNote.entries()) {
-      const items = notePartials.map(p => {
+      const sorted = [...notePartials].sort((a, b) => a.frequency - b.frequency);
+      const items = sorted.map(p => {
         const cx = freqToX(p.frequency, svgWidth);
         const cbHz = criticalBandwidth(p.frequency);
         const xLo = freqToX(Math.max(minFreq, p.frequency - cbHz / 2), svgWidth);
         const xHi = freqToX(p.frequency + cbHz / 2, svgWidth);
-        const barW = Math.max(3, xHi - xLo);
-        // Normalise height: amplitude is already 0-1, scale to plot area
-        const height = p.amplitude * plotHeight * 0.8;
-        return { x: cx - barW / 2, width: barW, height, partial: p };
+        const barW = Math.max(2, xHi - xLo);
+        const height = p.amplitude * plotHeight * 0.85;
+        return { x: cx - barW / 2, cx, width: barW, height, partial: p };
       });
-      bars.push({ pc, items });
+      allBars.push({ pc, items });
     }
-    return bars;
+    return allBars;
   }, [partialsByNote, svgWidth, plotHeight]);
+
+  // Build connected silhouette path per note (envelope connecting bar tops)
+  const noteEnvelopes = useMemo(() => {
+    return noteBars.map(({ pc, items }) => {
+      if (items.length === 0) return { pc, path: '' };
+      // Build path: go along the top of each bar left-to-right, then back along bottom
+      let path = `M ${items[0].x.toFixed(1)} ${plotBottom}`;
+      for (const bar of items) {
+        const top = plotBottom - bar.height;
+        path += ` L ${bar.x.toFixed(1)} ${plotBottom}`;
+        path += ` L ${bar.x.toFixed(1)} ${top.toFixed(1)}`;
+        path += ` L ${(bar.x + bar.width).toFixed(1)} ${top.toFixed(1)}`;
+        path += ` L ${(bar.x + bar.width).toFixed(1)} ${plotBottom}`;
+      }
+      path += ' Z';
+      return { pc, path };
+    });
+  }, [noteBars, plotBottom]);
 
   // Dissonance overlap bars
   const dissonanceBars = useMemo(() => {
@@ -243,7 +262,17 @@ export default function DissonanceSpectrum() {
             />
           ))}
 
-          {/* Note partial bars */}
+          {/* Note silhouette fills (behind bars for depth) */}
+          {noteEnvelopes.map(({ pc, path }) => path && (
+            <path
+              key={`sil-${pc}`}
+              d={path}
+              fill={`url(#note-grad-${pc})`}
+              opacity={0.6}
+            />
+          ))}
+
+          {/* Note partial bars with outlines */}
           {noteBars.map(({ pc, items }) => (
             <g key={`bars-${pc}`}>
               {items.map((bar, i) => {
@@ -255,17 +284,22 @@ export default function DissonanceSpectrum() {
                       y={plotBottom - bar.height}
                       width={bar.width}
                       height={bar.height}
-                      fill={`url(#note-grad-${pc})`}
+                      fill="none"
                       stroke={noteColorStroke(pc)}
-                      strokeWidth={isFundamental ? 1.2 : 0.6}
+                      strokeWidth={isFundamental ? 1.5 : 0.7}
                       rx={1}
                     />
-                    {/* Fundamental label */}
+                    {/* Fundamental: strong accent line at center */}
                     {isFundamental && (
                       <>
-                        <circle cx={bar.x + bar.width / 2} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
+                        <line
+                          x1={bar.cx} y1={plotBottom - bar.height}
+                          x2={bar.cx} y2={plotBottom}
+                          stroke={noteColor(pc, 0.8)} strokeWidth={2}
+                        />
+                        <circle cx={bar.cx} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
                         <text
-                          x={bar.x + bar.width / 2} y={plotTop - 3}
+                          x={bar.cx} y={plotTop - 3}
                           textAnchor="middle" fontSize={7.5}
                           fontFamily="'JetBrains Mono', monospace"
                           fill="hsl(0, 0%, 7%)" fontWeight={700}
@@ -277,7 +311,7 @@ export default function DissonanceSpectrum() {
                     {/* Overtone number */}
                     {!isFundamental && bar.partial.amplitude > 0.35 && (
                       <text
-                        x={bar.x + bar.width / 2}
+                        x={bar.cx}
                         y={plotBottom - bar.height - 3}
                         textAnchor="middle" fontSize={6}
                         fontFamily="'JetBrains Mono', monospace"
