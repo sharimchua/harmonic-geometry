@@ -338,7 +338,7 @@ export default function PitchClock() {
                 fontWeight={400}
                 opacity={0.7}
               >
-                {getLabel(pc, lockedRoot ?? root, labelMode, useFlats)}
+                {getLabel(pc, lockedRoot ?? root, labelMode, useFlats, scaleTonic)}
               </text>
             </g>
           );
@@ -392,7 +392,7 @@ export default function PitchClock() {
           // In cadence mode, highlight common tones
           const isCommonTone = cadenceMode && lockedPitchClasses.includes(pc) && isActive;
 
-          const label = getLabel(pc, root, labelMode, useFlats);
+          const label = getLabel(pc, root, labelMode, useFlats, scaleTonic);
 
           return (
             <g

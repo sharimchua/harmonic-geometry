@@ -24,7 +24,7 @@ const TENSION_WIDTHS: Record<string, number> = {
 };
 
 export default function PianoKeyboard() {
-  const { root, setRoot, activeIntervals, activePitchClasses, scalePitchClasses, labelMode, useFlats } = useHarmony();
+  const { root, setRoot, scaleTonic, activeIntervals, activePitchClasses, scalePitchClasses, labelMode, useFlats } = useHarmony();
 
   // Build all keys
   const keys: { pc: number; octave: number; isBlack: boolean; midi: number }[] = [];
@@ -136,7 +136,7 @@ export default function PianoKeyboard() {
                     fontFamily="'JetBrains Mono', monospace"
                     fill="hsl(0, 0%, 10%)" fontWeight={600}
                   >
-                    {getLabel(key.pc, root, labelMode, useFlats)}
+                    {getLabel(key.pc, root, labelMode, useFlats, scaleTonic)}
                   </text>
                 )}
                 {/* Ghost label for non-voicing active notes */}
@@ -148,7 +148,7 @@ export default function PianoKeyboard() {
                     fill="hsl(30, 15%, 45%)" fontWeight={400}
                     opacity={0.6}
                   >
-                    {getLabel(key.pc, root, labelMode, useFlats)}
+                    {getLabel(key.pc, root, labelMode, useFlats, scaleTonic)}
                   </text>
                 )}
               </g>
@@ -186,7 +186,7 @@ export default function PianoKeyboard() {
                     fontFamily="'JetBrains Mono', monospace"
                     fill="hsl(30, 10%, 85%)" fontWeight={600}
                   >
-                    {getLabel(key.pc, root, labelMode, useFlats)}
+                    {getLabel(key.pc, root, labelMode, useFlats, scaleTonic)}
                   </text>
                 )}
               </g>
