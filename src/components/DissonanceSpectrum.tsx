@@ -217,7 +217,7 @@ export default function DissonanceSpectrum() {
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
-            {/* Dissonance curve fill gradient — white to transparent */}
+            {/* Crunch curve fill gradient — white to transparent */}
             <linearGradient id="dissonance-curve-fill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="hsl(0, 0%, 100%)" stopOpacity="0.15" />
               <stop offset="100%" stopColor="hsl(0, 0%, 100%)" stopOpacity="0.02" />
