@@ -190,7 +190,7 @@ export default function DissonanceSpectrum() {
   return (
     <div className="flex flex-col gap-3">
       <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">
-        Crunchiness
+        Fundamentals and Overtones
       </h3>
 
       {/* Crunchiness score */}
