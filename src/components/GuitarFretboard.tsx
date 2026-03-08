@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getLabel, getIntervalTension } from '@/lib/musicTheory';
+import { getLabel, getIntervalTension, TENSION_COLORS } from '@/lib/musicTheory';
 
 const FRET_WIDTH = 50;
 const STRING_SPACING = 24;
@@ -9,14 +9,6 @@ const LEFT_PAD = 30;
 const DOT_R = 8;
 
 const FRET_MARKERS = [3, 5, 7, 9, 12, 15];
-
-const TENSION_COLORS: Record<string, string> = {
-  perfect: 'hsl(220, 55%, 58%)',
-  consonant: 'hsl(150, 55%, 42%)',
-  mild: 'hsl(42, 55%, 52%)',
-  dissonant: 'hsl(0, 65%, 52%)',
-  tritone: 'hsl(340, 60%, 50%)',
-};
 
 const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[] = [
   { name: 'Standard', tuning: [40, 45, 50, 55, 59, 64], stringNames: ['E', 'A', 'D', 'G', 'B', 'e'] },
