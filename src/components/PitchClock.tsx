@@ -191,7 +191,7 @@ export default function PitchClock() {
           </span>
           <span className="text-[10px] font-mono text-primary">→</span>
           <span className="text-[10px] font-mono text-primary font-semibold">
-            {getNoteName(root, useFlats)} {useHarmony().chord.name}
+            {getNoteName(root, useFlats)} {chordObj.name}
           </span>
         </div>
       )}
