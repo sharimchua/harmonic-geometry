@@ -384,8 +384,8 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
   }, [numStrings]);
 
   const allVoicings = useMemo(() => {
-    return generateVoicings(activePitchClasses, bassPc, tuning, NUM_FRETS);
-  }, [bassPc, tuning, activePitchClasses]);
+    return generateVoicings(activePitchClasses, bassPc, root, tuning, NUM_FRETS);
+  }, [bassPc, root, tuning, activePitchClasses]);
 
   // Reset voicing index when chord changes
   React.useEffect(() => {
