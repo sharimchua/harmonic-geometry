@@ -31,6 +31,11 @@ function noteColorStroke(pc: number): string {
 
 const OCTAVE_OPTIONS = [1, 2, 3, 4, 5, 6];
 
+// Critical bandwidth in Hz (Bark scale approximation) — wider at low frequencies
+function criticalBandwidth(freq: number): number {
+  return 25 + 75 * Math.pow(1 + 1.4 * (freq / 1000) * (freq / 1000), 0.69);
+}
+
 // Generate a smooth Gaussian-like peak for a partial
 function gaussianPeak(centerX: number, amplitude: number, sigma: number, x: number): number {
   const dx = x - centerX;
@@ -114,8 +119,11 @@ export default function DissonanceSpectrum() {
 
         for (const p of notePartials) {
           const cx = freqToX(p.frequency, svgWidth);
-          // Sigma scales with frequency (wider peaks at higher freqs on log scale)
-          const sigma = Math.max(3, svgWidth * 0.012 * (1 + Math.log2(p.frequency / minFreq) * 0.08));
+          // Sigma based on critical bandwidth — low freqs get wide bands, high freqs narrow
+          const cbHz = criticalBandwidth(p.frequency);
+          const freqLo = Math.max(minFreq, p.frequency - cbHz / 2);
+          const freqHi = p.frequency + cbHz / 2;
+          const sigma = Math.max(4, (freqToX(freqHi, svgWidth) - freqToX(freqLo, svgWidth)) * 0.45);
           const amp = p.amplitude * plotHeight * 0.85;
           totalY += gaussianPeak(cx, amp, sigma, x);
         }
@@ -210,12 +218,12 @@ export default function DissonanceSpectrum() {
       {/* Dissonance score */}
       <div className="flex items-center gap-3">
         <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Total Dissonance:</span>
-        <span className="text-sm font-mono font-bold text-foreground">{Math.round(totalDissonance)}</span>
+        <span className="text-sm font-mono font-bold text-foreground">{Math.round(totalDissonance)}%</span>
         <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-300"
             style={{
-              width: `${Math.min(100, (totalDissonance / 30) * 100)}%`,
+              width: `${Math.min(100, totalDissonance)}%`,
               background: `linear-gradient(90deg, hsl(var(--interval-consonant)), hsl(var(--interval-mild)), hsl(var(--interval-dissonant)))`,
             }}
           />
