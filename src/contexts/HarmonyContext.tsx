@@ -92,6 +92,21 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const [constructionMode, setConstructionMode] = useState(false);
   const [customPitchClasses, setCustomPitchClasses] = useState<PitchClass[] | null>(null);
   const [midiEnabled, setMidiEnabled] = useState(false);
+  const [cadenceMode, setCadenceModeRaw] = useState(false);
+  const [lockedRoot, setLockedRoot] = useState<PitchClass | null>(null);
+  const [lockedChord, setLockedChord] = useState<ChordType | null>(null);
+
+  const setCadenceMode = useCallback((on: boolean) => {
+    if (on) {
+      // Lock the current harmony
+      setLockedRoot(harmonicRoot);
+      setLockedChord(chord);
+    } else {
+      setLockedRoot(null);
+      setLockedChord(null);
+    }
+    setCadenceModeRaw(on);
+  }, [harmonicRoot, chord]);
 
   // MIDI integration — update harmony when chords are played
   const handleMidiChord = useCallback((event: any) => {
