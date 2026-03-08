@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getLabel, type LabelMode } from '@/lib/musicTheory';
+import { getLabel, getNoteName, type LabelMode } from '@/lib/musicTheory';
 
 const RADIUS = 140;
 const DIAL_RADIUS = RADIUS + 30;
@@ -35,12 +35,69 @@ function pitchClassToXY(pc: number, radius = RADIUS): [number, number] {
   ];
 }
 
+/**
+ * Generate an SVG arc path for a curved arrow between two pitch classes.
+ * The arrow curves inward (toward center) for clockwise motion, outward for counter-clockwise.
+ */
+function voiceLeadingArcPath(
+  fromPC: number,
+  toPC: number,
+  radius: number = RADIUS - 28,
+  offset: number = 0
+): string {
+  const r = radius - offset * 12;
+  const [x1, y1] = pitchClassToXY(fromPC, r);
+  const [x2, y2] = pitchClassToXY(toPC, r);
+
+  if (fromPC === toPC) return ''; // common tone, no arrow
+
+  // Determine shortest path direction
+  const diff = ((toPC - fromPC) % 12 + 12) % 12;
+  const sweepFlag = diff <= 6 ? 1 : 0;
+
+  // Arc radius — larger for nearby notes, smaller for distant
+  const arcR = Math.max(40, r * 0.7);
+
+  return `M ${x1} ${y1} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${x2} ${y2}`;
+}
+
+function ArrowHead({ path, color }: { path: string; color: string }) {
+  const id = `arrowhead-${Math.random().toString(36).slice(2, 8)}`;
+  return (
+    <>
+      <defs>
+        <marker
+          id={id}
+          markerWidth="8"
+          markerHeight="6"
+          refX="7"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+        >
+          <polygon points="0 0, 8 3, 0 6" fill={color} />
+        </marker>
+      </defs>
+      <path
+        d={path}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeDasharray="4 2"
+        markerEnd={`url(#${id})`}
+        opacity={0.85}
+      />
+    </>
+  );
+}
+
 export default function PitchClock() {
   const {
     root, scaleTonic, setScaleTonic, setRoot,
     activePitchClasses, scalePitchClasses,
     intervalTensions, labelMode, setLabelMode, useFlats, setUseFlats,
     constructionMode, setConstructionMode, togglePitchClass,
+    cadenceMode, lockedPitchClasses, lockedRoot, lockedChord, voiceLeading,
   } = useHarmony();
   const isSameTonicAndRoot = root === scaleTonic;
   const allPitchClasses = Array.from({ length: 12 }, (_, i) => i);
@@ -95,6 +152,11 @@ export default function PitchClock() {
     }
   };
 
+  // Locked chord label for cadence mode
+  const lockedLabel = cadenceMode && lockedRoot !== null && lockedChord
+    ? `${getNoteName(lockedRoot, useFlats)} ${lockedChord.name}`
+    : null;
+
   return (
     <div className="flex flex-col items-center">
       {/* Header with Construction Mode toggle */}
@@ -111,6 +173,19 @@ export default function PitchClock() {
           {constructionMode ? '✏️ Edit ON' : '✏️ Edit'}
         </button>
       </div>
+
+      {/* Cadence mode locked chord indicator */}
+      {cadenceMode && lockedLabel && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-[10px] font-mono text-muted-foreground bg-surface-3 px-2 py-1 rounded">
+            🔒 {lockedLabel}
+          </span>
+          <span className="text-[10px] font-mono text-primary">→</span>
+          <span className="text-[10px] font-mono text-primary font-semibold">
+            {getNoteName(root, useFlats)} {useHarmony().chord.name}
+          </span>
+        </div>
+      )}
 
       <svg
         ref={svgRef}
@@ -156,6 +231,19 @@ export default function PitchClock() {
         {/* Inner dashed circle */}
         <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="hsl(30, 5%, 22%)" strokeWidth="1" strokeDasharray="2 4" />
 
+        {/* Locked chord polygon (cadence mode) */}
+        {cadenceMode && lockedPitchClasses.length >= 3 && (
+          <polygon
+            points={lockedPitchClasses.map(pc => pitchClassToXY(pc).join(',')).join(' ')}
+            fill="hsl(220, 55%, 50%)"
+            fillOpacity={0.05}
+            stroke="hsl(220, 55%, 50%)"
+            strokeWidth="1"
+            strokeOpacity={0.3}
+            strokeDasharray="4 3"
+          />
+        )}
+
         {/* Interval lines between active notes */}
         {intervalTensions.map((t, i) => {
           const [x1, y1] = pitchClassToXY(t.from);
@@ -187,6 +275,60 @@ export default function PitchClock() {
           />
         )}
 
+        {/* Voice leading arrows (cadence mode) */}
+        {cadenceMode && voiceLeading.map((move, i) => {
+          const arrows: React.ReactNode[] = [];
+          const color = move.semitones === 0
+            ? 'hsl(150, 55%, 45%)'  // common tone - green
+            : Math.abs(move.semitones) <= 2
+              ? 'hsl(42, 75%, 55%)'   // stepwise - gold
+              : 'hsl(220, 60%, 60%)'; // leap - blue
+
+          // Handle 1→1, 1→many, many→1
+          for (const fromPC of move.from) {
+            for (const toPC of move.to) {
+              if (fromPC === toPC) continue; // common tone, no arrow needed
+              const offset = arrows.length;
+              const path = voiceLeadingArcPath(fromPC, toPC, RADIUS - 28, offset);
+              if (path) {
+                arrows.push(
+                  <ArrowHead key={`vl-${i}-${fromPC}-${toPC}`} path={path} color={color} />
+                );
+              }
+            }
+          }
+          return <g key={`vl-group-${i}`}>{arrows}</g>;
+        })}
+
+        {/* Locked chord ghost nodes (cadence mode) */}
+        {cadenceMode && lockedPitchClasses.map(pc => {
+          if (activePitchClasses.includes(pc)) return null; // don't double-render
+          const [x, y] = pitchClassToXY(pc);
+          return (
+            <g key={`locked-${pc}`}>
+              <circle
+                cx={x} cy={y} r={DOT_RADIUS - 3}
+                fill="hsl(220, 40%, 18%)"
+                stroke="hsl(220, 55%, 45%)"
+                strokeWidth="1"
+                strokeDasharray="3 2"
+                opacity={0.6}
+              />
+              <text
+                x={x} y={y}
+                textAnchor="middle" dominantBaseline="central"
+                fill="hsl(220, 50%, 60%)"
+                fontSize={9}
+                fontFamily="'JetBrains Mono', monospace"
+                fontWeight={400}
+                opacity={0.7}
+              >
+                {getLabel(pc, lockedRoot ?? root, labelMode, useFlats)}
+              </text>
+            </g>
+          );
+        })}
+
         {/* All 12 pitch class nodes */}
         {allPitchClasses.map(pc => {
           const [x, y] = pitchClassToXY(pc);
@@ -194,6 +336,9 @@ export default function PitchClock() {
           const isRoot = pc === root;
           const isTonic = pc === scaleTonic && !isSameTonicAndRoot;
           const isInScale = scalePitchClasses.includes(pc);
+          const isLockedOnly = cadenceMode && lockedPitchClasses.includes(pc) && !isActive;
+
+          if (isLockedOnly) return null; // rendered above as ghost
 
           let fillColor = 'hsl(0, 0%, 13%)';
           let strokeColor = 'hsl(30, 5%, 25%)';
@@ -229,6 +374,9 @@ export default function PitchClock() {
             strokeColor = 'hsl(28, 40%, 35%)';
           }
 
+          // In cadence mode, highlight common tones
+          const isCommonTone = cadenceMode && lockedPitchClasses.includes(pc) && isActive;
+
           const label = getLabel(pc, root, labelMode, useFlats);
 
           return (
@@ -247,6 +395,15 @@ export default function PitchClock() {
                   strokeWidth="1"
                   strokeDasharray="3 3"
                   opacity={0.5}
+                />
+              )}
+              {isCommonTone && (
+                <circle
+                  cx={x} cy={y} r={r + 6}
+                  fill="none"
+                  stroke="hsl(150, 55%, 45%)"
+                  strokeWidth="1.5"
+                  opacity={0.6}
                 />
               )}
               {isTonic && !isRoot && (
@@ -323,15 +480,35 @@ export default function PitchClock() {
         </div>
       </div>
 
-      {/* Tension legend — larger swatches for readability */}
-      <div className="flex gap-4 flex-wrap justify-center mt-3">
-        {(['perfect', 'consonant', 'mild', 'dissonant', 'tritone'] as const).map(t => (
-          <div key={t} className="flex items-center gap-1.5">
-            <div className="w-4 h-1.5 rounded-full" style={{ backgroundColor: TENSION_COLORS[t] }} />
-            <span className="text-[10px] font-mono text-muted-foreground">{TENSION_LABELS[t]}</span>
+      {/* Voice leading legend (cadence mode) */}
+      {cadenceMode && voiceLeading.length > 0 && (
+        <div className="flex gap-4 flex-wrap justify-center mt-3">
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-1.5 rounded-full" style={{ backgroundColor: 'hsl(150, 55%, 45%)' }} />
+            <span className="text-[10px] font-mono text-muted-foreground">Common</span>
           </div>
-        ))}
-      </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-1.5 rounded-full" style={{ backgroundColor: 'hsl(42, 75%, 55%)' }} />
+            <span className="text-[10px] font-mono text-muted-foreground">Step</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-1.5 rounded-full" style={{ backgroundColor: 'hsl(220, 60%, 60%)' }} />
+            <span className="text-[10px] font-mono text-muted-foreground">Leap</span>
+          </div>
+        </div>
+      )}
+
+      {/* Tension legend */}
+      {!cadenceMode && (
+        <div className="flex gap-4 flex-wrap justify-center mt-3">
+          {(['perfect', 'consonant', 'mild', 'dissonant', 'tritone'] as const).map(t => (
+            <div key={t} className="flex items-center gap-1.5">
+              <div className="w-4 h-1.5 rounded-full" style={{ backgroundColor: TENSION_COLORS[t] }} />
+              <span className="text-[10px] font-mono text-muted-foreground">{TENSION_LABELS[t]}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {constructionMode && (
         <p className="text-[10px] font-mono text-primary/70 mt-2">

@@ -18,12 +18,14 @@ import {
   getChordVibe,
   identifyChordFromPitchClasses,
   type IntervalTension,
+  type VoiceLeadingMove,
+  calculateVoiceLeading,
 } from '@/lib/musicTheory';
 import { useMidi, type MidiState } from '@/hooks/use-midi';
 
 interface HarmonyState {
-  scaleTonic: PitchClass; // key center
-  harmonicRoot: PitchClass; // chord root
+  scaleTonic: PitchClass;
+  harmonicRoot: PitchClass;
   chord: ChordType;
   scale: ScaleType | null;
   inversion: number;
@@ -34,6 +36,9 @@ interface HarmonyState {
   useFlats: boolean;
   lockMode: HarmonicLockMode;
   constructionMode: boolean;
+  cadenceMode: boolean;
+  lockedRoot: PitchClass | null;
+  lockedChord: ChordType | null;
 }
 
 interface HarmonyContextValue extends HarmonyState {
@@ -51,6 +56,8 @@ interface HarmonyContextValue extends HarmonyState {
   setLockMode: (mode: HarmonicLockMode) => void;
   setConstructionMode: (on: boolean) => void;
   togglePitchClass: (pc: PitchClass) => void;
+  // Cadence mode
+  setCadenceMode: (on: boolean) => void;
   // MIDI
   midi: MidiState;
   midiEnabled: boolean;
@@ -58,10 +65,12 @@ interface HarmonyContextValue extends HarmonyState {
   // Derived data
   activeIntervals: number[];
   activePitchClasses: PitchClass[];
+  lockedPitchClasses: PitchClass[];
   scalePitchClasses: PitchClass[];
   intervalTensions: { from: PitchClass; to: PitchClass; tension: IntervalTension; semitones: number }[];
   functionalAnalysis: FunctionalAnalysis;
   chordVibe: string;
+  voiceLeading: VoiceLeadingMove[];
 }
 
 const HarmonyContext = createContext<HarmonyContextValue | null>(null);
@@ -83,6 +92,21 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const [constructionMode, setConstructionMode] = useState(false);
   const [customPitchClasses, setCustomPitchClasses] = useState<PitchClass[] | null>(null);
   const [midiEnabled, setMidiEnabled] = useState(false);
+  const [cadenceMode, setCadenceModeRaw] = useState(false);
+  const [lockedRoot, setLockedRoot] = useState<PitchClass | null>(null);
+  const [lockedChord, setLockedChord] = useState<ChordType | null>(null);
+
+  const setCadenceMode = useCallback((on: boolean) => {
+    if (on) {
+      // Lock the current harmony
+      setLockedRoot(harmonicRoot);
+      setLockedChord(chord);
+    } else {
+      setLockedRoot(null);
+      setLockedChord(null);
+    }
+    setCadenceModeRaw(on);
+  }, [harmonicRoot, chord]);
 
   // MIDI integration — update harmony when chords are played
   const handleMidiChord = useCallback((event: any) => {
@@ -188,10 +212,22 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
 
   const chordVibe = useMemo(() => getChordVibe(chord.name), [chord.name]);
 
+  const lockedPitchClasses = useMemo(
+    () => lockedRoot !== null && lockedChord ? getPitchClasses(lockedRoot, lockedChord.intervals) : [],
+    [lockedRoot, lockedChord]
+  );
+
+  const voiceLeading = useMemo(
+    () => cadenceMode && lockedPitchClasses.length > 0
+      ? calculateVoiceLeading(lockedPitchClasses, activePitchClasses)
+      : [],
+    [cadenceMode, lockedPitchClasses, activePitchClasses]
+  );
+
   const value: HarmonyContextValue = {
     scaleTonic, setScaleTonic: useCallback((t: PitchClass) => setScaleTonic(t), []),
     harmonicRoot,
-    root: harmonicRoot, // alias
+    root: harmonicRoot,
     setRoot,
     chord, setChord,
     scale, setScale,
@@ -204,14 +240,17 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     lockMode, setLockMode,
     constructionMode, setConstructionMode,
     togglePitchClass,
+    cadenceMode, lockedRoot, lockedChord, setCadenceMode,
     midi,
     midiEnabled, setMidiEnabled,
     activeIntervals,
     activePitchClasses,
+    lockedPitchClasses,
     scalePitchClasses,
     intervalTensions,
     functionalAnalysis,
     chordVibe,
+    voiceLeading,
   };
 
   return <HarmonyContext.Provider value={value}>{children}</HarmonyContext.Provider>;

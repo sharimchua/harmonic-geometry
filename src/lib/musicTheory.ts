@@ -216,6 +216,124 @@ export function getCAGEDForRoot(root: PitchClass): CAGEDPosition[] {
   }));
 }
 
+// ─── Voice Leading ──────────────────────────────────────
+export interface VoiceLeadingMove {
+  from: PitchClass[];  // one or more source tones
+  to: PitchClass[];    // one or more destination tones
+  semitones: number;   // shortest signed distance (-6 to +6)
+}
+
+/**
+ * Calculate optimal voice leading between two sets of pitch classes.
+ * Uses nearest-neighbor matching with support for splits (1→2) and merges (2→1).
+ */
+export function calculateVoiceLeading(
+  fromPCs: PitchClass[],
+  toPCs: PitchClass[]
+): VoiceLeadingMove[] {
+  if (fromPCs.length === 0 || toPCs.length === 0) return [];
+
+  const moves: VoiceLeadingMove[] = [];
+  const fromUsed = new Set<number>();
+  const toUsed = new Set<number>();
+
+  // Shortest signed semitone distance (-6 to +6)
+  const dist = (a: number, b: number) => {
+    const d = ((b - a) % 12 + 12) % 12;
+    return d <= 6 ? d : d - 12;
+  };
+
+  // Common tones first (distance 0)
+  for (let i = 0; i < fromPCs.length; i++) {
+    for (let j = 0; j < toPCs.length; j++) {
+      if (!fromUsed.has(i) && !toUsed.has(j) && fromPCs[i] === toPCs[j]) {
+        moves.push({ from: [fromPCs[i]], to: [toPCs[j]], semitones: 0 });
+        fromUsed.add(i);
+        toUsed.add(j);
+        break;
+      }
+    }
+  }
+
+  // Greedy nearest-neighbor for remaining
+  const remainFrom = fromPCs.map((pc, i) => ({ pc, i })).filter(x => !fromUsed.has(x.i));
+  const remainTo = toPCs.map((pc, i) => ({ pc, i })).filter(x => !toUsed.has(x.i));
+
+  // Build cost matrix
+  const pairs: { fi: number; ti: number; cost: number; d: number }[] = [];
+  for (const f of remainFrom) {
+    for (const t of remainTo) {
+      const d = dist(f.pc, t.pc);
+      pairs.push({ fi: f.i, ti: t.i, cost: Math.abs(d), d });
+    }
+  }
+  pairs.sort((a, b) => a.cost - b.cost);
+
+  const usedF2 = new Set<number>();
+  const usedT2 = new Set<number>();
+
+  for (const p of pairs) {
+    if (usedF2.has(p.fi) || usedT2.has(p.ti)) continue;
+    moves.push({ from: [fromPCs[p.fi]], to: [toPCs[p.ti]], semitones: p.d });
+    usedF2.add(p.fi);
+    usedT2.add(p.ti);
+  }
+
+  // Handle unmatched: splits (1 source → multiple targets) or merges (multiple sources → 1 target)
+  const unmatchedFrom = remainFrom.filter(x => !usedF2.has(x.i));
+  const unmatchedTo = remainTo.filter(x => !usedT2.has(x.i));
+
+  if (unmatchedTo.length > 0 && unmatchedFrom.length === 0) {
+    // Extra target notes — find closest matched source for each
+    for (const t of unmatchedTo) {
+      let bestMove: VoiceLeadingMove | null = null;
+      let bestCost = Infinity;
+      for (const m of moves) {
+        const d = dist(m.from[0], t.pc);
+        if (Math.abs(d) < bestCost) {
+          bestCost = Math.abs(d);
+          bestMove = m;
+        }
+      }
+      if (bestMove) {
+        // Add as a split: the source now goes to multiple targets
+        bestMove.to.push(t.pc);
+      }
+    }
+  } else if (unmatchedFrom.length > 0 && unmatchedTo.length === 0) {
+    // Extra source notes — find closest matched target for each
+    for (const f of unmatchedFrom) {
+      let bestMove: VoiceLeadingMove | null = null;
+      let bestCost = Infinity;
+      for (const m of moves) {
+        const d = dist(f.pc, m.to[0]);
+        if (Math.abs(d) < bestCost) {
+          bestCost = Math.abs(d);
+          bestMove = m;
+        }
+      }
+      if (bestMove) {
+        bestMove.from.push(f.pc);
+      }
+    }
+  } else {
+    // Both unmatched — pair them greedily
+    for (const f of unmatchedFrom) {
+      let bestT: typeof unmatchedTo[0] | null = null;
+      let bestCost = Infinity;
+      for (const t of unmatchedTo) {
+        const d = Math.abs(dist(f.pc, t.pc));
+        if (d < bestCost) { bestCost = d; bestT = t; }
+      }
+      if (bestT) {
+        moves.push({ from: [f.pc], to: [bestT.pc], semitones: dist(f.pc, bestT.pc) });
+      }
+    }
+  }
+
+  return moves;
+}
+
 // ─── Label Modes ─────────────────────────────────────────
 export type LabelMode = 'notes' | 'intervals' | 'semitones';
 
