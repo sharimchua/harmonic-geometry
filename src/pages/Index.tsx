@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getNoteName } from '@/lib/musicTheory';
+import { getNoteName, type LabelMode } from '@/lib/musicTheory';
 import PitchClock from '@/components/PitchClock';
 import PianoKeyboard from '@/components/PianoKeyboard';
 import GuitarFretboard from '@/components/GuitarFretboard';
@@ -12,7 +12,7 @@ import StaffNotation from '@/components/StaffNotation';
 import ChordSynonyms from '@/components/ChordSynonyms';
 import DissonanceSpectrum from '@/components/DissonanceSpectrum';
 import { useSectionOrder, type SectionId } from '@/hooks/useSectionOrder';
-import { ChevronUp, ChevronDown, Lock, Unlock } from 'lucide-react';
+import { ChevronUp, ChevronDown, Lock, Unlock, Tags } from 'lucide-react';
 
 const SECTION_COMPONENTS: Record<SectionId, React.FC> = {
   context: HarmonicContext,
@@ -35,7 +35,7 @@ const SECTION_LABELS: Record<SectionId, string> = {
 };
 
 const Index = () => {
-  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
+  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, labelMode, setLabelMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
   const { order, moveUp, moveDown } = useSectionOrder();
 
   const chordLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
@@ -160,6 +160,20 @@ const Index = () => {
               {lockMode === 'scale' ? <Lock size={12} /> : <Unlock size={12} />}
               {lockMode === 'scale' ? 'Scale Lock' : 'Quality Lock'}
             </button>
+            {/* Label mode dropdown */}
+            <div className="relative flex items-center">
+              <Tags size={12} className="absolute left-2 text-muted-foreground pointer-events-none" />
+              <select
+                value={labelMode}
+                onChange={e => setLabelMode(e.target.value as LabelMode)}
+                className="text-xs font-mono bg-surface-3 border border-border text-foreground rounded-md pl-7 pr-6 py-1 appearance-none cursor-pointer hover:bg-surface-2 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/40"
+              >
+                <option value="notes">Notes</option>
+                <option value="intervals">Intervals</option>
+                <option value="scaleDegrees">Scale °</option>
+                <option value="semitones">Semitones</option>
+              </select>
+            </div>
             <span className="font-mono text-[10px] text-muted-foreground">
               [{intervalStr}]
             </span>
