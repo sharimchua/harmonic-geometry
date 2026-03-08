@@ -8,7 +8,7 @@ export type SectionId = 'context' | 'intervals' | 'cadence' | 'dissonance' | 'st
 /** Column assignment: 'analysis' (left), 'instruments' (center), 'cadence' (right at 3col) */
 export type ColumnId = 'analysis' | 'instruments';
 
-const DEFAULT_ORDER: SectionId[] = ['context', 'intervals', 'dissonance', 'cadence', 'staff', 'piano', 'fretboard'];
+const DEFAULT_ORDER: SectionId[] = ['context', 'intervals', 'staff', 'piano', 'fretboard', 'dissonance', 'cadence'];
 
 /** Default column assignments */
 const DEFAULT_COLUMNS: Record<SectionId, ColumnId> = {
