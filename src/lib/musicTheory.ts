@@ -472,6 +472,7 @@ const FUNCTION_DESCRIPTIONS: Record<number, string> = {
 };
 
 const CHORD_VIBES: Record<string, string> = {
+  'Single Note': 'Pure and unadorned — the fundamental building block of all harmony',
   'Major': 'Bright, happy, and open',
   'Minor': 'Warm, reflective, and introspective',
   'Diminished': 'Tense, mysterious, and unstable',
