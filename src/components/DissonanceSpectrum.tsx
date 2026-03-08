@@ -101,10 +101,13 @@ export default function DissonanceSpectrum() {
     return map;
   }, [partials]);
 
-  // Build bar data per note — fundamental is full height, overtones taper down
-  // Each bar width = critical bandwidth at that frequency (wide at low, narrow at high)
+  // Number of thin bars per partial to create waveform look
+  const BARS_PER_PARTIAL = 11; // odd number so there's a center bar
+  const BAR_GAP = 1; // px gap between bars
+
+  // Build waveform bar data per note
   const noteBars = useMemo(() => {
-    const allBars: { pc: number; items: { x: number; cx: number; width: number; height: number; partial: Partial }[] }[] = [];
+    const allBars: { pc: number; items: { x: number; cx: number; width: number; height: number; partial: Partial; subBars: { x: number; w: number; h: number }[] }[] }[] = [];
 
     for (const [pc, notePartials] of partialsByNote.entries()) {
       const sorted = [...notePartials].sort((a, b) => a.frequency - b.frequency);
@@ -113,32 +116,29 @@ export default function DissonanceSpectrum() {
         const cbHz = criticalBandwidth(p.frequency);
         const xLo = freqToX(Math.max(minFreq, p.frequency - cbHz / 2), svgWidth);
         const xHi = freqToX(p.frequency + cbHz / 2, svgWidth);
-        const barW = Math.max(2, xHi - xLo);
-        const height = p.amplitude * plotHeight * 0.85;
-        return { x: cx - barW / 2, cx, width: barW, height, partial: p };
+        const totalW = Math.max(6, xHi - xLo);
+        const peakHeight = p.amplitude * plotHeight * 0.85;
+
+        // Create sub-bars with Gaussian falloff from center
+        const subBarW = Math.max(1, (totalW - (BARS_PER_PARTIAL - 1) * BAR_GAP) / BARS_PER_PARTIAL);
+        const mid = (BARS_PER_PARTIAL - 1) / 2;
+        const subBars: { x: number; w: number; h: number }[] = [];
+
+        for (let j = 0; j < BARS_PER_PARTIAL; j++) {
+          const dist = Math.abs(j - mid) / mid; // 0 at center, 1 at edges
+          const h = peakHeight * Math.exp(-2.5 * dist * dist); // Gaussian envelope
+          const bx = cx - totalW / 2 + j * (subBarW + BAR_GAP);
+          if (h > 1) {
+            subBars.push({ x: bx, w: subBarW, h });
+          }
+        }
+
+        return { x: cx - totalW / 2, cx, width: totalW, height: peakHeight, partial: p, subBars };
       });
       allBars.push({ pc, items });
     }
     return allBars;
   }, [partialsByNote, svgWidth, plotHeight]);
-
-  // Build connected silhouette path per note (envelope connecting bar tops)
-  const noteEnvelopes = useMemo(() => {
-    return noteBars.map(({ pc, items }) => {
-      if (items.length === 0) return { pc, path: '' };
-      // Build path: go along the top of each bar left-to-right, then back along bottom
-      let path = `M ${items[0].x.toFixed(1)} ${plotBottom}`;
-      for (const bar of items) {
-        const top = plotBottom - bar.height;
-        path += ` L ${bar.x.toFixed(1)} ${plotBottom}`;
-        path += ` L ${bar.x.toFixed(1)} ${top.toFixed(1)}`;
-        path += ` L ${(bar.x + bar.width).toFixed(1)} ${top.toFixed(1)}`;
-        path += ` L ${(bar.x + bar.width).toFixed(1)} ${plotBottom}`;
-      }
-      path += ' Z';
-      return { pc, path };
-    });
-  }, [noteBars, plotBottom]);
 
   // Dissonance overlap bars
   const dissonanceBars = useMemo(() => {
@@ -262,41 +262,28 @@ export default function DissonanceSpectrum() {
             />
           ))}
 
-          {/* Note silhouette fills (behind bars for depth) */}
-          {noteEnvelopes.map(({ pc, path }) => path && (
-            <path
-              key={`sil-${pc}`}
-              d={path}
-              fill={`url(#note-grad-${pc})`}
-              opacity={0.6}
-            />
-          ))}
-
-          {/* Note partial bars with outlines */}
+          {/* Note waveform bars */}
           {noteBars.map(({ pc, items }) => (
             <g key={`bars-${pc}`}>
               {items.map((bar, i) => {
                 const isFundamental = bar.partial.partialNumber === 1;
                 return (
                   <g key={`b-${pc}-${i}`}>
-                    <rect
-                      x={bar.x}
-                      y={plotBottom - bar.height}
-                      width={bar.width}
-                      height={bar.height}
-                      fill="none"
-                      stroke={noteColorStroke(pc)}
-                      strokeWidth={isFundamental ? 1.5 : 0.7}
-                      rx={1}
-                    />
-                    {/* Fundamental: strong accent line at center */}
+                    {/* Sub-bars creating waveform shape */}
+                    {bar.subBars.map((sb, si) => (
+                      <rect
+                        key={si}
+                        x={sb.x}
+                        y={plotBottom - sb.h}
+                        width={sb.w}
+                        height={sb.h}
+                        fill={noteColor(pc, isFundamental ? 0.7 : 0.4)}
+                        rx={0.5}
+                      />
+                    ))}
+                    {/* Fundamental label */}
                     {isFundamental && (
                       <>
-                        <line
-                          x1={bar.cx} y1={plotBottom - bar.height}
-                          x2={bar.cx} y2={plotBottom}
-                          stroke={noteColor(pc, 0.8)} strokeWidth={2}
-                        />
                         <circle cx={bar.cx} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
                         <text
                           x={bar.cx} y={plotTop - 3}
