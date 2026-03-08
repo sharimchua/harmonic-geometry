@@ -18,6 +18,8 @@ import {
   getChordVibe,
   identifyChordFromPitchClasses,
   type IntervalTension,
+  type VoiceLeadingMove,
+  calculateVoiceLeading,
 } from '@/lib/musicTheory';
 import { useMidi, type MidiState } from '@/hooks/use-midi';
 
