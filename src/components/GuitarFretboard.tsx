@@ -277,7 +277,7 @@ function generateVoicings(
   return voicings;
 }
 
-export default function GuitarFretboard() {
+const GuitarFretboard = React.memo(function GuitarFretboard() {
   const {
     root, setRoot, scaleTonic, activePitchClasses, scalePitchClasses,
     labelMode, useFlats,
