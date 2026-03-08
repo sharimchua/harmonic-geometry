@@ -332,7 +332,7 @@ export default function DissonanceSpectrum() {
             </g>
           ))}
 
-          {/* Additive dissonance curve (white line + fill) */}
+          {/* Additive crunchiness curve (white line + fill) */}
           {dissonancePath.fill && (
             <>
               <path d={dissonancePath.fill} fill="url(#dissonance-curve-fill)" />
