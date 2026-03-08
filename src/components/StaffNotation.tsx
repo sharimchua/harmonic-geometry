@@ -209,8 +209,9 @@ export default function StaffNotation() {
 
   const clefAreaW = 52;
   const keySigCount = keySig.sharps.length + keySig.flats.length;
-  const keySigAreaW = keySigCount > 0 ? keySigCount * 14 + 10 : 0;
-  const noteX = 20 + clefAreaW + keySigAreaW + 36;
+  const keySigAreaW = keySigCount > 0 ? keySigCount * 10 + 6 : 0;
+  const accColumnX = 20 + clefAreaW + keySigAreaW + 16;
+  const noteX = accColumnX + (staffNotes.some(n => n.showAccidental) ? 18 : 0) + 10;
   const tensionX = noteX + 56;
   const totalWidth = Math.max(380, tensionX + tensionPairs.length * 16 + 30);
 
@@ -333,10 +334,10 @@ export default function StaffNotation() {
               const pos = KEY_SIG_SHARP_POS[clef][SHARP_ORDER.indexOf(letterIdx)];
               if (pos === undefined) return null;
               const y = getY(pos);
-              const x = 20 + clefAreaW + i * 14;
+              const x = 20 + clefAreaW + i * 10;
               return (
                 <text key={`ks-${i}`}
-                  x={x} y={y + 6} fontSize={18}
+                  x={x} y={y + 6} fontSize={16}
                   fontFamily="serif" fill="hsl(30, 10%, 65%)"
                 >♯</text>
               );
@@ -345,12 +346,29 @@ export default function StaffNotation() {
               const pos = KEY_SIG_FLAT_POS[clef][FLAT_ORDER.indexOf(letterIdx)];
               if (pos === undefined) return null;
               const y = getY(pos);
-              const x = 20 + clefAreaW + i * 14;
+              const x = 20 + clefAreaW + i * 10;
               return (
                 <text key={`kf-${i}`}
-                  x={x} y={y + 6} fontSize={18}
+                  x={x} y={y + 6} fontSize={16}
                   fontFamily="serif" fill="hsl(30, 10%, 65%)"
                 >♭</text>
+              );
+            })}
+
+            {/* Note accidentals — aligned in a single column */}
+            {staffNotes.map((note, i) => {
+              if (!note.showAccidental) return null;
+              const y = getY(note.staffPos);
+              return (
+                <text
+                  key={`acc-${i}`}
+                  x={accColumnX} y={y + 6}
+                  fontSize={17} fontFamily="serif"
+                  fill="hsl(30, 10%, 75%)"
+                  textAnchor="middle"
+                >
+                  {accidentalSymbol(note.accidental)}
+                </text>
               );
             })}
 
@@ -363,16 +381,6 @@ export default function StaffNotation() {
 
               return (
                 <g key={`n-${i}`}>
-                  {note.showAccidental && (
-                    <text
-                      x={x - NOTE_RX - 12} y={y + 6}
-                      fontSize={17} fontFamily="serif"
-                      fill="hsl(30, 10%, 75%)"
-                      textAnchor="middle"
-                    >
-                      {accidentalSymbol(note.accidental)}
-                    </text>
-                  )}
                   <ellipse
                     cx={x} cy={y} rx={NOTE_RX} ry={NOTE_RY}
                     fill={fillColor}
