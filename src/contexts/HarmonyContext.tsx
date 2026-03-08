@@ -58,6 +58,7 @@ interface HarmonyContextValue extends HarmonyState {
   togglePitchClass: (pc: PitchClass) => void;
   // Cadence mode
   setCadenceMode: (on: boolean) => void;
+  relockCadence: () => void;
   // MIDI
   midi: MidiState;
   midiEnabled: boolean;
