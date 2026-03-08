@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
 import {
-  getChordPartials,
+  getChordPartialsFromVoicing,
   calculatePartialInteractions,
   calculateChordDissonance,
   getNoteName,
@@ -43,12 +43,12 @@ function gaussianPeak(centerX: number, amplitude: number, sigma: number, x: numb
 }
 
 export default function DissonanceSpectrum() {
-  const { activePitchClasses, root, useFlats } = useHarmony();
+  const { activePitchClasses, activeIntervals, root, harmonicRoot, useFlats } = useHarmony();
   const [baseOctave, setBaseOctave] = useState(3);
 
   const { partials, noteFrequencies } = useMemo(
-    () => getChordPartials(activePitchClasses, baseOctave),
-    [activePitchClasses, baseOctave]
+    () => getChordPartialsFromVoicing(harmonicRoot, activeIntervals, baseOctave),
+    [harmonicRoot, activeIntervals, baseOctave]
   );
 
   const interactions = useMemo(
