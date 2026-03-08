@@ -358,7 +358,7 @@ export default function GuitarFretboard() {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-3 w-full">
         <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">Fretboard</h3>
         <select
           value={tuningIdx}
@@ -369,16 +369,16 @@ export default function GuitarFretboard() {
             <option key={preset.name} value={i}>{preset.name}</option>
           ))}
         </select>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {allVoicings.length > 1 && (
             <button
               onClick={() => setVoicingIdx(i => (i - 1 + allVoicings.length) % allVoicings.length)}
-              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-1.5 sm:px-2 py-1 transition-colors"
             >
               ◀
             </button>
           )}
-          <span className="text-[10px] font-mono text-muted-foreground">
+          <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
             Voicing {allVoicings.length > 0
               ? `${Math.min(voicingIdx, allVoicings.length - 1) + 1} / ${allVoicings.length}`
               : '— none found'}
@@ -386,7 +386,7 @@ export default function GuitarFretboard() {
           {allVoicings.length > 1 && (
             <button
               onClick={() => setVoicingIdx(i => (i + 1) % allVoicings.length)}
-              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-2 py-1 transition-colors"
+              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-1.5 sm:px-2 py-1 transition-colors"
             >
               ▶
             </button>
