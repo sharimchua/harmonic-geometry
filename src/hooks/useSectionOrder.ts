@@ -2,16 +2,17 @@ import { useState, useCallback } from 'react';
 
 const COOKIE_KEY = 'hg_section_order';
 
-export type SectionId = 'context' | 'intervals' | 'cadence' | 'staff' | 'piano' | 'fretboard';
+export type SectionId = 'context' | 'intervals' | 'cadence' | 'dissonance' | 'staff' | 'piano' | 'fretboard';
 
-const DEFAULT_ORDER: SectionId[] = ['context', 'intervals', 'cadence', 'staff', 'piano', 'fretboard'];
+const DEFAULT_ORDER: SectionId[] = ['context', 'intervals', 'cadence', 'dissonance', 'staff', 'piano', 'fretboard'];
 
 function readCookie(): SectionId[] | null {
   try {
     const match = document.cookie.split('; ').find(c => c.startsWith(COOKIE_KEY + '='));
     if (!match) return null;
     const val = JSON.parse(decodeURIComponent(match.split('=')[1]));
-    if (Array.isArray(val) && val.length === DEFAULT_ORDER.length) return val as SectionId[];
+    // Accept cookie if it has all current sections (handles upgrades by falling back to default)
+    if (Array.isArray(val) && DEFAULT_ORDER.every(id => val.includes(id)) && val.length === DEFAULT_ORDER.length) return val as SectionId[];
   } catch {}
   return null;
 }

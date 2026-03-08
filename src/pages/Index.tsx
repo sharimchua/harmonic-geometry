@@ -10,6 +10,7 @@ import HarmonicContext from '@/components/HarmonicContext';
 import ControlPanel from '@/components/ControlPanel';
 import StaffNotation from '@/components/StaffNotation';
 import ChordSynonyms from '@/components/ChordSynonyms';
+import DissonanceSpectrum from '@/components/DissonanceSpectrum';
 import { useSectionOrder, type SectionId } from '@/hooks/useSectionOrder';
 import { ChevronUp, ChevronDown, Lock, Unlock } from 'lucide-react';
 
@@ -17,6 +18,7 @@ const SECTION_COMPONENTS: Record<SectionId, React.FC> = {
   context: HarmonicContext,
   intervals: IntervalRelationshipList,
   cadence: CadenceExplorer,
+  dissonance: DissonanceSpectrum,
   staff: StaffNotation,
   piano: PianoKeyboard,
   fretboard: GuitarFretboard,
@@ -26,6 +28,7 @@ const SECTION_LABELS: Record<SectionId, string> = {
   context: 'Harmonic Context',
   intervals: 'Interval Relationships',
   cadence: 'Cadence Explorer',
+  dissonance: 'Dissonance Spectrum',
   staff: 'Staff Notation',
   piano: 'Piano',
   fretboard: 'Guitar Fretboard',
@@ -40,7 +43,7 @@ const Index = () => {
   const intervalStr = activeIntervals.map(i => ((i % 12) + 12) % 12).join('-');
 
   // Split ordered sections into analysis vs instruments
-  const analysisSections: SectionId[] = ['context', 'intervals', 'cadence'];
+  const analysisSections: SectionId[] = ['context', 'intervals', 'cadence', 'dissonance'];
   const instrumentSections: SectionId[] = ['staff', 'piano', 'fretboard'];
   const orderedAnalysis = order.filter(id => analysisSections.includes(id));
   const orderedInstruments = order.filter(id => instrumentSections.includes(id));

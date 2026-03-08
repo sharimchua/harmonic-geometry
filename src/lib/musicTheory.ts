@@ -801,3 +801,115 @@ export const CADENCE_CATEGORY_META: Record<CadenceCategory, { title: string; ico
   surprise: { title: 'The Surprise', icon: '✨' },
   journey: { title: 'The Journey', icon: '🧭' },
 };
+
+// ─── Psychoacoustical Dissonance (Plomp-Levelt / Sethares) ───────────
+
+const NUM_PARTIALS = 7; // 1 fundamental + 6 overtones
+const AMPLITUDE_DECAY = 0.88;
+
+/** Convert a pitch class + octave to frequency in Hz (A4 = 440) */
+export function pitchClassToFrequency(pc: PitchClass, octave: number): number {
+  // MIDI note number: C4 = 60, A4 = 69
+  const midi = octave * 12 + pc + 12; // pc 0 = C, octave 4 → midi 60
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+/** Generate harmonic partials for a fundamental frequency */
+export interface Partial {
+  frequency: number;
+  amplitude: number;
+  partialNumber: number; // 1-based
+  fundamentalPc: PitchClass;
+  fundamentalFreq: number;
+}
+
+export function generatePartials(fundamentalFreq: number, fundamentalPc: PitchClass): Partial[] {
+  const partials: Partial[] = [];
+  for (let i = 1; i <= NUM_PARTIALS; i++) {
+    partials.push({
+      frequency: fundamentalFreq * i,
+      amplitude: Math.pow(AMPLITUDE_DECAY, i - 1),
+      partialNumber: i,
+      fundamentalPc,
+      fundamentalFreq,
+    });
+  }
+  return partials;
+}
+
+/** Plomp-Levelt dissonance between two pure tones */
+function plompLeveltDissonance(f1: number, a1: number, f2: number, a2: number): number {
+  const fmin = Math.min(f1, f2);
+  const fmax = Math.max(f1, f2);
+  const b = fmax - fmin;
+  const s = 0.24 / (0.021 * fmin + 19);
+  const sb = s * b;
+  return a1 * a2 * (Math.exp(-3.5 * sb) - Math.exp(-5.75 * sb));
+}
+
+/** Calculate total psychoacoustical dissonance for a set of frequencies */
+export function calculateChordDissonance(frequencies: number[]): number {
+  let total = 0;
+  const allPartials: { freq: number; amp: number }[] = [];
+  for (const f of frequencies) {
+    for (let i = 1; i <= NUM_PARTIALS; i++) {
+      allPartials.push({ freq: f * i, amp: Math.pow(AMPLITUDE_DECAY, i - 1) });
+    }
+  }
+  for (let i = 0; i < allPartials.length; i++) {
+    for (let j = i + 1; j < allPartials.length; j++) {
+      total += plompLeveltDissonance(
+        allPartials[i].freq, allPartials[i].amp,
+        allPartials[j].freq, allPartials[j].amp
+      );
+    }
+  }
+  return total * 100;
+}
+
+/** Find pairwise dissonance between every pair of partials from different notes */
+export interface PartialInteraction {
+  partial1: Partial;
+  partial2: Partial;
+  dissonance: number;
+  freqDiff: number;
+}
+
+export function calculatePartialInteractions(
+  noteFrequencies: { freq: number; pc: PitchClass }[]
+): PartialInteraction[] {
+  const interactions: PartialInteraction[] = [];
+  const notePartials = noteFrequencies.map(n => generatePartials(n.freq, n.pc));
+
+  for (let i = 0; i < notePartials.length; i++) {
+    for (let j = i + 1; j < notePartials.length; j++) {
+      for (const p1 of notePartials[i]) {
+        for (const p2 of notePartials[j]) {
+          const d = plompLeveltDissonance(p1.frequency, p1.amplitude, p2.frequency, p2.amplitude);
+          if (d > 0.0001) {
+            interactions.push({
+              partial1: p1,
+              partial2: p2,
+              dissonance: d * 100,
+              freqDiff: Math.abs(p1.frequency - p2.frequency),
+            });
+          }
+        }
+      }
+    }
+  }
+  return interactions;
+}
+
+/** Get all partials for a chord at a specific octave */
+export function getChordPartials(
+  pitchClasses: PitchClass[],
+  baseOctave: number
+): { partials: Partial[]; noteFrequencies: { freq: number; pc: PitchClass }[] } {
+  const noteFrequencies = pitchClasses.map(pc => ({
+    freq: pitchClassToFrequency(pc, baseOctave),
+    pc,
+  }));
+  const partials = noteFrequencies.flatMap(n => generatePartials(n.freq, n.pc));
+  return { partials, noteFrequencies };
+}
