@@ -262,41 +262,28 @@ export default function DissonanceSpectrum() {
             />
           ))}
 
-          {/* Note silhouette fills (behind bars for depth) */}
-          {noteEnvelopes.map(({ pc, path }) => path && (
-            <path
-              key={`sil-${pc}`}
-              d={path}
-              fill={`url(#note-grad-${pc})`}
-              opacity={0.6}
-            />
-          ))}
-
-          {/* Note partial bars with outlines */}
+          {/* Note waveform bars */}
           {noteBars.map(({ pc, items }) => (
             <g key={`bars-${pc}`}>
               {items.map((bar, i) => {
                 const isFundamental = bar.partial.partialNumber === 1;
                 return (
                   <g key={`b-${pc}-${i}`}>
-                    <rect
-                      x={bar.x}
-                      y={plotBottom - bar.height}
-                      width={bar.width}
-                      height={bar.height}
-                      fill="none"
-                      stroke={noteColorStroke(pc)}
-                      strokeWidth={isFundamental ? 1.5 : 0.7}
-                      rx={1}
-                    />
-                    {/* Fundamental: strong accent line at center */}
+                    {/* Sub-bars creating waveform shape */}
+                    {bar.subBars.map((sb, si) => (
+                      <rect
+                        key={si}
+                        x={sb.x}
+                        y={plotBottom - sb.h}
+                        width={sb.w}
+                        height={sb.h}
+                        fill={noteColor(pc, isFundamental ? 0.7 : 0.4)}
+                        rx={0.5}
+                      />
+                    ))}
+                    {/* Fundamental label */}
                     {isFundamental && (
                       <>
-                        <line
-                          x1={bar.cx} y1={plotBottom - bar.height}
-                          x2={bar.cx} y2={plotBottom}
-                          stroke={noteColor(pc, 0.8)} strokeWidth={2}
-                        />
                         <circle cx={bar.cx} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
                         <text
                           x={bar.cx} y={plotTop - 3}
