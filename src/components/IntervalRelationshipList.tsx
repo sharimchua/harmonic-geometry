@@ -45,7 +45,16 @@ export default function IntervalRelationshipList() {
     }
   }
 
-  if (pairs.length === 0) return null;
+  if (pairs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <span className="text-2xl mb-2">🎵</span>
+        <p className="text-sm text-muted-foreground italic">
+          A single note stands alone — add another to create an interval.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">
