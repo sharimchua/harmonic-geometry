@@ -45,32 +45,27 @@ interface VoicingPosition {
  * - Fretted notes on the same fret can share a barre (1 finger for all).
  * - Each additional distinct fret costs 1 finger.
  */
-function countFingers(voicing: VoicingPosition[]): number {
+function countFingers(voicing: VoicingPosition[]): { fingers: number; hasBarre: boolean } {
   const frettedFrets = voicing.filter(v => v.f > 0).map(v => v.f);
-  if (frettedFrets.length === 0) return 0;
+  if (frettedFrets.length === 0) return { fingers: 0, hasBarre: false };
 
-  // Group by fret — each distinct fret costs at least 1 finger
   const fretCounts = new Map<number, number>();
   for (const f of frettedFrets) {
     fretCounts.set(f, (fretCounts.get(f) || 0) + 1);
   }
 
-  // The lowest fret with 2+ notes can be a barre (1 finger).
-  // All other frets cost 1 finger per fret.
-  // A barre must cover consecutive strings from the lowest played string at that fret.
   const sortedFrets = [...fretCounts.entries()].sort((a, b) => a[0] - b[0]);
   let fingers = 0;
+  let hasBarre = false;
 
+  // Try barre on the lowest fret first (most common), then any fret with 2+ notes
   let barreUsed = false;
   for (const [fret, count] of sortedFrets) {
     if (!barreUsed && count >= 2) {
-      // Check if barre is feasible: all strings between the lowest and highest
-      // at this fret should not have a lower fret note (which would block the barre).
       const stringsAtFret = voicing.filter(v => v.f === fret).map(v => v.s);
       const minS = Math.min(...stringsAtFret);
       const maxS = Math.max(...stringsAtFret);
       
-      // A barre is feasible if no intermediate string has a note at a LOWER fret
       let barreFeasible = true;
       for (let s = minS; s <= maxS; s++) {
         const noteOnString = voicing.find(v => v.s === s);
@@ -81,17 +76,22 @@ function countFingers(voicing: VoicingPosition[]): number {
       }
 
       if (barreFeasible) {
-        fingers += 1; // barre = 1 finger
+        fingers += 1;
         barreUsed = true;
+        hasBarre = true;
       } else {
-        fingers += count; // each note needs its own finger
+        fingers += count;
       }
+    } else if (!barreUsed && count === 1) {
+      // Even a single note at lowest fret could become a partial barre
+      // if higher strings at the same fret are muted/open — just count 1
+      fingers += 1;
     } else {
       fingers += count;
     }
   }
 
-  return fingers;
+  return { fingers, hasBarre };
 }
 
 /**
