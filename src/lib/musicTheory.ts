@@ -572,40 +572,102 @@ const FUNCTION_NAMES: Record<number, string> = {
   6: 'Leading Tone',
 };
 
-const FUNCTION_DESCRIPTIONS: Record<number, string> = {
-  0: 'Home base. Stable and resolved — this is where the music rests.',
-  1: 'A gentle pull away from home. Often leads to the Dominant.',
-  2: 'A colorful passing point — shares notes with both Tonic and Dominant.',
-  3: 'Opens up the harmony. Creates a sense of floating away from home.',
-  4: 'Maximum tension. Wants to resolve back to Tonic.',
-  5: 'The relative area — warm and reflective, a softer alternative to Tonic.',
-  6: 'Restless and unstable. The strongest pull toward resolution.',
+// Enhanced function descriptions that differentiate based on chord quality and context
+const MAJOR_FUNCTION_DESCRIPTIONS: Record<number, string> = {
+  0: 'Home base. Bright and resolved — the place where all tension finds rest.',
+  1: 'Lydian ascent from home. As a major II, it provides bright expansion before dominant or subdominant motion.',
+  2: 'Bright mediant color — often a stepping stone toward the subdominant or a pivot to relative keys.',
+  3: 'The classic subdominant opening. As a major IV, it creates warm expansion away from home, the sound of hymns and classic rock.',
+  4: 'Dominant without the seventh — gentler tension that suggests rather than demands resolution.',
+  5: 'Major submediant — often borrowed from parallel modes, creating bright contrast in minor contexts.',
+  6: 'Rare in major contexts — usually appears as a modal borrowing or chromatic passing harmony.',
+};
+
+const MINOR_FUNCTION_DESCRIPTIONS: Record<number, string> = {
+  0: 'Dark home — introspective and grounded. In major keys as vi, it provides reflective contrast.',
+  1: 'Natural minor supertonic — the essential ii chord that flows perfectly to dominant tension.',
+  2: 'Gentle minor mediant — bridges tonic and subdominant areas with introspective warmth.',
+  3: 'Minor subdominant — creates the famous "borrowed iv" when used in major keys, adding melancholic depth.',
+  4: 'Minor dominant — modal and ancient-sounding. Found in Dorian and folk traditions.',
+  5: 'The relative minor center — warm alternative to tonic. As vi in major, it\'s the most common minor chord.',
+  6: 'Unstable and restless — as vii in natural minor, it lacks the strong pull of the leading tone.',
+};
+
+const DIMINISHED_FUNCTION_DESCRIPTIONS: Record<number, string> = {
+  0: 'Highly unusual as a tonic — creates extreme instability and demands immediate resolution.',
+  1: 'Rare and unstable — typically appears as a chromatic passing chord.',
+  2: 'Uncommon — might appear as a diminished mediant in harmonic contexts.',
+  3: 'Unusual subdominant — creates dark, mysterious pre-dominant function.',
+  4: 'Rare as a pure diminished dominant — usually appears with added seventh.',
+  5: 'Uncommon — typically a chromatic passing harmony.',
+  6: 'The classic leading-tone chord — as viiº, it creates maximum pull toward the tonic.',
+};
+
+const DOMINANT7_FUNCTION_DESCRIPTIONS: Record<number, string> = {
+  0: 'Dominant-tonic — creates restless, blues-influenced tonic that wants to move.',
+  1: 'Secondary dominant of V — creates temporary tonicization and circle-of-fifths motion.',
+  2: 'Secondary dominant of vi — pulls strongly toward the relative minor area.',
+  3: 'Rare as a subdominant seventh — usually functions as a secondary dominant.',
+  4: 'The essential dominant seventh — maximum functional tension demanding resolution to tonic.',
+  5: 'Secondary dominant of ii — creates temporary tonicization of the supertonic area.',
+  6: 'Backdoor dominant — the bVII7 that resolves to I with smooth bass motion, common in jazz and folk.',
 };
 
 const CHORD_VIBES: Record<string, string> = {
-  'Single Note': 'Pure and unadorned — the fundamental building block of all harmony',
-  'Major': 'Bright, happy, and open',
-  'Minor': 'Warm, reflective, and introspective',
-  'Diminished': 'Tense, mysterious, and unstable',
-  'Augmented': 'Dreamy, floating, and unresolved',
-  'Sus2': 'Open and airy — neither major nor minor',
-  'Sus4': 'Suspended and anticipatory — wants to resolve',
-  'Major 7': 'Dreamy and lush, like a soft sunset',
-  'Dominant 7': 'Bluesy tension — wants to move somewhere',
-  'Minor 7': 'Smooth, mellow, and soulful',
-  'm7b5': 'Dark and yearning — the classic jazz minor sound',
-  'Diminished 7': 'Dramatic and symmetrical — every note is equal',
-  'Minor Major 7': 'Dark yet luminous — tension between sadness and beauty',
-  'Augmented 7': 'Restless and exotic — pushing outward with blues',
-  'Augmented Maj 7': 'Ethereal and expansive — dreamlike tension',
-  'Major 6': 'Warm, nostalgic, and grounded — vintage charm',
-  'Minor 6': 'Bittersweet and cinematic — noir atmosphere',
-  'Major 9': 'Rich and expansive — sophisticated warmth',
-  'Dominant 9': 'Funky and bright — a wider dominant color',
-  'Minor 9': 'Lush and deep — neo-soul territory',
-  'MinMaj 9': 'Complex emotional depth — dark beauty with space',
-  'Add 9': 'Open and sparkly — pop brightness without the 7th',
-  'Minor Add 9': 'Gentle melancholy with a shimmer of light',
+  'Single Note': 'Pure and unadorned — the fundamental building block of all harmony. A single pitch contains infinite potential, waiting to define or dissolve into larger structures.',
+  
+  // ── Tertian Triads ──
+  'Major': 'The universal brightness of resolution and joy. In tonal contexts: as I, it provides home and rest; as IV, it opens into warm expansion; as V without the 7th, it offers gentle forward motion without harsh tension.',
+  'Minor': 'Introspective warmth with emotional depth. As ii or vi, it provides smooth diatonic color; as iii, it bridges major and minor areas; in modal contexts, it creates the foundation for Aeolian or Dorian landscapes.',
+  'Diminished': 'Concentrated instability demanding resolution. Most commonly found as viiº in major keys, it creates powerful leading-tone motion; as a passing chord, it provides chromatic voice-leading between stable harmonies.',
+  'Augmented': 'Restless expansion with no natural resolution. Often used as a chromatic alteration of I (I+) to push toward IV, or in symmetrical progressions where every note can function as a potential root.',
+  
+  // ── Suspended/Open ──
+  'Sus2': 'Transparent ambiguity — neither major nor minor. Creates spacious, modal landscapes without committing to a traditional tertian quality. Perfect for ambient textures and modern folk progressions.',
+  'Sus4': 'Active suspension yearning for resolution. The 4th wants to fall to the 3rd, creating forward momentum. Classic in gospel turnarounds, rock anthems, and creating rhythmic anticipation.',
+  'Quintal': 'Open, modern consonance built on 5ths. Bypasses traditional major/minor polarity entirely, creating transparent harmonic layers. Common in minimalism, film scores, and contemporary jazz.',
+  
+  // ── Seventh Chords ──
+  'Major 7': 'Sophisticated warmth with gentle dissonance. As Imaj7, it creates a floating, never-quite-settled tonic; as IVmaj7, it adds Lydian brightness; perfect for jazz ballads and dreamy pop.',
+  'Dominant 7': 'Essential functional tension demanding resolution. The tritone between 3rd and 7th creates the strongest pull toward the tonic. The engine of blues, jazz, and classical functional harmony.',
+  'Minor 7': 'Smooth, soulful sophistication without harsh edges. As ii7 or vi7, it provides the perfect stepping stone in progressions; as a tonic, it creates the relaxed foundation of Dorian or modern R&B.',
+  'Minor Major 7': 'Dark complexity with an inner luminosity. The major 7th against the minor 3rd creates beautiful tension. Often used in film noir, Bond themes, or as the tonic of harmonic minor progressions.',
+  'm7b5': 'The essential minor ii chord with sophisticated darkness. In major keys as ii°7, it sets up minor ii-V-i progressions; creates the perfect pre-dominant for dramatic minor resolutions.',
+  'Diminished 7': 'Symmetrical drama where every note is equidistant. Functions as a dominant substitute with multiple possible resolutions. Classic in ragtime, classical transitions, and jazz turnarounds.',
+  'Augmented 7': 'Blues-tinged instability with upward thrust. Combines the restless augmented triad with dominant 7th tension. Common in blues as a I+ chord moving to IV, or in jazz as chromatic alteration.',
+  'Augmented Maj 7': 'Ethereal expansion with sophisticated color. The major 7th softens the augmented triad\'s edge, creating dreamy, floating harmonies perfect for impressionistic and modern jazz contexts.',
+  
+  // ── Sixth Chords ──
+  'Major 6': 'Vintage warmth with grounded stability. Often substitutes for major 7th chords when you want sweetness without the floating quality. Essential in swing, country, and classic pop ballads.',
+  'Minor 6': 'Bittersweet melancholy with cinematic depth. The major 6th against minor tonality creates beautiful tension. Perfect for film noir, gypsy jazz, and sophisticated pop ballads.',
+  
+  // ── Shell Voicings ──
+  'Maj Shell (1-3-7)': 'Essential major color without the 5th. Strips down to the most important notes: root, quality (3rd), and sophistication (7th). Perfect for comping, piano voicings, and jazz arrangements.',
+  'Dom Shell (1-3-b7)': 'Essential dominant function in minimal form. Maximizes the tritone tension while leaving space for other instruments. The backbone of jazz comping and blues rhythm guitar.',
+  'Min Shell (1-b3-b7)': 'Essential minor 7th character without bulk. Clean, soulful, and perfect for creating smooth voice-leading in progressions. Less dense than full minor 7th chords.',
+  
+  // ── Extensions ──
+  'Major 9': 'Expansive major sophistication with open color. The 9th adds airiness to major 7th harmony. Perfect for neo-soul, contemporary jazz, and anywhere you want warmth with space.',
+  'Dominant 9': 'Funky dominant tension with extra color. The 9th brightens the dominant 7th without losing its functional power. Essential in funk, jazz-fusion, and blues-rock.',
+  'Minor 9': 'Lush minor sophistication with contemporary depth. Creates the perfect foundation for neo-soul and modern R&B. Darker than major 9th but more complex than minor 7th.',
+  'MinMaj 9': 'Complex emotional architecture with space and light. Combines the dark beauty of minor major 7th with the openness of the 9th. Perfect for film scoring and sophisticated pop.',
+  'Major 11': 'Suspended major character with extensions. The 11th often replaces the 3rd, creating sus4-like qualities with additional upper structure complexity.',
+  'Dominant 11': 'Extended dominant tension with modern color. Often voiced without the 3rd to avoid clashing with the 11th. Common in fusion and contemporary jazz.',
+  'Minor 11': 'Deep minor sophistication with natural extensions. The 11th fits naturally in minor harmony. Creates lush, complex textures perfect for modal jazz and contemporary styles.',
+  'Major 13': 'Maximum major sophistication with full harmonic spectrum. Contains all the chord tones up to the 13th. The ultimate expression of major tonality with jazz complexity.',
+  'Dominant 13': 'Complete dominant harmony with full upper structure. The 13th adds brightness to dominant function while maintaining all the essential tension notes.',
+  'Minor 13': 'Full minor harmonic spectrum with contemporary color. The most complete expression of minor sophistication, containing all available chord tones.',
+  'Add 9': 'Bright major color with pop appeal. Adds the sparkle of the 9th without the sophistication (and potential heaviness) of the 7th. Perfect for contemporary pop and worship music.',
+  'Minor Add 9': 'Gentle minor color with contemporary shimmer. The 9th lightens minor tonality without adding jazzy sophistication. Perfect for indie, ambient, and modern folk styles.',
+  
+  // ── Altered Dominant ──
+  '7b5': 'Dominant tension with diminished character. The b5 adds harmonic minor flavor and creates additional leading-tone motion. Classic in bebop and when you want darker dominant color.',
+  '7#5': 'Dominant expansion with augmented character. The #5 pushes outward while maintaining dominant function. Common in blues and when you want dominant tension with upward energy.',
+  '7b9': 'Dark dominant tension with minor flavor. The b9 adds harmonic minor character to dominant function. Essential for Spanish and Latin styles, and dramatic minor ii-V progressions.',
+  '7#9': 'The "Hendrix chord" — blues meets dissonance. The #9 creates the signature clash that defines purple haze and modern blues-rock. Perfect for when you want dominant function with attitude.',
+  '7#11': 'Lydian-flavored dominant with bright tension. The #11 adds the brightness of Lydian mode to dominant function. Common in jazz and when you want sophisticated dominant color.',
+  '7b13': 'Dark dominant with minor character. The b13 adds harmonic minor flavor and creates darker dominant resolution. Perfect for jazz ballads and sophisticated minor progressions.',
+  
   // ── Dyads ──────────────────────────────────────────────
   'Dyad (P1)': 'Unison — two voices speaking as one. Absolute stability with no harmonic colour; the foundation of everything.',
   'Dyad (m2)': 'Minor 2nd — raw, abrasive crunch. The tightest possible clash, generating intense friction that screams for resolution. Found at the heart of jazz dissonance and horror scoring.',
@@ -649,16 +711,33 @@ export function analyzeFunctionalRole(
     };
   }
 
-  // Determine if the chord is "minor-ish" for numeral casing
+  // Determine chord quality for appropriate description and numeral case
   const isMinorQuality = chordName.includes('Minor') || chordName.includes('min') || 
     chordName.includes('m7') || chordName === 'Diminished' || chordName === 'Diminished 7';
+  const isDominant7 = chordName.includes('Dominant 7') || chordName.includes('7b') || 
+    chordName.includes('7#') || chordName === 'Dominant 7';
+  const isDiminished = chordName.includes('Diminished') || chordName.includes('dim');
+
+  // Choose appropriate description based on chord quality
+  let description: string;
+  if (isDominant7) {
+    description = DOMINANT7_FUNCTION_DESCRIPTIONS[degree] || 'Dominant-type harmony with specific functional role.';
+  } else if (isDiminished) {
+    description = DIMINISHED_FUNCTION_DESCRIPTIONS[degree] || 'Diminished harmony creating instability and tension.';
+  } else if (isMinorQuality) {
+    description = MINOR_FUNCTION_DESCRIPTIONS[degree] || 'Minor harmony providing introspective color.';
+  } else {
+    description = MAJOR_FUNCTION_DESCRIPTIONS[degree] || 'Major harmony providing bright, stable color.';
+  }
+
+  // Use appropriate numeral casing
   const degreeName = isMinorQuality ? SCALE_DEGREE_NAMES_LOWER[degree] : SCALE_DEGREE_NAMES[degree];
 
   return {
     scaleDegree: degree,
     degreeName,
     functionName: FUNCTION_NAMES[degree] || 'Unknown',
-    description: FUNCTION_DESCRIPTIONS[degree] || '',
+    description,
     isDiatonic: true,
   };
 }
