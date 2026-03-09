@@ -711,16 +711,33 @@ export function analyzeFunctionalRole(
     };
   }
 
-  // Determine if the chord is "minor-ish" for numeral casing
+  // Determine chord quality for appropriate description and numeral case
   const isMinorQuality = chordName.includes('Minor') || chordName.includes('min') || 
     chordName.includes('m7') || chordName === 'Diminished' || chordName === 'Diminished 7';
+  const isDominant7 = chordName.includes('Dominant 7') || chordName.includes('7b') || 
+    chordName.includes('7#') || chordName === 'Dominant 7';
+  const isDiminished = chordName.includes('Diminished') || chordName.includes('dim');
+
+  // Choose appropriate description based on chord quality
+  let description: string;
+  if (isDominant7) {
+    description = DOMINANT7_FUNCTION_DESCRIPTIONS[degree] || 'Dominant-type harmony with specific functional role.';
+  } else if (isDiminished) {
+    description = DIMINISHED_FUNCTION_DESCRIPTIONS[degree] || 'Diminished harmony creating instability and tension.';
+  } else if (isMinorQuality) {
+    description = MINOR_FUNCTION_DESCRIPTIONS[degree] || 'Minor harmony providing introspective color.';
+  } else {
+    description = MAJOR_FUNCTION_DESCRIPTIONS[degree] || 'Major harmony providing bright, stable color.';
+  }
+
+  // Use appropriate numeral casing
   const degreeName = isMinorQuality ? SCALE_DEGREE_NAMES_LOWER[degree] : SCALE_DEGREE_NAMES[degree];
 
   return {
     scaleDegree: degree,
     degreeName,
     functionName: FUNCTION_NAMES[degree] || 'Unknown',
-    description: FUNCTION_DESCRIPTIONS[degree] || '',
+    description,
     isDiatonic: true,
   };
 }
