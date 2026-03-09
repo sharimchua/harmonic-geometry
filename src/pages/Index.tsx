@@ -147,14 +147,40 @@ const Index = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Floating burger button — always visible */}
+      {/* Floating burger button — visible only on smaller screens */}
       <button
         onClick={() => setSidebarOpen(true)}
-        className="fixed top-3 left-3 z-40 w-10 h-10 rounded-lg flex items-center justify-center bg-surface-1 border border-border shadow-md hover:bg-surface-2 text-muted-foreground hover:text-primary transition-colors"
+        className="fixed top-3 left-3 z-40 w-10 h-10 rounded-lg flex xl:hidden items-center justify-center bg-surface-1 border border-border shadow-md hover:bg-surface-2 text-muted-foreground hover:text-primary transition-colors"
         aria-label="Open controls"
       >
         <Menu size={20} />
       </button>
+
+      {/* Fixed sidebar for larger screens */}
+      <aside className="hidden xl:flex flex-col w-[300px] 2xl:w-[340px] flex-shrink-0 border-r border-border bg-surface-1 overflow-y-auto">
+        <div className="p-5">
+          <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 group/brand mb-4">
+            <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-9 h-9 rounded-md" />
+            <div>
+              <h1 className="text-lg font-sans font-bold text-foreground tracking-tight">
+                Harmonic<span className="text-primary"> Geometry</span>
+              </h1>
+              <p className="text-[10px] font-sans text-muted-foreground group-hover/brand:text-primary transition-colors">
+                A Midlife Muso Tool
+              </p>
+            </div>
+          </a>
+          <ControlPanel />
+          <div className="mt-6 pt-4 border-t border-border space-y-2">
+            <p className="text-[10px] font-sans font-semibold text-muted-foreground uppercase tracking-wider mb-2">Midlife Muso</p>
+            <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">Home</a>
+            <a href="https://midlifemuso.com/learning" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">Learning Resources</a>
+            <a href="https://midlifemuso.com/about-me" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">About Me</a>
+            <a href="https://midlifemuso.com/tools" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">More Tools</a>
+            <p className="text-[9px] font-sans text-muted-foreground/60 pt-2">Ear-first guitar & piano coaching in Melbourne</p>
+          </div>
+        </div>
+      </aside>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto min-w-0">
