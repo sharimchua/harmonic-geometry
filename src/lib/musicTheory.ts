@@ -572,14 +572,45 @@ const FUNCTION_NAMES: Record<number, string> = {
   6: 'Leading Tone',
 };
 
-const FUNCTION_DESCRIPTIONS: Record<number, string> = {
-  0: 'Home base. Stable and resolved — this is where the music rests.',
-  1: 'A gentle pull away from home. Often leads to the Dominant.',
-  2: 'A colorful passing point — shares notes with both Tonic and Dominant.',
-  3: 'Opens up the harmony. Creates a sense of floating away from home.',
-  4: 'Maximum tension. Wants to resolve back to Tonic.',
-  5: 'The relative area — warm and reflective, a softer alternative to Tonic.',
-  6: 'Restless and unstable. The strongest pull toward resolution.',
+// Enhanced function descriptions that differentiate based on chord quality and context
+const MAJOR_FUNCTION_DESCRIPTIONS: Record<number, string> = {
+  0: 'Home base. Bright and resolved — the place where all tension finds rest.',
+  1: 'Lydian ascent from home. As a major II, it provides bright expansion before dominant or subdominant motion.',
+  2: 'Bright mediant color — often a stepping stone toward the subdominant or a pivot to relative keys.',
+  3: 'The classic subdominant opening. As a major IV, it creates warm expansion away from home, the sound of hymns and classic rock.',
+  4: 'Dominant without the seventh — gentler tension that suggests rather than demands resolution.',
+  5: 'Major submediant — often borrowed from parallel modes, creating bright contrast in minor contexts.',
+  6: 'Rare in major contexts — usually appears as a modal borrowing or chromatic passing harmony.',
+};
+
+const MINOR_FUNCTION_DESCRIPTIONS: Record<number, string> = {
+  0: 'Dark home — introspective and grounded. In major keys as vi, it provides reflective contrast.',
+  1: 'Natural minor supertonic — the essential ii chord that flows perfectly to dominant tension.',
+  2: 'Gentle minor mediant — bridges tonic and subdominant areas with introspective warmth.',
+  3: 'Minor subdominant — creates the famous "borrowed iv" when used in major keys, adding melancholic depth.',
+  4: 'Minor dominant — modal and ancient-sounding. Found in Dorian and folk traditions.',
+  5: 'The relative minor center — warm alternative to tonic. As vi in major, it\'s the most common minor chord.',
+  6: 'Unstable and restless — as vii in natural minor, it lacks the strong pull of the leading tone.',
+};
+
+const DIMINISHED_FUNCTION_DESCRIPTIONS: Record<number, string> = {
+  0: 'Highly unusual as a tonic — creates extreme instability and demands immediate resolution.',
+  1: 'Rare and unstable — typically appears as a chromatic passing chord.',
+  2: 'Uncommon — might appear as a diminished mediant in harmonic contexts.',
+  3: 'Unusual subdominant — creates dark, mysterious pre-dominant function.',
+  4: 'Rare as a pure diminished dominant — usually appears with added seventh.',
+  5: 'Uncommon — typically a chromatic passing harmony.',
+  6: 'The classic leading-tone chord — as viiº, it creates maximum pull toward the tonic.',
+};
+
+const DOMINANT7_FUNCTION_DESCRIPTIONS: Record<number, string> = {
+  0: 'Dominant-tonic — creates restless, blues-influenced tonic that wants to move.',
+  1: 'Secondary dominant of V — creates temporary tonicization and circle-of-fifths motion.',
+  2: 'Secondary dominant of vi — pulls strongly toward the relative minor area.',
+  3: 'Rare as a subdominant seventh — usually functions as a secondary dominant.',
+  4: 'The essential dominant seventh — maximum functional tension demanding resolution to tonic.',
+  5: 'Secondary dominant of ii — creates temporary tonicization of the supertonic area.',
+  6: 'Backdoor dominant — the bVII7 that resolves to I with smooth bass motion, common in jazz and folk.',
 };
 
 const CHORD_VIBES: Record<string, string> = {
