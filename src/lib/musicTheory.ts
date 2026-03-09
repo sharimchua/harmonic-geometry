@@ -1161,8 +1161,6 @@ function getContextualCadenceDescription(
     '8-0': 'Direct flat-six resolution. Cinematic and powerful.',
     // I to ♭VII
     '0-10': 'Modal mixture. Stepping down to the subtonic — rock and modal flavor.',
-    // IV to I in context of being the V chord
-    '5-0': 'Arriving at tonic from the subdominant. Amen cadence territory.',
   };
   
   const key = `${fromDegree}-${toDegree}`;
