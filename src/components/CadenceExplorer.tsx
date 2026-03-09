@@ -133,9 +133,14 @@ export default function CadenceExplorer() {
                         {option.suggestion.name}
                       </span>
                     </div>
-                    <span className="font-mono text-xs text-foreground font-semibold group-hover:text-primary transition-colors">
-                      {option.displayName}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] text-accent font-semibold">
+                        {option.functionalLabel}
+                      </span>
+                      <span className="font-mono text-xs text-foreground font-semibold group-hover:text-primary transition-colors">
+                        {option.displayName}
+                      </span>
+                    </div>
                   </div>
 
                   <p className="text-[11px] font-sans text-muted-foreground leading-relaxed">
