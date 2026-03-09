@@ -606,6 +606,19 @@ const CHORD_VIBES: Record<string, string> = {
   'MinMaj 9': 'Complex emotional depth — dark beauty with space',
   'Add 9': 'Open and sparkly — pop brightness without the 7th',
   'Minor Add 9': 'Gentle melancholy with a shimmer of light',
+  // ── Dyads ──────────────────────────────────────────────
+  'Dyad (P1)': 'Unison — two voices speaking as one. Absolute stability with no harmonic colour; the foundation of everything.',
+  'Dyad (m2)': 'Minor 2nd — raw, abrasive crunch. The tightest possible clash, generating intense friction that screams for resolution. Found at the heart of jazz dissonance and horror scoring.',
+  'Dyad (M2)': 'Major 2nd — an open, unresolved suspense. Airy and slightly ambiguous, it sits between stability and tension. Common in modal and folk melodies.',
+  'Dyad (m3)': 'Minor 3rd — the colour of introspection. Warm but shadowed, it carries the weight of sadness and longing. The defining interval of minor tonality.',
+  'Dyad (M3)': 'Major 3rd — the brightest consonant interval. Confident and warm, it declares major tonality with a simple, singing clarity. The bedrock of major harmony.',
+  'Dyad (P4)': 'Perfect 4th — noble and open. Historically treated as a consonance, it has a hollow, ambiguous strength. Pillars of power chords and ancient parallel organum.',
+  'Dyad (TT)': 'Tritone — the "Devil\'s Interval." Exactly half an octave, it splits the scale with maximum instability. Neither resolves inward nor outward naturally — pure restless tension demanding movement.',
+  'Dyad (P5)': 'Perfect 5th — the most stable and pure consonance after the octave. Open, powerful, and harmonically neutral — it defines power chords, open tunings, and the foundation of Western harmony.',
+  'Dyad (m6)': 'Minor 6th — the inversion of the Major 3rd. Rich and slightly melancholic, with a long, yearning quality. Common in romantic and cinematic writing.',
+  'Dyad (M6)': 'Major 6th — bright and singing. The inversion of the Minor 3rd, it carries warmth and optimism. A favourite melodic leap and the basis of the Major 6th chord colour.',
+  'Dyad (m7)': 'Minor 7th — bluesy and unresolved. A wide, cool interval that hovers without settling. The defining sound of dominant 7th tension and the blues.',
+  'Dyad (M7)': 'Major 7th — the most "reaching" consonance. Just one semitone from the octave, it carries a luminous, yearning quality — at once beautiful and slightly tense, the sound of jazz sophistication.',
 };
 
 export function analyzeFunctionalRole(
