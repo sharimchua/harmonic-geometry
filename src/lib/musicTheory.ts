@@ -1107,6 +1107,84 @@ export interface CadenceOption {
   displayName: string;
   functionalLabel: string;
   targetDegree: number;
+  contextualDescription: string;
+}
+
+/** Generate a contextual description based on actual functional movement */
+function getContextualCadenceDescription(
+  fromDegree: number,
+  toDegree: number,
+  direction: CadenceDirection,
+  originalDescription: string,
+): string {
+  const degreeNames = ['I', '♭II', 'II', '♭III', 'III', 'IV', '♭V', 'V', '♭VI', 'VI', '♭VII', 'VII'];
+  const from = degreeNames[fromDegree];
+  const to = degreeNames[toDegree];
+  
+  // Key functional movements with contextual descriptions
+  const movements: Record<string, string> = {
+    // Dominant to Tonic (V → I)
+    '7-0': 'The ultimate resolution. Dominant tension releasing to tonic stability.',
+    // Subdominant to Tonic (IV → I)
+    '5-0': 'Plagal motion. A warm, settled return home without leading-tone tension.',
+    // Tonic to Dominant (I → V)
+    '0-7': 'Moving to dominant territory. Building tension that will want resolution.',
+    // Tonic to Subdominant (I → IV)
+    '0-5': 'Opening up toward the subdominant. Floating away from home.',
+    // ii to V
+    '2-7': 'Pre-dominant to dominant. The classic ii–V setup toward resolution.',
+    // V to vi (Deceptive)
+    '7-9': 'Deceptive motion. Avoiding the expected tonic for emotional twist.',
+    // vi to IV
+    '9-5': 'Descending from relative minor to subdominant. Building toward home.',
+    // IV to V
+    '5-7': 'Subdominant to dominant. Classic tension-building progression.',
+    // ♭VII to I
+    '10-0': 'Backdoor resolution. Modal interchange creating a "cool jazz" arrival.',
+    // iv to I (minor plagal)
+    '5-0-m': 'Minor plagal motion. The "Hollywood heartbreak" borrowed from parallel minor.',
+    // I to vi
+    '0-9': 'Dropping to the relative minor. Introspective shift in mood.',
+    // I to ii
+    '0-2': 'Rising to the supertonic. Setting up a potential ii–V–I.',
+    // iii to vi
+    '4-9': 'Mediant to submediant. Diatonic third relation — smooth and subtle.',
+    // vi to ii
+    '9-2': 'Circle-of-fifths motion through the minor side of the key.',
+    // ii to I
+    '2-0': 'Direct supertonic to tonic. A gentle, understated resolution.',
+    // V to IV (retrogression)
+    '7-5': 'Retrogression. Moving backward from dominant to subdominant — unexpected release.',
+    // ♭VI to V
+    '8-7': 'Dramatic approach to dominant. Chromatic intensity building toward resolution.',
+    // ♭VI to I
+    '8-0': 'Direct flat-six resolution. Cinematic and powerful.',
+    // I to ♭VII
+    '0-10': 'Modal mixture. Stepping down to the subtonic — rock and modal flavor.',
+  };
+  
+  const key = `${fromDegree}-${toDegree}`;
+  
+  if (movements[key]) {
+    return movements[key];
+  }
+  
+  // Generate generic contextual description
+  if (toDegree === 0) {
+    return `Resolving from ${from} to the tonic. ${direction === 'leadTo' ? 'Moving toward home.' : 'This chord leads home.'}`;
+  }
+  if (fromDegree === 0) {
+    return `Departing from tonic to ${to}. ${direction === 'leadTo' ? 'Creating harmonic motion.' : 'A common starting point.'}`;
+  }
+  if (toDegree === 7) {
+    return `Moving toward the dominant (${to}). Building tension for resolution.`;
+  }
+  if (fromDegree === 7) {
+    return `Coming from the dominant (${from}). Transitional or unexpected movement.`;
+  }
+  
+  // Fall back to original if no contextual match
+  return originalDescription;
 }
 
 /**
@@ -1160,6 +1238,14 @@ export function getCadenceSuggestions(
         ? `${fromDegree} → ${toDegree}` 
         : `${toDegree} → ${fromDegree}`;
       
+      // Generate contextual description based on actual functional movement
+      const contextualDescription = getContextualCadenceDescription(
+        currentDegree,
+        targetDegree,
+        direction,
+        suggestion.description,
+      );
+      
       return { 
         suggestion, 
         targetRoot, 
@@ -1167,6 +1253,7 @@ export function getCadenceSuggestions(
         displayName,
         functionalLabel,
         targetDegree,
+        contextualDescription,
       };
     });
 }
