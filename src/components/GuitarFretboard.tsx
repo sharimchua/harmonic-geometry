@@ -161,17 +161,19 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     return deduped;
   }, [validVoicings, tuning]);
 
-  // Fallback: if no realistic voicings were generated (e.g. single notes), show all chord tones but no tension lines
-  const allChordTonePositions = useMemo(() => {
+  // Fallback: if no realistic voicings were generated, show core tones only
+  const fallbackPositions = useMemo(() => {
+    if (voicingsUnique.length > 0) return [];
+    
     const notes: VoicingPosition[] = [];
     for (let s = 0; s < numStrings; s++) {
       for (let f = 0; f <= NUM_FRETS; f++) {
         const pc = (tuning[s] + f) % 12;
-        if (activePitchClasses.includes(pc)) notes.push({ s, f, pc });
+        if (coreTones.has(pc)) notes.push({ s, f, pc });
       }
     }
     return notes;
-  }, [activePitchClasses, tuning, numStrings]);
+  }, [voicingsUnique.length, tuning, numStrings, coreTones]);
 
   // Notes to render (union of the generated voicing clusters)
   const chordTones = useMemo(() => {
