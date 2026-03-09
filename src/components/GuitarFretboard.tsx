@@ -175,11 +175,10 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     return notes;
   }, [voicingsUnique.length, tuning, numStrings, coreTones]);
 
-  // Notes to render (union of the generated voicing clusters)
   const chordTones = useMemo(() => {
     const source: VoicingPosition[] = voicingsUnique.length > 0
       ? voicingsUnique.flat()
-      : allChordTonePositions;
+      : fallbackPositions;
 
     const seen = new Set<string>();
     const notes: FretboardNote[] = [];
