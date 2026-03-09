@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
+import { generateVoicings, type VoicingPosition } from '@/lib/guitarVoicings';
 import { getLabel, getIntervalTension, TENSION_COLORS } from '@/lib/musicTheory';
 
 const FRET_WIDTH = 50;
@@ -77,7 +78,9 @@ function identifyCoreTones(chordPcs: number[], root: number): Set<number> {
 
 const GuitarFretboard = React.memo(function GuitarFretboard() {
   const {
-    root, setRoot, scaleTonic, activePitchClasses,
+    root, setRoot, scaleTonic,
+    activeIntervals,
+    activePitchClasses,
     labelMode, useFlats,
   } = useHarmony();
 
@@ -95,59 +98,113 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     return order;
   }, [numStrings]);
 
-  // Find all chord tones on the fretboard
-  const chordTones = useMemo(() => {
-    const coreTones = identifyCoreTones(activePitchClasses, root);
-    const notes: FretboardNote[] = [];
-    
+  const bassPc = useMemo(() => {
+    const bassInterval = activeIntervals.length ? Math.min(...activeIntervals) : 0;
+    return ((root + bassInterval) % 12 + 12) % 12;
+  }, [root, activeIntervals]);
+
+  const coreTones = useMemo(
+    () => identifyCoreTones(activePitchClasses, root),
+    [activePitchClasses, root]
+  );
+
+  const voicings = useMemo(() => {
+    if (activePitchClasses.length < 2) return [];
+    return generateVoicings(activePitchClasses, bassPc, root, tuning, NUM_FRETS, 'fingerstyle');
+  }, [activePitchClasses, bassPc, root, tuning]);
+
+  // Ensure each chord tone appears only once per voicing cluster (PitchClock-style)
+  const voicingsUnique = useMemo(() => {
+    const deduped: VoicingPosition[][] = [];
+
+    for (const v of voicings) {
+      const byPc = new Map<number, { pos: VoicingPosition; midi: number }>();
+      for (const p of v) {
+        const midi = tuning[p.s] + p.f;
+        const existing = byPc.get(p.pc);
+        if (!existing || midi < existing.midi) byPc.set(p.pc, { pos: p, midi });
+      }
+      deduped.push(Array.from(byPc.values()).map(x => x.pos).sort((a, b) => a.s - b.s));
+    }
+
+    return deduped;
+  }, [voicings, tuning]);
+
+  // Fallback: if no realistic voicings were generated (e.g. single notes), show all chord tones but no tension lines
+  const allChordTonePositions = useMemo(() => {
+    const notes: VoicingPosition[] = [];
     for (let s = 0; s < numStrings; s++) {
       for (let f = 0; f <= NUM_FRETS; f++) {
         const pc = (tuning[s] + f) % 12;
-        if (activePitchClasses.includes(pc)) {
-          notes.push({
-            s,
-            f,
-            pc,
-            isCore: coreTones.has(pc),
+        if (activePitchClasses.includes(pc)) notes.push({ s, f, pc });
+      }
+    }
+    return notes;
+  }, [activePitchClasses, tuning, numStrings]);
+
+  // Notes to render (union of the generated voicing clusters)
+  const chordTones = useMemo(() => {
+    const source: VoicingPosition[] = voicingsUnique.length > 0
+      ? voicingsUnique.flat()
+      : allChordTonePositions;
+
+    const seen = new Set<string>();
+    const notes: FretboardNote[] = [];
+
+    for (const n of source) {
+      const key = `${n.s}:${n.f}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      notes.push({
+        s: n.s,
+        f: n.f,
+        pc: n.pc,
+        isCore: coreTones.has(n.pc),
+      });
+    }
+
+    return notes;
+  }, [voicingsUnique, allChordTonePositions, coreTones]);
+
+  // Generate tension lines within each voicing cluster only (not across the whole neck)
+  const tensionLines = useMemo(() => {
+    if (voicingsUnique.length === 0) return [];
+
+    const lines: { x1: number; y1: number; x2: number; y2: number; tension: string }[] = [];
+
+    for (const voicing of voicingsUnique) {
+      const sorted = [...voicing].sort(
+        (a, b) => (tuning[a.s] + a.f) - (tuning[b.s] + b.f)
+      );
+
+      for (let i = 0; i < sorted.length; i++) {
+        for (let j = i + 1; j < sorted.length; j++) {
+          const a = sorted[i];
+          const b = sorted[j];
+          if (a.s === b.s) continue;
+
+          const midiA = tuning[a.s] + a.f;
+          const midiB = tuning[b.s] + b.f;
+          const semitones = ((midiB - midiA) % 12 + 12) % 12;
+          const tension = getIntervalTension(semitones);
+
+          const displayRow1 = displayOrder.indexOf(a.s);
+          const displayRow2 = displayOrder.indexOf(b.s);
+
+          lines.push({
+            x1: LEFT_PAD + (a.f === 0 ? 0 : a.f * FRET_WIDTH - FRET_WIDTH / 2),
+            y1: TOP_PAD + displayRow1 * STRING_SPACING,
+            x2: LEFT_PAD + (b.f === 0 ? 0 : b.f * FRET_WIDTH - FRET_WIDTH / 2),
+            y2: TOP_PAD + displayRow2 * STRING_SPACING,
+            tension,
           });
         }
       }
     }
-    
-    return notes;
-  }, [activePitchClasses, root, tuning, numStrings]);
-
-  // Generate tension lines between all chord tones (like PitchClock)
-  const tensionLines = useMemo(() => {
-    const lines: { x1: number; y1: number; x2: number; y2: number; tension: string }[] = [];
-
-    // Create tension lines between all pairs of chord tones
-    for (let i = 0; i < chordTones.length; i++) {
-      for (let j = i + 1; j < chordTones.length; j++) {
-        const note1 = chordTones[i];
-        const note2 = chordTones[j];
-
-        // Skip notes on the same string
-        if (note1.s === note2.s) continue;
-
-        const semitones = ((note2.pc - note1.pc) % 12 + 12) % 12;
-        const tension = getIntervalTension(semitones);
-
-        const displayRow1 = displayOrder.indexOf(note1.s);
-        const displayRow2 = displayOrder.indexOf(note2.s);
-
-        lines.push({
-          x1: LEFT_PAD + (note1.f === 0 ? 0 : note1.f * FRET_WIDTH - FRET_WIDTH / 2),
-          y1: TOP_PAD + displayRow1 * STRING_SPACING,
-          x2: LEFT_PAD + (note2.f === 0 ? 0 : note2.f * FRET_WIDTH - FRET_WIDTH / 2),
-          y2: TOP_PAD + displayRow2 * STRING_SPACING,
-          tension,
-        });
-      }
-    }
 
     return lines;
-  }, [chordTones, displayOrder, tuning]);
+  }, [voicingsUnique, displayOrder, tuning]);
 
   return (
     <div className="flex flex-col items-center">
@@ -162,6 +219,9 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             <option key={preset.name} value={i}>{preset.name}</option>
           ))}
         </select>
+        <span className="text-xs font-mono text-muted-foreground">
+          {voicingsUnique.length} voicings found
+        </span>
       </div>
 
       <div className="overflow-x-auto w-full">
