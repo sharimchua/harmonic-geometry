@@ -137,11 +137,18 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     return generateVoicings(activePitchClasses, bassPc, root, tuning, NUM_FRETS, 'fingerstyle');
   }, [activePitchClasses, bassPc, root, tuning]);
 
+  // Filter voicings to only include those that can play all core tones in correct order
+  const validVoicings = useMemo(() => {
+    return voicings.filter(voicing => 
+      isValidOrderedVoicing(voicing, bassPc, coreTones, tuning)
+    );
+  }, [voicings, bassPc, coreTones, tuning]);
+
   // Ensure each chord tone appears only once per voicing cluster (PitchClock-style)
   const voicingsUnique = useMemo(() => {
     const deduped: VoicingPosition[][] = [];
 
-    for (const v of voicings) {
+    for (const v of validVoicings) {
       const byPc = new Map<number, { pos: VoicingPosition; midi: number }>();
       for (const p of v) {
         const midi = tuning[p.s] + p.f;
@@ -152,7 +159,7 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     }
 
     return deduped;
-  }, [voicings, tuning]);
+  }, [validVoicings, tuning]);
 
   // Fallback: if no realistic voicings were generated (e.g. single notes), show all chord tones but no tension lines
   const allChordTonePositions = useMemo(() => {
