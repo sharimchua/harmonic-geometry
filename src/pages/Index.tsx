@@ -196,7 +196,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto min-w-0">
         {/* Status bar */}
-        <div className="border-b border-border bg-surface-2 px-4 pl-16 xl:pl-4 py-2.5 flex items-center gap-3 sm:gap-4 flex-wrap">
+        <div className="border-b border-border bg-surface-2 px-4 xl:pl-4 pt-16 xl:pt-2.5 pb-2.5 flex items-center gap-3 sm:gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-note-root flex-shrink-0" />
             <span className="font-sans text-sm font-semibold text-foreground">{chordLabel}</span>
