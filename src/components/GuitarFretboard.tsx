@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
 import { getLabel, getIntervalTension, TENSION_COLORS } from '@/lib/musicTheory';
-import { generateVoicings } from '@/lib/guitarVoicings';
 
 const FRET_WIDTH = 50;
 const STRING_SPACING = 24;
@@ -21,22 +20,66 @@ const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[
   { name: 'Half Step Down', tuning: [39, 44, 49, 54, 58, 63], stringNames: ['Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'] },
 ];
 
-const NUM_FRETS = 19;
+const NUM_FRETS = 15;
+const MAX_FRET_DISTANCE = 4; // Maximum fret distance for tension lines
+
+interface FretboardNote {
+  s: number; // string index (0 = lowest)
+  f: number; // fret number
+  pc: number; // pitch class
+  isCore: boolean; // whether this is a core tone
+}
+
+/**
+ * Identify core tones for a chord based on music theory.
+ * For triads: all notes are core.
+ * For 7th chords: root, 3rd, 7th (5th is less essential).
+ * For extensions: root, 3rd, 7th, and the extensions.
+ */
+function identifyCoreTones(chordPcs: number[], root: number): Set<number> {
+  const pcs = [...new Set(chordPcs.map(pc => ((pc % 12) + 12) % 12))];
+  const core = new Set<number>();
+  
+  // Always include root
+  core.add(root);
+  
+  // Find and include 3rd
+  const third = pcs.find(pc => {
+    const interval = ((pc - root) % 12 + 12) % 12;
+    return interval === 3 || interval === 4; // m3 or M3
+  });
+  if (third !== undefined) core.add(third);
+  
+  // For triads, all notes are core
+  if (pcs.length <= 3) {
+    pcs.forEach(pc => core.add(pc));
+    return core;
+  }
+  
+  // For 4+ note chords, prioritize 7th over 5th
+  const seventh = pcs.find(pc => {
+    const interval = ((pc - root) % 12 + 12) % 12;
+    return interval === 9 || interval === 10 || interval === 11; // dim7, m7, M7
+  });
+  if (seventh !== undefined) core.add(seventh);
+  
+  // For 5+ note chords, include extensions
+  if (pcs.length >= 5) {
+    const extensions = pcs.filter(pc => {
+      const interval = ((pc - root) % 12 + 12) % 12;
+      return interval === 2 || interval === 5 || interval === 9; // 9th, 11th, 13th
+    });
+    extensions.forEach(ext => core.add(ext));
+  }
+  
+  return core;
+}
 
 const GuitarFretboard = React.memo(function GuitarFretboard() {
   const {
-    root, setRoot, scaleTonic, activePitchClasses, scalePitchClasses,
+    root, setRoot, scaleTonic, activePitchClasses,
     labelMode, useFlats,
-    activeIntervals, inversion,
   } = useHarmony();
-  const [voicingIdx, setVoicingIdx] = React.useState(0);
-
-  const bassPc = useMemo(() => {
-    if (inversion === 0) return root;
-    const intervals = [...activeIntervals];
-    const bassInterval = intervals[0];
-    return ((root + bassInterval) % 12 + 12) % 12;
-  }, [root, inversion, activeIntervals]);
 
   const [tuningIdx, setTuningIdx] = React.useState(0);
   const currentTuning = TUNING_PRESETS[tuningIdx];
@@ -52,47 +95,59 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     return order;
   }, [numStrings]);
 
-  const allVoicings = useMemo(() => {
-    return generateVoicings(activePitchClasses, bassPc, root, tuning, NUM_FRETS);
-  }, [bassPc, root, tuning, activePitchClasses]);
+  // Find all chord tones on the fretboard
+  const chordTones = useMemo(() => {
+    const coreTones = identifyCoreTones(activePitchClasses, root);
+    const notes: FretboardNote[] = [];
+    
+    for (let s = 0; s < numStrings; s++) {
+      for (let f = 0; f <= NUM_FRETS; f++) {
+        const pc = (tuning[s] + f) % 12;
+        if (activePitchClasses.includes(pc)) {
+          notes.push({
+            s,
+            f,
+            pc,
+            isCore: coreTones.has(pc),
+          });
+        }
+      }
+    }
+    
+    return notes;
+  }, [activePitchClasses, root, tuning, numStrings]);
 
-  // Reset voicing index when chord changes
-  React.useEffect(() => {
-    setVoicingIdx(0);
-  }, [activePitchClasses, bassPc, tuning]);
-
-  // Show only the selected voicing (or none if empty)
-  const voicings = allVoicings.length > 0 ? [allVoicings[Math.min(voicingIdx, allVoicings.length - 1)]] : [];
-
-  const voicingTensionLines = useMemo(() => {
-    return voicings.map(voicing => {
-      const lines: { x1: number; y1: number; x2: number; y2: number; tension: string }[] = [];
-      for (let i = 0; i < voicing.length; i++) {
-        for (let j = i + 1; j < voicing.length; j++) {
-          const semitones = ((voicing[j].pc - voicing[i].pc) % 12 + 12) % 12;
+  // Generate tension lines between nearby chord tones
+  const tensionLines = useMemo(() => {
+    const lines: { x1: number; y1: number; x2: number; y2: number; tension: string }[] = [];
+    
+    for (let i = 0; i < chordTones.length; i++) {
+      for (let j = i + 1; j < chordTones.length; j++) {
+        const note1 = chordTones[i];
+        const note2 = chordTones[j];
+        
+        // Only show tension lines for nearby notes (within MAX_FRET_DISTANCE)
+        const fretDistance = Math.abs(note1.f - note2.f);
+        if (fretDistance <= MAX_FRET_DISTANCE) {
+          const semitones = ((note2.pc - note1.pc) % 12 + 12) % 12;
           const tension = getIntervalTension(semitones);
-          const displayRowI = displayOrder.indexOf(voicing[i].s);
-          const displayRowJ = displayOrder.indexOf(voicing[j].s);
+          
+          const displayRow1 = displayOrder.indexOf(note1.s);
+          const displayRow2 = displayOrder.indexOf(note2.s);
+          
           lines.push({
-            x1: LEFT_PAD + (voicing[i].f === 0 ? 0 : voicing[i].f * FRET_WIDTH - FRET_WIDTH / 2),
-            y1: TOP_PAD + displayRowI * STRING_SPACING,
-            x2: LEFT_PAD + (voicing[j].f === 0 ? 0 : voicing[j].f * FRET_WIDTH - FRET_WIDTH / 2),
-            y2: TOP_PAD + displayRowJ * STRING_SPACING,
+            x1: LEFT_PAD + (note1.f === 0 ? 0 : note1.f * FRET_WIDTH - FRET_WIDTH / 2),
+            y1: TOP_PAD + displayRow1 * STRING_SPACING,
+            x2: LEFT_PAD + (note2.f === 0 ? 0 : note2.f * FRET_WIDTH - FRET_WIDTH / 2),
+            y2: TOP_PAD + displayRow2 * STRING_SPACING,
             tension,
           });
         }
       }
-      return lines;
-    });
-  }, [voicings, displayOrder]);
-
-  const voicedSet = useMemo(() => {
-    const set = new Set<string>();
-    voicings.forEach(v => {
-      v.forEach(p => set.add(`${p.s}-${p.f}`));
-    });
-    return set;
-  }, [voicings]);
+    }
+    
+    return lines;
+  }, [chordTones, displayOrder]);
 
   return (
     <div className="flex flex-col items-center">
@@ -107,29 +162,6 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             <option key={preset.name} value={i}>{preset.name}</option>
           ))}
         </select>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {allVoicings.length > 1 && (
-            <button
-              onClick={() => setVoicingIdx(i => (i - 1 + allVoicings.length) % allVoicings.length)}
-              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-1.5 sm:px-2 py-1 transition-colors"
-            >
-              ◀
-            </button>
-          )}
-          <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
-            Voicing {allVoicings.length > 0
-              ? `${Math.min(voicingIdx, allVoicings.length - 1) + 1} / ${allVoicings.length}`
-              : '— none found'}
-          </span>
-          {allVoicings.length > 1 && (
-            <button
-              onClick={() => setVoicingIdx(i => (i + 1) % allVoicings.length)}
-              className="text-xs font-mono text-muted-foreground hover:text-primary border border-border hover:border-primary/50 rounded px-1.5 sm:px-2 py-1 transition-colors"
-            >
-              ▶
-            </button>
-          )}
-        </div>
       </div>
 
       <div className="overflow-x-auto w-full">
@@ -147,12 +179,14 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             </text>
           ))}
 
+          {/* Nut */}
           <line
             x1={LEFT_PAD} y1={TOP_PAD}
             x2={LEFT_PAD} y2={TOP_PAD + (numStrings - 1) * STRING_SPACING}
             stroke="hsl(30, 10%, 55%)" strokeWidth="3"
           />
 
+          {/* Frets */}
           {Array.from({ length: NUM_FRETS }, (_, f) => (
             <line
               key={`fret-${f}`}
@@ -164,6 +198,7 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             />
           ))}
 
+          {/* Strings */}
           {displayOrder.map((dataIdx, row) => (
             <g key={`string-${dataIdx}`}>
               <text
@@ -186,6 +221,7 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             </g>
           ))}
 
+          {/* Fret markers */}
           {FRET_MARKERS.filter(f => f !== 12 && f <= NUM_FRETS).map(f => (
             <circle
               key={`dot-${f}`}
@@ -205,74 +241,61 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             />
           ))}
 
-          {/* Ghost dots for all other voicings */}
-          {allVoicings.map((voicing, vIdx) => {
-            const safeIdx = Math.min(voicingIdx, allVoicings.length - 1);
-            if (vIdx === safeIdx) return null;
-            return voicing.map((pos, i) => {
-              const displayRow = displayOrder.indexOf(pos.s);
-              const cx = LEFT_PAD + (pos.f === 0 ? 0 : pos.f * FRET_WIDTH - FRET_WIDTH / 2);
-              const cy = TOP_PAD + displayRow * STRING_SPACING;
-              return (
-                <circle
-                  key={`ghost-${vIdx}-${i}`}
-                  cx={cx} cy={cy} r={DOT_R - 2}
-                  fill="hsl(28, 15%, 24%)"
-                  stroke="hsl(28, 20%, 38%)"
-                  strokeWidth={0.75}
-                  opacity={0.55}
-                  className="cursor-pointer"
-                  onClick={() => setVoicingIdx(vIdx)}
-                />
-              );
-            });
+          {/* Tension lines */}
+          {tensionLines.map((line, i) => {
+            const color = TENSION_COLORS[line.tension] ?? TENSION_COLORS.mild;
+            return (
+              <line
+                key={`tension-${i}`}
+                x1={line.x1} y1={line.y1}
+                x2={line.x2} y2={line.y2}
+                stroke={color}
+                strokeWidth={1.5}
+                opacity={0.4}
+                strokeDasharray={line.tension === 'dissonant' || line.tension === 'tritone' ? '4,3' : undefined}
+              />
+            );
           })}
 
-          {/* Tension lines for active voicing */}
-          {voicingTensionLines.map((lines, posIdx) =>
-            lines.map((line, i) => {
-              const color = TENSION_COLORS[line.tension] ?? TENSION_COLORS.mild;
-              return (
-                <line
-                  key={`tension-${posIdx}-${i}`}
-                  x1={line.x1} y1={line.y1}
-                  x2={line.x2} y2={line.y2}
-                  stroke={color}
-                  strokeWidth={1.5}
-                  opacity={0.3}
-                  strokeDasharray={line.tension === 'dissonant' || line.tension === 'tritone' ? '4,3' : undefined}
+          {/* Chord tone dots */}
+          {chordTones.map((note, i) => {
+            const displayRow = displayOrder.indexOf(note.s);
+            const cx = LEFT_PAD + (note.f === 0 ? 0 : note.f * FRET_WIDTH - FRET_WIDTH / 2);
+            const cy = TOP_PAD + displayRow * STRING_SPACING;
+            
+            const isRoot = note.pc === root;
+            const fill = isRoot 
+              ? 'hsl(32, 85%, 52%)' 
+              : note.isCore 
+                ? 'hsl(28, 60%, 40%)' 
+                : 'hsl(28, 40%, 35%)';
+            const stroke = isRoot 
+              ? 'hsl(32, 90%, 65%)' 
+              : note.isCore 
+                ? 'hsl(28, 50%, 55%)' 
+                : 'hsl(28, 30%, 50%)';
+            const opacity = note.isCore ? 1 : 0.6;
+
+            return (
+              <g key={`note-${i}`} onClick={() => setRoot(note.pc)} className="cursor-pointer">
+                <circle 
+                  cx={cx} cy={cy} r={DOT_R} 
+                  fill={fill} stroke={stroke} strokeWidth={1} 
+                  opacity={opacity}
                 />
-              );
-            })
-          )}
-
-          {/* Active voicing dots */}
-          {voicings.map((voicing, posIdx) =>
-            voicing.map((pos, i) => {
-              const displayRow = displayOrder.indexOf(pos.s);
-              const cx = LEFT_PAD + (pos.f === 0 ? 0 : pos.f * FRET_WIDTH - FRET_WIDTH / 2);
-              const cy = TOP_PAD + displayRow * STRING_SPACING;
-              const isRoot = pos.pc === root;
-              const fill = isRoot ? 'hsl(32, 85%, 52%)' : 'hsl(28, 60%, 40%)';
-              const stroke = isRoot ? 'hsl(32, 90%, 65%)' : 'hsl(28, 50%, 55%)';
-
-              return (
-                <g key={`v-${posIdx}-${i}`} onClick={() => setRoot(pos.pc)} className="cursor-pointer">
-                  <circle cx={cx} cy={cy} r={DOT_R} fill={fill} stroke={stroke} strokeWidth={1} />
-                  <text
-                    x={cx} y={cy}
-                    textAnchor="middle" dominantBaseline="central"
-                    fontSize={8} fontWeight={600}
-                    fontFamily="'JetBrains Mono', monospace"
-                    fill="hsl(0, 0%, 92%)"
-                  >
-                    {getLabel(pos.pc, root, labelMode, useFlats, scaleTonic)}
-                  </text>
-                </g>
-              );
-            })
-          )}
-
+                <text
+                  x={cx} y={cy}
+                  textAnchor="middle" dominantBaseline="central"
+                  fontSize={8} fontWeight={600}
+                  fontFamily="'JetBrains Mono', monospace"
+                  fill="hsl(0, 0%, 92%)"
+                  opacity={opacity}
+                >
+                  {getLabel(note.pc, root, labelMode, useFlats, scaleTonic)}
+                </text>
+              </g>
+            );
+          })}
         </svg>
       </div>
     </div>
