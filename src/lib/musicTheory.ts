@@ -1105,20 +1105,31 @@ export interface CadenceOption {
   targetRoot: PitchClass;
   targetChord: ChordType;
   displayName: string;
+  functionalLabel: string;
+  targetDegree: number;
 }
 
 /**
- * Generate cadence suggestions based on the current harmony.
- * Filters by direction and chord quality.
+ * Generate cadence suggestions based on the current harmony within the key context.
+ * Uses the scaleTonic to determine the functional role of the current chord,
+ * then suggests progressions relative to that context.
  */
 export function getCadenceSuggestions(
   currentRoot: PitchClass,
   currentChordName: string,
+  scaleTonic: PitchClass,
   direction: CadenceDirection,
   useFlats: boolean,
 ): CadenceOption[] {
   const allChords = Object.values(CHORD_CATEGORIES).flat();
-
+  
+  // Calculate current chord's degree relative to the key
+  const currentDegree = ((currentRoot - scaleTonic) % 12 + 12) % 12;
+  
+  // Map cadence templates to key-contextual suggestions
+  // The templates define functional relationships (e.g., V→I, IV→I)
+  // We translate these to the actual key
+  
   return CADENCE_TEMPLATES
     .filter(s => s.direction === direction)
     .filter(s => {
@@ -1131,11 +1142,32 @@ export function getCadenceSuggestions(
       );
     })
     .map(suggestion => {
+      // Calculate the target root relative to the current root
       const targetRoot = ((currentRoot + suggestion.rootOffset) % 12 + 12) % 12 as PitchClass;
       const targetChord = allChords.find(c => c.name === suggestion.chordName)
         ?? CHORD_CATEGORIES['Tertian Triads'][0];
+      
+      // Calculate target degree relative to key for display context
+      const targetDegree = ((targetRoot - scaleTonic) % 12 + 12) % 12;
+      
+      // Generate contextual label showing the functional movement
+      const degreeNumerals = ['I', '♭II', 'II', '♭III', 'III', 'IV', '♭V', 'V', '♭VI', 'VI', '♭VII', 'VII'];
+      const fromDegree = degreeNumerals[currentDegree];
+      const toDegree = degreeNumerals[targetDegree];
+      
       const displayName = `${getNoteName(targetRoot, useFlats)} ${targetChord.name}`;
-      return { suggestion, targetRoot, targetChord, displayName };
+      const functionalLabel = direction === 'leadTo' 
+        ? `${fromDegree} → ${toDegree}` 
+        : `${toDegree} → ${fromDegree}`;
+      
+      return { 
+        suggestion, 
+        targetRoot, 
+        targetChord, 
+        displayName,
+        functionalLabel,
+        targetDegree,
+      };
     });
 }
 
