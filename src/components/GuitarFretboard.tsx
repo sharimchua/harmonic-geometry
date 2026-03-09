@@ -214,7 +214,10 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
         for (let j = i + 1; j < sorted.length; j++) {
           const a = sorted[i];
           const b = sorted[j];
-          if (a.s === b.s) continue;
+          if (a.s === b.s) continue; // Skip same string
+          
+          const fretDistance = Math.abs(a.f - b.f);
+          if (fretDistance > 3) continue; // Skip if more than 3 frets apart
 
           const midiA = tuning[a.s] + a.f;
           const midiB = tuning[b.s] + b.f;
