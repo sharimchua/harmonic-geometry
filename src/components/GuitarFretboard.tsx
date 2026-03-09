@@ -21,7 +21,7 @@ const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[
   { name: 'Half Step Down', tuning: [39, 44, 49, 54, 58, 63], stringNames: ['Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'] },
 ];
 
-const NUM_FRETS = 15;
+const NUM_FRETS = 12;
 const MAX_FRET_DISTANCE = 4; // Maximum fret distance for tension lines
 
 interface FretboardNote {
