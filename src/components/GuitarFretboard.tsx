@@ -32,19 +32,19 @@ interface FretboardNote {
 }
 
 /**
- * Identify core tones for a chord based on music theory.
+ * Identify core tones using jazz shell voicing logic.
  * For triads: all notes are core.
- * For 7th chords: root, 3rd, 7th (5th is less essential).
- * For extensions: root, 3rd, 7th, and the extensions.
+ * For 7th chords: root, 3rd, 7th (5th can be dropped).
+ * For extensions: root, 3rd, 7th, and the extensions (5th and others can be dropped).
  */
-function identifyCoreTones(chordPcs: number[], root: number): Set<number> {
+function identifyCoreTones(chordPcs: number[], root: number, activeIntervals: number[]): Set<number> {
   const pcs = [...new Set(chordPcs.map(pc => ((pc % 12) + 12) % 12))];
   const core = new Set<number>();
   
   // Always include root
   core.add(root);
   
-  // Find and include 3rd
+  // Find and include 3rd (essential for quality)
   const third = pcs.find(pc => {
     const interval = ((pc - root) % 12 + 12) % 12;
     return interval === 3 || interval === 4; // m3 or M3
@@ -57,14 +57,14 @@ function identifyCoreTones(chordPcs: number[], root: number): Set<number> {
     return core;
   }
   
-  // For 4+ note chords, prioritize 7th over 5th
+  // For 4+ note chords, prioritize 7th over 5th (shell voicing logic)
   const seventh = pcs.find(pc => {
     const interval = ((pc - root) % 12 + 12) % 12;
     return interval === 9 || interval === 10 || interval === 11; // dim7, m7, M7
   });
   if (seventh !== undefined) core.add(seventh);
   
-  // For 5+ note chords, include extensions
+  // For 5+ note chords, include extensions but NOT the 5th (shell voicing)
   if (pcs.length >= 5) {
     const extensions = pcs.filter(pc => {
       const interval = ((pc - root) % 12 + 12) % 12;
@@ -74,6 +74,30 @@ function identifyCoreTones(chordPcs: number[], root: number): Set<number> {
   }
   
   return core;
+}
+
+/**
+ * Check if a voicing can play all core tones in the correct bass order for the inversion.
+ */
+function isValidOrderedVoicing(voicing: VoicingPosition[], bassPc: number, coreTones: Set<number>, tuning: number[]): boolean {
+  const voicingPcs = new Set(voicing.map(v => v.pc));
+  
+  // Must contain all core tones
+  for (const core of coreTones) {
+    if (!voicingPcs.has(core)) return false;
+  }
+  
+  // Sort voicing notes by actual pitch (MIDI)
+  const sortedNotes = voicing
+    .map(v => ({ ...v, midi: tuning[v.s] + v.f }))
+    .sort((a, b) => a.midi - b.midi);
+  
+  // Bass note should be the lowest and match the expected bass pitch class
+  if (sortedNotes.length === 0) return false;
+  const bassNote = sortedNotes[0];
+  if (bassNote.pc !== bassPc) return false;
+  
+  return true;
 }
 
 const GuitarFretboard = React.memo(function GuitarFretboard() {
