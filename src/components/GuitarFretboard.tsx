@@ -128,8 +128,8 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
   }, [root, activeIntervals]);
 
   const coreTones = useMemo(
-    () => identifyCoreTones(activePitchClasses, root),
-    [activePitchClasses, root]
+    () => identifyCoreTones(activePitchClasses, root, activeIntervals),
+    [activePitchClasses, root, activeIntervals]
   );
 
   const voicings = useMemo(() => {
