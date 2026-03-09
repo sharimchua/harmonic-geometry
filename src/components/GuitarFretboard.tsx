@@ -219,6 +219,9 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             <option key={preset.name} value={i}>{preset.name}</option>
           ))}
         </select>
+        <span className="text-xs font-mono text-muted-foreground">
+          {voicingsUnique.length} voicings found
+        </span>
       </div>
 
       <div className="overflow-x-auto w-full">
