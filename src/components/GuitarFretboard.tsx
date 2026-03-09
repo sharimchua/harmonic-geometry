@@ -78,7 +78,9 @@ function identifyCoreTones(chordPcs: number[], root: number): Set<number> {
 
 const GuitarFretboard = React.memo(function GuitarFretboard() {
   const {
-    root, setRoot, scaleTonic, activePitchClasses,
+    root, setRoot, scaleTonic,
+    activeIntervals,
+    activePitchClasses,
     labelMode, useFlats,
   } = useHarmony();
 
