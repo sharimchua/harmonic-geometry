@@ -12,7 +12,7 @@ import StaffNotation from '@/components/StaffNotation';
 import ChordSynonyms from '@/components/ChordSynonyms';
 import DissonanceSpectrum from '@/components/DissonanceSpectrum';
 import { useSectionOrder, type SectionId, type ColumnId } from '@/hooks/useSectionOrder';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Lock, Unlock, Tags, Settings2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Lock, Unlock, Tags, Menu, X, Layers } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -36,14 +36,24 @@ const SECTION_LABELS: Record<SectionId, string> = {
   fretboard: 'Guitar Fretboard',
 };
 
+function getInversionLabel(i: number) {
+  if (i === 0) return 'Root Position';
+  if (i === 1) return '1st Inversion';
+  if (i === 2) return '2nd Inversion';
+  if (i === 3) return '3rd Inversion';
+  return `${i}th Inversion`;
+}
+
 const Index = () => {
-  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, labelMode, setLabelMode, functionalAnalysis, midi, midiEnabled } = useHarmony();
+  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, labelMode, setLabelMode, inversion, setInversion, functionalAnalysis, midi, midiEnabled } = useHarmony();
   const { order, columns, moveUp, moveDown, moveToColumn } = useSectionOrder();
-  const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const chordLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
   const keyLabel = scale ? `Key of ${getNoteName(scaleTonic, useFlats)} ${scale.name}` : 'No key';
   const intervalStr = activeIntervals.map(i => ((i % 12) + 12) % 12).join('-');
+  const maxInversion = chord.intervals.length - 1;
+  const showInversionDropdown = chord.intervals.length >= 3;
 
   const defaultAnalysis: SectionId[] = ['context', 'intervals', 'cadence', 'dissonance'];
   const defaultInstruments: SectionId[] = ['staff', 'piano', 'fretboard'];
@@ -103,74 +113,53 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar Control Panel */}
-      <aside className="w-72 min-w-[280px] border-r border-border bg-surface-1 overflow-y-auto p-5 hidden lg:flex flex-col flex-shrink-0">
-        <div className="mb-6">
-          <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 group/brand">
-            <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-9 h-9 rounded-md" />
-            <div>
-              <h1 className="text-lg font-sans font-bold text-foreground tracking-tight">
-                Harmonic<span className="text-primary"> Geometry</span>
-              </h1>
-              <p className="text-[10px] font-sans text-muted-foreground group-hover/brand:text-primary transition-colors">
-                A Midlife Muso Tool
-              </p>
+      {/* Sidebar overlay + panel */}
+      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <SheetContent side="left" className="w-[300px] sm:w-[340px] overflow-y-auto bg-surface-1 p-0">
+          <div className="p-5">
+            <SheetHeader className="mb-4">
+              <SheetTitle className="sr-only">Controls</SheetTitle>
+              <SheetDescription className="sr-only">
+                Adjust key, chord, scale, and voicing settings.
+              </SheetDescription>
+              <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 group/brand">
+                <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-9 h-9 rounded-md" />
+                <div>
+                  <h1 className="text-lg font-sans font-bold text-foreground tracking-tight">
+                    Harmonic<span className="text-primary"> Geometry</span>
+                  </h1>
+                  <p className="text-[10px] font-sans text-muted-foreground group-hover/brand:text-primary transition-colors">
+                    A Midlife Muso Tool
+                  </p>
+                </div>
+              </a>
+            </SheetHeader>
+            <ControlPanel />
+            <div className="mt-6 pt-4 border-t border-border space-y-2">
+              <p className="text-[10px] font-sans font-semibold text-muted-foreground uppercase tracking-wider mb-2">Midlife Muso</p>
+              <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">Home</a>
+              <a href="https://midlifemuso.com/learning" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">Learning Resources</a>
+              <a href="https://midlifemuso.com/about-me" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">About Me</a>
+              <a href="https://midlifemuso.com/tools" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">More Tools</a>
+              <p className="text-[9px] font-sans text-muted-foreground/60 pt-2">Ear-first guitar & piano coaching in Melbourne</p>
             </div>
-          </a>
-        </div>
-        <div className="flex-1">
-          <ControlPanel />
-        </div>
-        <div className="mt-6 pt-4 border-t border-border space-y-2">
-          <p className="text-[10px] font-sans font-semibold text-muted-foreground uppercase tracking-wider mb-2">Midlife Muso</p>
-          <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">Home</a>
-          <a href="https://midlifemuso.com/learning" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">Learning Resources</a>
-          <a href="https://midlifemuso.com/about-me" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">About Me</a>
-          <a href="https://midlifemuso.com/tools" target="_blank" rel="noopener noreferrer" className="block text-xs font-sans text-muted-foreground hover:text-primary transition-colors">More Tools</a>
-          <p className="text-[9px] font-sans text-muted-foreground/60 pt-2">Ear-first guitar & piano coaching in Melbourne</p>
-        </div>
-      </aside>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Floating burger button — always visible */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="fixed top-3 left-3 z-40 w-10 h-10 rounded-lg flex items-center justify-center bg-surface-1 border border-border shadow-md hover:bg-surface-2 text-muted-foreground hover:text-primary transition-colors"
+        aria-label="Open controls"
+      >
+        <Menu size={20} />
+      </button>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto min-w-0">
-        {/* Mobile header */}
-        <div className="lg:hidden border-b border-border bg-surface-1 p-3 flex items-center gap-2.5">
-          <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer">
-            <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-7 h-7 rounded-md" />
-          </a>
-          <div className="flex-1">
-            <h1 className="text-base font-sans font-bold text-foreground">
-              Harmonic<span className="text-primary"> Geometry</span>
-            </h1>
-            <p className="text-[9px] font-sans text-muted-foreground">A Midlife Muso Tool</p>
-          </div>
-          {/* Mobile controls button */}
-          <button
-            onClick={() => setMobileControlsOpen(true)}
-            className="w-9 h-9 rounded-md flex items-center justify-center bg-surface-3 hover:bg-surface-2 text-muted-foreground hover:text-primary transition-colors border border-border"
-            aria-label="Open controls"
-          >
-            <Settings2 size={18} />
-          </button>
-        </div>
-
-        {/* Mobile controls Sheet */}
-        <Sheet open={mobileControlsOpen} onOpenChange={setMobileControlsOpen}>
-          <SheetContent side="left" className="w-[300px] sm:w-[340px] overflow-y-auto bg-surface-1">
-            <SheetHeader>
-              <SheetTitle className="text-foreground">Controls</SheetTitle>
-              <SheetDescription className="text-muted-foreground">
-                Adjust key, chord, scale, and voicing settings.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="mt-4">
-              <ControlPanel />
-            </div>
-          </SheetContent>
-        </Sheet>
-
         {/* Status bar */}
-        <div className="border-b border-border bg-surface-2 px-4 py-2.5 flex items-center gap-3 sm:gap-4 flex-wrap">
+        <div className="border-b border-border bg-surface-2 px-4 pl-16 py-2.5 flex items-center gap-3 sm:gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-note-root flex-shrink-0" />
             <span className="font-sans text-sm font-semibold text-foreground">{chordLabel}</span>
@@ -182,7 +171,7 @@ const Index = () => {
             <span className="w-2 h-2 rounded-full bg-accent flex-shrink-0" />
             <span className="font-sans text-xs text-muted-foreground">{keyLabel}</span>
           </div>
-          {/* Chord synonyms — popover on small screens, inline on larger */}
+          {/* Chord synonyms */}
           <div className="hidden sm:block">
             <ChordSynonyms />
           </div>
@@ -213,6 +202,21 @@ const Index = () => {
               {lockMode === 'scale' ? <Lock size={12} /> : <Unlock size={12} />}
               <span className="hidden sm:inline">{lockMode === 'scale' ? 'Scale Lock' : 'Quality Lock'}</span>
             </button>
+            {/* Inversion dropdown — only when 3+ chord tones */}
+            {showInversionDropdown && (
+              <div className="relative flex items-center">
+                <Layers size={12} className="absolute left-2 text-muted-foreground pointer-events-none" />
+                <select
+                  value={inversion}
+                  onChange={e => setInversion(Number(e.target.value))}
+                  className="text-xs font-mono bg-surface-3 border border-border text-foreground rounded-md pl-7 pr-6 py-1 appearance-none cursor-pointer hover:bg-surface-2 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/40"
+                >
+                  {Array.from({ length: maxInversion + 1 }, (_, i) => (
+                    <option key={i} value={i}>{getInversionLabel(i)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             {/* Label mode dropdown */}
             <div className="relative flex items-center">
               <Tags size={12} className="absolute left-2 text-muted-foreground pointer-events-none" />
@@ -293,7 +297,7 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Mobile footer — simplified (controls moved to Sheet) */}
+        {/* Mobile footer */}
         <div className="lg:hidden p-4">
           <div className="bg-surface-1 border border-border rounded-lg p-4 shadow-sm flex items-center gap-3">
             <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-8 h-8 rounded-md" />
