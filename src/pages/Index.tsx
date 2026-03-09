@@ -147,14 +147,25 @@ const Index = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Floating burger button — visible only on smaller screens */}
-      <button
-        onClick={() => setSidebarOpen(true)}
-        className="fixed top-3 left-3 z-40 w-10 h-10 rounded-lg flex xl:hidden items-center justify-center bg-surface-1 border border-border shadow-md hover:bg-surface-2 text-muted-foreground hover:text-primary transition-colors"
-        aria-label="Open controls"
-      >
-        <Menu size={20} />
-      </button>
+      {/* Floating header — visible only on smaller screens */}
+      <div className="fixed top-3 left-3 z-40 flex xl:hidden items-center gap-2">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="w-10 h-10 rounded-lg flex items-center justify-center bg-surface-1 border border-border shadow-md hover:bg-surface-2 text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+          aria-label="Open controls"
+        >
+          <Menu size={20} />
+        </button>
+        <a href="https://midlifemuso.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-surface-1 border border-border rounded-lg px-2.5 py-1.5 shadow-md">
+          <img src="/images/midlife-muso-icon.webp" alt="Midlife Muso" className="w-7 h-7 rounded-md flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-sans font-bold text-foreground tracking-tight leading-tight">
+              Harmonic<span className="text-primary"> Geometry</span>
+            </p>
+            <p className="text-[9px] font-sans text-muted-foreground leading-tight">A Midlife Muso Tool</p>
+          </div>
+        </a>
+      </div>
 
       {/* Fixed sidebar for larger screens */}
       <aside className="hidden xl:flex flex-col w-[300px] 2xl:w-[340px] flex-shrink-0 border-r border-border bg-surface-1 overflow-y-auto">
