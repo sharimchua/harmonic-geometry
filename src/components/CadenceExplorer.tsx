@@ -11,14 +11,14 @@ import {
 
 export default function CadenceExplorer() {
   const {
-    root, chord, useFlats, setRoot, setChord, setScaleTonic,
+    root, chord, useFlats, setRoot, setChord, setScaleTonic, scaleTonic,
     cadenceMode, setCadenceMode, relockCadence, lockedRoot, lockedChord,
   } = useHarmony();
   const [direction, setDirection] = useState<CadenceDirection>('leadTo');
 
   const suggestions = useMemo(
-    () => getCadenceSuggestions(root, chord.name, direction, useFlats),
-    [root, chord.name, direction, useFlats],
+    () => getCadenceSuggestions(root, chord.name, scaleTonic, direction, useFlats),
+    [root, chord.name, scaleTonic, direction, useFlats],
   );
 
   const grouped = useMemo(() => {

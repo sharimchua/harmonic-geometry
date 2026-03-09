@@ -1105,6 +1105,8 @@ export interface CadenceOption {
   targetRoot: PitchClass;
   targetChord: ChordType;
   displayName: string;
+  functionalLabel: string;
+  targetDegree: number;
 }
 
 /**
