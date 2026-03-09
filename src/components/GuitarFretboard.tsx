@@ -252,7 +252,7 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
           ))}
         </select>
         <span className="text-xs font-mono text-muted-foreground">
-          {voicingsUnique.length} voicings found
+          {voicingsUnique.length} valid voicings
         </span>
       </div>
 
