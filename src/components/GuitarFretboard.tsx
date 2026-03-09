@@ -117,82 +117,33 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     return notes;
   }, [activePitchClasses, root, tuning, numStrings]);
 
-  // Generate tension lines only between notes in playable grips
+  // Generate tension lines between all chord tones (like PitchClock)
   const tensionLines = useMemo(() => {
-    const GRIP_SPAN = 4;
-    const coPlayablePairs = new Set<string>();
-
-    // Find fret range of all chord tones
-    const frettedNotes = chordTones.filter(n => n.f > 0);
-    const openNotes = chordTones.filter(n => n.f === 0);
-    
-    if (frettedNotes.length === 0 && openNotes.length <= 1) return [];
-
-    const minFret = frettedNotes.length > 0 ? Math.min(...frettedNotes.map(n => n.f)) : 1;
-    const maxFret = frettedNotes.length > 0 ? Math.max(...frettedNotes.map(n => n.f)) : 1;
-
-    // Slide a GRIP_SPAN window across the fretboard and find playable clusters
-    for (let windowStart = Math.max(1, minFret); windowStart <= maxFret; windowStart++) {
-      const windowEnd = windowStart + GRIP_SPAN;
-
-      // Collect best note per string within this window (+ open strings)
-      const bestPerString = new Map<number, FretboardNote>();
-
-      for (const note of chordTones) {
-        // Open strings can always ring
-        if (note.f === 0 || (note.f >= windowStart && note.f <= windowEnd)) {
-          const existing = bestPerString.get(note.s);
-          if (!existing) {
-            bestPerString.set(note.s, note);
-          } else if (note.isCore && !existing.isCore) {
-            bestPerString.set(note.s, note);
-          } else if (note.isCore === existing.isCore && note.f < existing.f) {
-            bestPerString.set(note.s, note);
-          }
-        }
-      }
-
-      // Need at least 2 notes to form pairs
-      const grip = Array.from(bestPerString.values());
-      if (grip.length < 2) continue;
-
-      // Register all pairs within this grip
-      for (let i = 0; i < grip.length; i++) {
-        for (let j = i + 1; j < grip.length; j++) {
-          const a = grip[i], b = grip[j];
-          const key = `${Math.min(a.s, b.s)},${Math.min(a.f, b.f)}-${Math.max(a.s, b.s)},${Math.max(a.f, b.f)}`;
-          coPlayablePairs.add(key);
-        }
-      }
-    }
-
-    // Build lines from co-playable pairs
     const lines: { x1: number; y1: number; x2: number; y2: number; tension: string }[] = [];
-    const seen = new Set<string>();
 
-    for (const pairKey of coPlayablePairs) {
-      if (seen.has(pairKey)) continue;
-      seen.add(pairKey);
+    // Create tension lines between all pairs of chord tones
+    for (let i = 0; i < chordTones.length; i++) {
+      for (let j = i + 1; j < chordTones.length; j++) {
+        const note1 = chordTones[i];
+        const note2 = chordTones[j];
 
-      const [partA, partB] = pairKey.split('-');
-      const [s1, f1] = partA.split(',').map(Number);
-      const [s2, f2] = partB.split(',').map(Number);
+        // Skip notes on the same string
+        if (note1.s === note2.s) continue;
 
-      const pc1 = (tuning[s1] + f1) % 12;
-      const pc2 = (tuning[s2] + f2) % 12;
-      const semitones = ((pc2 - pc1) % 12 + 12) % 12;
-      const tension = getIntervalTension(semitones);
+        const semitones = ((note2.pc - note1.pc) % 12 + 12) % 12;
+        const tension = getIntervalTension(semitones);
 
-      const displayRow1 = displayOrder.indexOf(s1);
-      const displayRow2 = displayOrder.indexOf(s2);
+        const displayRow1 = displayOrder.indexOf(note1.s);
+        const displayRow2 = displayOrder.indexOf(note2.s);
 
-      lines.push({
-        x1: LEFT_PAD + (f1 === 0 ? 0 : f1 * FRET_WIDTH - FRET_WIDTH / 2),
-        y1: TOP_PAD + displayRow1 * STRING_SPACING,
-        x2: LEFT_PAD + (f2 === 0 ? 0 : f2 * FRET_WIDTH - FRET_WIDTH / 2),
-        y2: TOP_PAD + displayRow2 * STRING_SPACING,
-        tension,
-      });
+        lines.push({
+          x1: LEFT_PAD + (note1.f === 0 ? 0 : note1.f * FRET_WIDTH - FRET_WIDTH / 2),
+          y1: TOP_PAD + displayRow1 * STRING_SPACING,
+          x2: LEFT_PAD + (note2.f === 0 ? 0 : note2.f * FRET_WIDTH - FRET_WIDTH / 2),
+          y2: TOP_PAD + displayRow2 * STRING_SPACING,
+          tension,
+        });
+      }
     }
 
     return lines;
