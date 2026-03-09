@@ -197,7 +197,7 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     }
 
     return notes;
-  }, [voicingsUnique, allChordTonePositions, coreTones]);
+  }, [voicingsUnique, fallbackPositions, coreTones]);
 
   // Generate tension lines within each voicing cluster only (not across the whole neck)
   const tensionLines = useMemo(() => {
