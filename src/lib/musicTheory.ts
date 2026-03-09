@@ -1187,10 +1187,247 @@ function getContextualCadenceDescription(
   return originalDescription;
 }
 
+// ─── Functional Cadence Definitions ───────────────────────────────
+// Define cadence patterns based on FUNCTIONAL DEGREE within the key,
+// not just chord quality. This ensures C Major as V suggests different
+// movements than C Major as I.
+
+interface FunctionalCadence {
+  fromDegrees: number[]; // degrees this applies to (0=I, 7=V, etc.)
+  direction: CadenceDirection;
+  category: CadenceCategory;
+  name: string;
+  label: string;
+  targetDegree: number; // target degree relative to key
+  targetQuality: string; // chord quality for the target
+  description: string;
+  songExample: string;
+}
+
+const FUNCTIONAL_CADENCES: FunctionalCadence[] = [
+  // ═══════════════════════════════════════
+  // FROM TONIC (I, degree 0) - LEAD TO
+  // ═══════════════════════════════════════
+  { fromDegrees: [0], direction: 'leadTo', category: 'resolution', name: 'To Dominant', label: '→ V',
+    targetDegree: 7, targetQuality: 'Dominant 7',
+    description: 'Moving to dominant territory. Building tension that demands resolution.',
+    songExample: '"Twist and Shout" (Beatles)' },
+  { fromDegrees: [0], direction: 'leadTo', category: 'journey', name: 'To Subdominant', label: '→ IV',
+    targetDegree: 5, targetQuality: 'Major',
+    description: 'Opening up toward the subdominant. Floating away from home.',
+    songExample: '"Let It Be" (Beatles)' },
+  { fromDegrees: [0], direction: 'leadTo', category: 'journey', name: 'To vi', label: '→ vi',
+    targetDegree: 9, targetQuality: 'Minor 7',
+    description: 'Dropping to the relative minor. Introspective shift in mood.',
+    songExample: '"Africa" (Toto)' },
+  { fromDegrees: [0], direction: 'leadTo', category: 'journey', name: 'To ii', label: '→ ii',
+    targetDegree: 2, targetQuality: 'Minor 7',
+    description: 'Rising to the supertonic. Setting up a potential ii–V–I.',
+    songExample: '"Autumn Leaves" (Kosma)' },
+  { fromDegrees: [0], direction: 'leadTo', category: 'surprise', name: 'To ♭VII', label: '→ ♭VII',
+    targetDegree: 10, targetQuality: 'Major',
+    description: 'Modal mixture. Stepping down to the subtonic — rock and modal flavor.',
+    songExample: '"Hey Jude" (Beatles)' },
+  { fromDegrees: [0], direction: 'leadTo', category: 'surprise', name: 'Minor Plagal (iv)', label: '→ iv',
+    targetDegree: 5, targetQuality: 'Minor',
+    description: 'Borrow from parallel minor. Creates the "Hollywood" sadness.',
+    songExample: '"Creep" (Radiohead)' },
+
+  // ═══════════════════════════════════════
+  // FROM DOMINANT (V, degree 7) - LEAD TO
+  // ═══════════════════════════════════════
+  { fromDegrees: [7], direction: 'leadTo', category: 'resolution', name: 'Authentic Cadence', label: '→ I',
+    targetDegree: 0, targetQuality: 'Major 7',
+    description: 'The ultimate resolution. Dominant tension releasing to tonic stability.',
+    songExample: '"Let It Be" (Beatles)' },
+  { fromDegrees: [7], direction: 'leadTo', category: 'surprise', name: 'Deceptive Cadence', label: '→ vi',
+    targetDegree: 9, targetQuality: 'Minor 7',
+    description: 'Deceptive motion. Avoiding the expected tonic for emotional twist.',
+    songExample: '"Every Breath You Take" (Police)' },
+  { fromDegrees: [7], direction: 'leadTo', category: 'journey', name: 'Retrogression to IV', label: '→ IV',
+    targetDegree: 5, targetQuality: 'Major',
+    description: 'Retrogression. Moving backward from dominant to subdominant — unexpected release.',
+    songExample: '"Free Fallin\'" (Tom Petty)' },
+  { fromDegrees: [7], direction: 'leadTo', category: 'resolution', name: 'To Minor i', label: '→ i',
+    targetDegree: 0, targetQuality: 'Minor',
+    description: 'Dark resolution. The dramatic pull to minor tonic.',
+    songExample: '"Stairway to Heaven" (Led Zeppelin)' },
+
+  // ═══════════════════════════════════════
+  // FROM SUBDOMINANT (IV, degree 5) - LEAD TO
+  // ═══════════════════════════════════════
+  { fromDegrees: [5], direction: 'leadTo', category: 'resolution', name: 'Plagal Cadence', label: '→ I',
+    targetDegree: 0, targetQuality: 'Major',
+    description: 'Plagal motion. A warm, settled return home without leading-tone tension.',
+    songExample: '"Let It Be" ending (Beatles)' },
+  { fromDegrees: [5], direction: 'leadTo', category: 'journey', name: 'To Dominant', label: '→ V',
+    targetDegree: 7, targetQuality: 'Dominant 7',
+    description: 'Subdominant to dominant. Classic tension-building progression.',
+    songExample: '"Hey Jude" (Beatles)' },
+  { fromDegrees: [5], direction: 'leadTo', category: 'journey', name: 'To ii', label: '→ ii',
+    targetDegree: 2, targetQuality: 'Minor 7',
+    description: 'Descending to the supertonic. Modal and introspective.',
+    songExample: '"Lean on Me" (Bill Withers)' },
+  { fromDegrees: [5], direction: 'leadTo', category: 'surprise', name: 'To ♭VII', label: '→ ♭VII',
+    targetDegree: 10, targetQuality: 'Major',
+    description: 'Sliding down. Rock and Mixolydian flavor.',
+    songExample: '"Sweet Home Alabama" (Lynyrd Skynyrd)' },
+
+  // ═══════════════════════════════════════
+  // FROM SUPERTONIC (ii, degree 2) - LEAD TO
+  // ═══════════════════════════════════════
+  { fromDegrees: [2], direction: 'leadTo', category: 'resolution', name: 'ii-V Setup', label: '→ V',
+    targetDegree: 7, targetQuality: 'Dominant 7',
+    description: 'Pre-dominant to dominant. The classic ii–V setup toward resolution.',
+    songExample: '"Autumn Leaves" (Kosma)' },
+  { fromDegrees: [2], direction: 'leadTo', category: 'journey', name: 'To I', label: '→ I',
+    targetDegree: 0, targetQuality: 'Major',
+    description: 'Direct supertonic to tonic. A gentle, understated resolution.',
+    songExample: '"Imagine" (Lennon)' },
+  { fromDegrees: [2], direction: 'leadTo', category: 'journey', name: 'To IV', label: '→ IV',
+    targetDegree: 5, targetQuality: 'Major',
+    description: 'Moving up to the subdominant. Building harmonic momentum.',
+    songExample: '"Sitting on the Dock of the Bay" (Redding)' },
+
+  // ═══════════════════════════════════════
+  // FROM vi (degree 9) - LEAD TO
+  // ═══════════════════════════════════════
+  { fromDegrees: [9], direction: 'leadTo', category: 'journey', name: 'To IV', label: '→ IV',
+    targetDegree: 5, targetQuality: 'Major',
+    description: 'Descending from relative minor to subdominant. Building toward home.',
+    songExample: '"Africa" (Toto)' },
+  { fromDegrees: [9], direction: 'leadTo', category: 'journey', name: 'To ii', label: '→ ii',
+    targetDegree: 2, targetQuality: 'Minor 7',
+    description: 'Circle-of-fifths motion through the minor side of the key.',
+    songExample: '"I Will Survive" (Gaynor)' },
+  { fromDegrees: [9], direction: 'leadTo', category: 'resolution', name: 'To V', label: '→ V',
+    targetDegree: 7, targetQuality: 'Dominant 7',
+    description: 'Moving toward the dominant. Setting up resolution.',
+    songExample: '"House of the Rising Sun" (The Animals)' },
+  { fromDegrees: [9], direction: 'leadTo', category: 'journey', name: 'To I', label: '→ I',
+    targetDegree: 0, targetQuality: 'Major',
+    description: 'Returning home from the relative minor.',
+    songExample: '"No Woman No Cry" (Bob Marley)' },
+
+  // ═══════════════════════════════════════
+  // FROM ♭VII (degree 10) - LEAD TO
+  // ═══════════════════════════════════════
+  { fromDegrees: [10], direction: 'leadTo', category: 'resolution', name: 'Backdoor Resolution', label: '→ I',
+    targetDegree: 0, targetQuality: 'Major 7',
+    description: 'Backdoor resolution. Modal interchange creating a "cool jazz" arrival.',
+    songExample: '"Lady Madonna" (Beatles)' },
+  { fromDegrees: [10], direction: 'leadTo', category: 'journey', name: 'To IV', label: '→ IV',
+    targetDegree: 5, targetQuality: 'Major',
+    description: 'Continuing the modal descent.',
+    songExample: '"Sweet Home Alabama" (Lynyrd Skynyrd)' },
+  { fromDegrees: [10], direction: 'leadTo', category: 'surprise', name: 'To V', label: '→ V',
+    targetDegree: 7, targetQuality: 'Dominant 7',
+    description: 'Approaching V from the flat-7. Rock-tinged setup.',
+    songExample: '"With or Without You" (U2)' },
+
+  // ═══════════════════════════════════════
+  // FROM iii (degree 4) - LEAD TO
+  // ═══════════════════════════════════════
+  { fromDegrees: [4], direction: 'leadTo', category: 'journey', name: 'To vi', label: '→ vi',
+    targetDegree: 9, targetQuality: 'Minor 7',
+    description: 'Mediant to submediant. Diatonic third relation — smooth and subtle.',
+    songExample: '"More Than Words" (Extreme)' },
+  { fromDegrees: [4], direction: 'leadTo', category: 'journey', name: 'To IV', label: '→ IV',
+    targetDegree: 5, targetQuality: 'Major',
+    description: 'A natural half-step rise to the subdominant.',
+    songExample: '"Stand By Me" (Ben E. King)' },
+
+  // ═══════════════════════════════════════
+  // COME FROM - What leads TO this degree?
+  // ═══════════════════════════════════════
+
+  // INTO TONIC (I, degree 0)
+  { fromDegrees: [0], direction: 'comeFrom', category: 'resolution', name: 'Authentic', label: 'V7 →',
+    targetDegree: 7, targetQuality: 'Dominant 7',
+    description: 'The ultimate "Full Stop." The strongest resolution.',
+    songExample: '"Let It Be" (Beatles)' },
+  { fromDegrees: [0], direction: 'comeFrom', category: 'resolution', name: 'Plagal', label: 'IV →',
+    targetDegree: 5, targetQuality: 'Major',
+    description: 'A softer, grounded homecoming without leading-tone tension.',
+    songExample: '"Let It Be" ending (Beatles)' },
+  { fromDegrees: [0], direction: 'comeFrom', category: 'surprise', name: 'Minor Plagal', label: 'iv →',
+    targetDegree: 5, targetQuality: 'Minor',
+    description: 'The "Hollywood Heartbreak." Borrowed from parallel minor.',
+    songExample: '"Creep" (Radiohead)' },
+  { fromDegrees: [0], direction: 'comeFrom', category: 'surprise', name: 'Backdoor', label: '♭VII7 →',
+    targetDegree: 10, targetQuality: 'Dominant 7',
+    description: 'Soulful jazz-pop resolution from the flat seventh.',
+    songExample: '"Lady Madonna" (Beatles)' },
+  { fromDegrees: [0], direction: 'comeFrom', category: 'journey', name: 'From ii', label: 'ii →',
+    targetDegree: 2, targetQuality: 'Minor 7',
+    description: 'The classic jazz arrival. Coming home from a ii-V.',
+    songExample: '"Autumn Leaves" (Kosma)' },
+  { fromDegrees: [0], direction: 'comeFrom', category: 'journey', name: 'From vi', label: 'vi →',
+    targetDegree: 9, targetQuality: 'Minor 7',
+    description: 'Rising from the relative minor.',
+    songExample: '"No Woman No Cry" (Bob Marley)' },
+
+  // INTO DOMINANT (V, degree 7)
+  { fromDegrees: [7], direction: 'comeFrom', category: 'resolution', name: 'ii → V', label: 'ii →',
+    targetDegree: 2, targetQuality: 'Minor 7',
+    description: 'The classic pre-dominant motion. Building momentum.',
+    songExample: '"Autumn Leaves" (Kosma)' },
+  { fromDegrees: [7], direction: 'comeFrom', category: 'journey', name: 'From I', label: 'I →',
+    targetDegree: 0, targetQuality: 'Major 7',
+    description: 'Simple tonic to dominant. The classic opening move.',
+    songExample: '"Twist and Shout" (Beatles)' },
+  { fromDegrees: [7], direction: 'comeFrom', category: 'journey', name: 'From IV', label: 'IV →',
+    targetDegree: 5, targetQuality: 'Major',
+    description: 'Subdominant to dominant. Building toward resolution.',
+    songExample: '"Hey Jude" (Beatles)' },
+  { fromDegrees: [7], direction: 'comeFrom', category: 'surprise', name: 'From ♭VII', label: '♭VII →',
+    targetDegree: 10, targetQuality: 'Major',
+    description: 'Approaching V from the flat-7 for a rock-tinged setup.',
+    songExample: '"With or Without You" (U2)' },
+
+  // INTO SUBDOMINANT (IV, degree 5)
+  { fromDegrees: [5], direction: 'comeFrom', category: 'journey', name: 'From I', label: 'I →',
+    targetDegree: 0, targetQuality: 'Major',
+    description: 'Opening up from tonic. Natural diatonic motion.',
+    songExample: '"Let It Be" (Beatles)' },
+  { fromDegrees: [5], direction: 'comeFrom', category: 'journey', name: 'From vi', label: 'vi →',
+    targetDegree: 9, targetQuality: 'Minor 7',
+    description: 'Descending from the relative minor.',
+    songExample: '"Africa" (Toto)' },
+  { fromDegrees: [5], direction: 'comeFrom', category: 'surprise', name: 'From V', label: 'V →',
+    targetDegree: 7, targetQuality: 'Dominant 7',
+    description: 'Retrogression. Unexpected dominant to subdominant.',
+    songExample: '"Free Fallin\'" (Tom Petty)' },
+
+  // INTO vi (degree 9)
+  { fromDegrees: [9], direction: 'comeFrom', category: 'surprise', name: 'Deceptive from V', label: 'V →',
+    targetDegree: 7, targetQuality: 'Dominant 7',
+    description: 'You expected the tonic but landed here instead.',
+    songExample: '"Every Breath You Take" (Police)' },
+  { fromDegrees: [9], direction: 'comeFrom', category: 'journey', name: 'From I', label: 'I →',
+    targetDegree: 0, targetQuality: 'Major',
+    description: 'Stepping down to the vi. Classic melancholic shift.',
+    songExample: '"Africa" (Toto)' },
+  { fromDegrees: [9], direction: 'comeFrom', category: 'journey', name: 'From iii', label: 'iii →',
+    targetDegree: 4, targetQuality: 'Minor',
+    description: 'Third relation. Smooth diatonic descent.',
+    songExample: '"More Than Words" (Extreme)' },
+
+  // INTO ii (degree 2)
+  { fromDegrees: [2], direction: 'comeFrom', category: 'journey', name: 'From vi', label: 'vi →',
+    targetDegree: 9, targetQuality: 'Minor 7',
+    description: 'Circle-of-fifths motion through the minor side.',
+    songExample: '"I Will Survive" (Gaynor)' },
+  { fromDegrees: [2], direction: 'comeFrom', category: 'journey', name: 'From I', label: 'I →',
+    targetDegree: 0, targetQuality: 'Major',
+    description: 'Rising from tonic to supertonic. Setting up ii-V.',
+    songExample: '"Autumn Leaves" (Kosma)' },
+];
+
 /**
- * Generate cadence suggestions based on the current harmony within the key context.
- * Uses the scaleTonic to determine the functional role of the current chord,
- * then suggests progressions relative to that context.
+ * Generate cadence suggestions based on the current harmony's FUNCTIONAL ROLE within the key.
+ * Uses the scaleTonic to determine the functional degree of the current chord,
+ * then suggests progressions appropriate for that functional position.
  */
 export function getCadenceSuggestions(
   currentRoot: PitchClass,
@@ -1203,59 +1440,101 @@ export function getCadenceSuggestions(
   
   // Calculate current chord's degree relative to the key
   const currentDegree = ((currentRoot - scaleTonic) % 12 + 12) % 12;
+  const degreeNumerals = ['I', '♭II', 'II', '♭III', 'III', 'IV', '♭V', 'V', '♭VI', 'VI', '♭VII', 'VII'];
   
-  // Map cadence templates to key-contextual suggestions
-  // The templates define functional relationships (e.g., V→I, IV→I)
-  // We translate these to the actual key
+  // Find functional cadences that apply to this degree
+  const applicableCadences = FUNCTIONAL_CADENCES.filter(cad => 
+    cad.direction === direction && cad.fromDegrees.includes(currentDegree)
+  );
   
-  return CADENCE_TEMPLATES
-    .filter(s => s.direction === direction)
-    .filter(s => {
-      if (!s.sourceQualities) return true;
-      return s.sourceQualities.some(q =>
-        currentChordName === q ||
-        currentChordName.includes(q) ||
-        (q === 'Minor' && currentChordName.startsWith('Minor')) ||
-        (q === 'Major' && currentChordName.startsWith('Major'))
-      );
-    })
-    .map(suggestion => {
-      // Calculate the target root relative to the current root
-      const targetRoot = ((currentRoot + suggestion.rootOffset) % 12 + 12) % 12 as PitchClass;
-      const targetChord = allChords.find(c => c.name === suggestion.chordName)
-        ?? CHORD_CATEGORIES['Tertian Triads'][0];
-      
-      // Calculate target degree relative to key for display context
-      const targetDegree = ((targetRoot - scaleTonic) % 12 + 12) % 12;
-      
-      // Generate contextual label showing the functional movement
-      const degreeNumerals = ['I', '♭II', 'II', '♭III', 'III', 'IV', '♭V', 'V', '♭VI', 'VI', '♭VII', 'VII'];
-      const fromDegree = degreeNumerals[currentDegree];
-      const toDegree = degreeNumerals[targetDegree];
-      
-      const displayName = `${getNoteName(targetRoot, useFlats)} ${targetChord.name}`;
-      const functionalLabel = direction === 'leadTo' 
-        ? `${fromDegree} → ${toDegree}` 
-        : `${toDegree} → ${fromDegree}`;
-      
-      // Generate contextual description based on actual functional movement
-      const contextualDescription = getContextualCadenceDescription(
-        currentDegree,
-        targetDegree,
-        direction,
-        suggestion.description,
-      );
-      
-      return { 
-        suggestion, 
-        targetRoot, 
-        targetChord, 
-        displayName,
-        functionalLabel,
-        targetDegree,
-        contextualDescription,
-      };
+  // If no specific cadences for this degree, provide generic options
+  const cadencesToUse = applicableCadences.length > 0 
+    ? applicableCadences 
+    : getGenericCadences(currentDegree, direction);
+  
+  return cadencesToUse.map(cadence => {
+    // Calculate the target root from the target degree
+    const targetRoot = ((scaleTonic + cadence.targetDegree) % 12 + 12) % 12 as PitchClass;
+    const targetChord = allChords.find(c => c.name === cadence.targetQuality)
+      ?? CHORD_CATEGORIES['Tertian Triads'][0];
+    
+    const fromLabel = degreeNumerals[currentDegree];
+    const toLabel = degreeNumerals[cadence.targetDegree];
+    
+    const displayName = `${getNoteName(targetRoot, useFlats)} ${targetChord.name}`;
+    const functionalLabel = direction === 'leadTo' 
+      ? `${fromLabel} → ${toLabel}` 
+      : `${toLabel} → ${fromLabel}`;
+    
+    return { 
+      suggestion: {
+        category: cadence.category,
+        direction: cadence.direction,
+        name: cadence.name,
+        label: cadence.label,
+        description: cadence.description,
+        songExample: cadence.songExample,
+        rootOffset: 0, // Not used in new system
+        chordName: cadence.targetQuality,
+        resTonic: cadence.targetDegree === 0,
+      },
+      targetRoot, 
+      targetChord, 
+      displayName,
+      functionalLabel,
+      targetDegree: cadence.targetDegree,
+      contextualDescription: cadence.description,
+    };
+  });
+}
+
+/** Generate generic cadences for degrees without specific definitions */
+function getGenericCadences(currentDegree: number, direction: CadenceDirection): FunctionalCadence[] {
+  const generics: FunctionalCadence[] = [];
+  
+  if (direction === 'leadTo') {
+    // Always suggest going to V and I
+    if (currentDegree !== 7) {
+      generics.push({
+        fromDegrees: [currentDegree], direction: 'leadTo', category: 'resolution',
+        name: 'To Dominant', label: '→ V', targetDegree: 7, targetQuality: 'Dominant 7',
+        description: 'Moving toward the dominant. Building tension.',
+        songExample: ''
+      });
+    }
+    if (currentDegree !== 0) {
+      generics.push({
+        fromDegrees: [currentDegree], direction: 'leadTo', category: 'resolution',
+        name: 'To Tonic', label: '→ I', targetDegree: 0, targetQuality: 'Major',
+        description: 'Returning home to the tonic.',
+        songExample: ''
+      });
+    }
+    // Suggest circle-of-fifths motion (down a fifth = up a fourth)
+    const fifthDown = ((currentDegree + 5) % 12);
+    generics.push({
+      fromDegrees: [currentDegree], direction: 'leadTo', category: 'journey',
+      name: 'Circle of Fifths', label: '→ (↓5th)', targetDegree: fifthDown, targetQuality: 'Major',
+      description: 'Circle-of-fifths motion. Natural harmonic flow.',
+      songExample: ''
     });
+  } else {
+    // Come from: suggest V and IV approaching this degree
+    generics.push({
+      fromDegrees: [currentDegree], direction: 'comeFrom', category: 'resolution',
+      name: 'From Dominant', label: 'V →', targetDegree: 7, targetQuality: 'Dominant 7',
+      description: 'Arriving from dominant tension.',
+      songExample: ''
+    });
+    generics.push({
+      fromDegrees: [currentDegree], direction: 'comeFrom', category: 'journey',
+      name: 'From Subdominant', label: 'IV →', targetDegree: 5, targetQuality: 'Major',
+      description: 'Approaching from the subdominant.',
+      songExample: ''
+    });
+  }
+  
+  return generics;
 }
 
 export const CADENCE_CATEGORY_META: Record<CadenceCategory, { title: string; icon: string }> = {
