@@ -144,7 +144,7 @@ export default function CadenceExplorer() {
                   </div>
 
                   <p className="text-[11px] font-sans text-muted-foreground leading-relaxed">
-                    {option.suggestion.description}
+                    {option.contextualDescription}
                   </p>
 
                   <p className="text-[10px] font-mono text-muted-foreground/60 mt-1 italic">
