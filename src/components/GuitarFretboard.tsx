@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
+import { generateVoicings, type VoicingPosition } from '@/lib/guitarVoicings';
 import { getLabel, getIntervalTension, TENSION_COLORS } from '@/lib/musicTheory';
 
 const FRET_WIDTH = 50;
