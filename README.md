@@ -4,14 +4,16 @@ Harmonic Geometry is an interactive web application designed for exploring music
 
 ## 🎵 Features
 
+![Pitch Clock Demonstration](docs/assets/pitch_clock_demo.webp)
+
 - **Interactive Visualizations**: 
-  - **Pitch Clock**: See the geometric relationships of chords and scales on a circular graph.
-  - **Piano Keyboard & Guitar Fretboard**: See how harmonies lock into physical instruments.
+  - **Pitch Clock**: See the geometric relationships of chords and scales on a circular graph. The visualization updates in real-time as you change the root note, scale type, or label mode, making harmonic patterns instantly recognizable.
+  - **Piano Keyboard & Guitar Fretboard**: See how harmonies lock into physical instruments. The instruments dynamically highlight active chord degrees and calculate valid guitar voicings on the fly relative to the current key.
   - **Staff Notation**: View chords and scales on traditional sheet music.
 - **Deep Harmonic Analysis**:
   - **Cadence Explorer**: Analyze voice leading and movement between chords.
   - **Harmonic Context**: See how chords function within a given scale or key.
-  - **Dissonance Spectrum**: Measure the tension and intervals within any chord.
+  - **Dissonance Spectrum**: Measure the tension and intervals within any chord. Watch this alongside the Staff Notation to understand how theoretical tension translates to notation.
 - **Advanced Controls**:
   - Toggle between different labeling modes: Notes, Intervals, Solfège, Scale Degrees, and Semitones.
   - Explore chord inversions and drop voicings.
