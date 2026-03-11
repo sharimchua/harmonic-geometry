@@ -1,73 +1,72 @@
-# Welcome to your Lovable project
+# Harmonic Geometry
 
-## Project info
+Harmonic Geometry is an interactive web application designed for exploring music theory, harmony, and the visual relationships between musical notes. Created as a "Midlife Muso" tool, it provides an ear-first, highly visual approach to understanding chords, scales, intervals, and playing instruments.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🎵 Features
 
-## How can I edit this code?
+- **Interactive Visualizations**: 
+  - **Pitch Clock**: See the geometric relationships of chords and scales on a circular graph.
+  - **Piano Keyboard & Guitar Fretboard**: See how harmonies lock into physical instruments.
+  - **Staff Notation**: View chords and scales on traditional sheet music.
+- **Deep Harmonic Analysis**:
+  - **Cadence Explorer**: Analyze voice leading and movement between chords.
+  - **Harmonic Context**: See how chords function within a given scale or key.
+  - **Dissonance Spectrum**: Measure the tension and intervals within any chord.
+- **Advanced Controls**:
+  - Toggle between different labeling modes: Notes, Intervals, Solfège, Scale Degrees, and Semitones.
+  - Explore chord inversions and drop voicings.
+  - "Lock" either the Scale or the Chord Quality to constrain your exploration to diatonic chords or parallel harmony.
+- **MIDI Integration**: Connect a MIDI keyboard to play and instantly identify chords and intervals on screen.
 
-There are several ways of editing your application.
+## 🛠️ Technologies Used
 
-**Use Lovable**
+This project is built with a modern React stack:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Framework**: [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **UI Components**: [shadcn/ui](https://ui.shadcn.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **State Management**: React Context (`HarmonyContext`)
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🚀 Getting Started
 
-**Use your preferred IDE**
+To run this project locally on your machine, follow these steps:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+You will need [Node.js](https://nodejs.org/) (which comes with npm) installed on your system.
 
-Follow these steps:
+### Installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Clone the repository:
+   ```bash
+   git clone <YOUR_REPO_URL>
+   cd harmony-geometry
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+4. Open your browser and navigate to `http://localhost:5173`.
+
+## 📦 Building for Production
+
+To create a production-ready build, run:
+```bash
+npm run build
 ```
+The compiled assets will be placed in the `dist` directory, ready to be deployed to your hosting provider of choice.
 
-**Edit a file directly in GitHub**
+## 🔗 Links and Resources
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Midlife Muso Home**: [midlifemuso.com](https://midlifemuso.com)
+- **Learning Resources**: [midlifemuso.com/learning](https://midlifemuso.com/learning)
+- **About the Creator**: [midlifemuso.com/about-me](https://midlifemuso.com/about-me)
