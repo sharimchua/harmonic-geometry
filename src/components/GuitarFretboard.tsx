@@ -19,6 +19,7 @@ const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[
   { name: 'DADGAD', tuning: [38, 45, 50, 55, 57, 62], stringNames: ['D', 'A', 'D', 'G', 'A', 'D'] },
   { name: 'Open E', tuning: [40, 47, 52, 56, 59, 64], stringNames: ['E', 'B', 'E', 'G#', 'B', 'E'] },
   { name: 'Half Step Down', tuning: [39, 44, 49, 54, 58, 63], stringNames: ['Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'] },
+  { name: 'FACGCE', tuning: [41, 45, 48, 55, 60, 64], stringNames: ['F', 'A', 'C', 'G', 'C', 'e'] },
 ];
 
 const NUM_FRETS = 12;
