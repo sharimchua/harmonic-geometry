@@ -1,11 +1,11 @@
 import React from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getChordFormula, findCompatibleKeys, getNoteName, CHORD_GENRE_HINTS } from '@/lib/musicTheory';
+import { getChordFormulaFromPitchClasses, findCompatibleKeys, getNoteName, CHORD_GENRE_HINTS } from '@/lib/musicTheory';
 
 export default function HarmonicContext() {
-  const { functionalAnalysis, chordVibe, chord, activePitchClasses, useFlats, scaleTonic, setScaleTonic } = useHarmony();
+  const { functionalAnalysis, chordVibe, chord, activePitchClasses, useFlats, scaleTonic, setScaleTonic, root } = useHarmony();
 
-  const formula = getChordFormula(chord.intervals);
+  const formula = getChordFormulaFromPitchClasses(root, activePitchClasses);
   const compatibleKeys = findCompatibleKeys(activePitchClasses);
   const genreHint = CHORD_GENRE_HINTS[chord.name];
 

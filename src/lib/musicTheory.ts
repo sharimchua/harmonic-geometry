@@ -418,6 +418,181 @@ export function getChordFormula(intervals: number[]): string {
   }).join(' – ');
 }
 
+/** Formula from absolute pitch classes relative to a root */
+export function getChordFormulaFromPitchClasses(root: PitchClass, pitchClasses: PitchClass[]): string {
+  const intervals = pitchClasses
+    .map(pc => ((pc - root) % 12 + 12) % 12)
+    .sort((a, b) => a - b);
+  return getChordFormula(intervals);
+}
+
+function normalizePitchClassSet(intervals: number[]): number[] {
+  return [...new Set(intervals.map(i => ((i % 12) + 12) % 12))].sort((a, b) => a - b);
+}
+
+function intervalsFromRoot(root: PitchClass, pitchClasses: PitchClass[]): number[] {
+  return normalizePitchClassSet(pitchClasses.map(pc => ((pc - root) % 12 + 12) % 12));
+}
+
+/** Semitone classes that may be omitted in real-world voicings */
+function getOmittableSemitones(chordNorm: number[]): Set<number> {
+  const omittable = new Set<number>();
+  const hasSeventh = chordNorm.includes(10) || chordNorm.includes(11);
+  const hasExtensions = chordNorm.some(s => [2, 5, 9].includes(s));
+
+  if (chordNorm.includes(7)) omittable.add(7);
+  if (hasSeventh && (chordNorm.includes(3) || chordNorm.includes(4))) {
+    if (chordNorm.includes(3)) omittable.add(3);
+    if (chordNorm.includes(4)) omittable.add(4);
+  }
+  if (hasExtensions) {
+    if (chordNorm.includes(2)) omittable.add(2);
+    if (chordNorm.includes(5)) omittable.add(5);
+    if (chordNorm.includes(9)) omittable.add(9);
+    if (hasSeventh && chordNorm.includes(7)) omittable.add(7);
+  }
+
+  return omittable;
+}
+
+function formatOmissions(missing: number[]): string {
+  if (missing.length === 0) return '';
+  return ` (${missing.map(s => `no ${SCALE_DEGREE_LABELS[s]}`).join(', ')})`;
+}
+
+export interface IdentifyChordOptions {
+  bassPitchClass?: PitchClass;
+  preferredRoot?: PitchClass;
+  scaleTonic?: PitchClass;
+}
+
+export type ChordMatchKind = 'exact' | 'subset' | 'dyad' | 'single' | 'fallback';
+
+export interface ChordIdentification {
+  root: PitchClass;
+  chord: ChordType;
+  matchKind: ChordMatchKind;
+}
+
+interface ChordMatchCandidate {
+  root: PitchClass;
+  chord: ChordType;
+  matchKind: 'exact' | 'subset';
+  omissions: number[];
+}
+
+function scoreRootCandidate(
+  root: PitchClass,
+  match: Pick<ChordMatchCandidate, 'matchKind' | 'omissions'>,
+  options: IdentifyChordOptions,
+): number {
+  let score = match.matchKind === 'exact' ? 100 : 50;
+  score -= match.omissions.length * 3;
+  if (options.bassPitchClass === root) score += 30;
+  if (options.preferredRoot === root) score += 20;
+  if (options.scaleTonic === root) score += 10;
+  return score;
+}
+
+function findCatalogMatches(pitchClasses: PitchClass[]): ChordMatchCandidate[] {
+  const allChords = Object.values(CHORD_CATEGORIES).flat();
+  const matches: ChordMatchCandidate[] = [];
+
+  for (const candidateRoot of pitchClasses) {
+    const played = intervalsFromRoot(candidateRoot, pitchClasses);
+    if (!played.includes(0)) continue;
+
+    for (const catalogChord of allChords) {
+      const catalogNorm = normalizePitchClassSet(catalogChord.intervals);
+
+      if (played.length === catalogNorm.length && played.every((v, i) => v === catalogNorm[i])) {
+        matches.push({
+          root: candidateRoot,
+          chord: { ...catalogChord, intervals: played },
+          matchKind: 'exact',
+          omissions: [],
+        });
+        continue;
+      }
+
+      if (played.length >= 3 && played.length < catalogNorm.length) {
+        const missing = catalogNorm.filter(s => !played.includes(s));
+        const omittable = getOmittableSemitones(catalogNorm);
+        if (
+          missing.length > 0 &&
+          missing.every(s => omittable.has(s)) &&
+          catalogNorm.every(s => played.includes(s) || omittable.has(s))
+        ) {
+          matches.push({
+            root: candidateRoot,
+            chord: {
+              ...catalogChord,
+              name: `${catalogChord.name}${formatOmissions(missing)}`,
+              intervals: played,
+              category: catalogChord.category,
+            },
+            matchKind: 'subset',
+            omissions: missing,
+          });
+        }
+      }
+    }
+  }
+
+  return matches;
+}
+
+function pickBestMatch(candidates: ChordMatchCandidate[], options: IdentifyChordOptions): ChordMatchCandidate | null {
+  if (candidates.length === 0) return null;
+  return candidates.reduce((best, candidate) => {
+    const bestScore = scoreRootCandidate(best.root, best, options);
+    const candidateScore = scoreRootCandidate(candidate.root, candidate, options);
+    return candidateScore > bestScore ? candidate : best;
+  });
+}
+
+function createFallbackIdentification(
+  pitchClasses: PitchClass[],
+  options: IdentifyChordOptions,
+): ChordIdentification {
+  const rootCandidates = [...new Set(pitchClasses)];
+  const rankedRoot = rootCandidates.reduce((best, candidate) => {
+    const bestScore =
+      (options.bassPitchClass === best ? 30 : 0) +
+      (options.preferredRoot === best ? 20 : 0) +
+      (options.scaleTonic === best ? 10 : 0);
+    const candidateScore =
+      (options.bassPitchClass === candidate ? 30 : 0) +
+      (options.preferredRoot === candidate ? 20 : 0) +
+      (options.scaleTonic === candidate ? 10 : 0);
+    return candidateScore > bestScore ? candidate : best;
+  }, rootCandidates[0]);
+
+  const intervals = intervalsFromRoot(rankedRoot, pitchClasses);
+  const formula = getChordFormula(intervals);
+
+  return {
+    root: rankedRoot,
+    matchKind: 'fallback',
+    chord: {
+      name: formula,
+      intervals,
+      category: 'Voicing',
+    },
+  };
+}
+
+function pickDyadRoot(pitchClasses: PitchClass[], options: IdentifyChordOptions): PitchClass {
+  const sorted = [...pitchClasses].sort((a, b) => a - b);
+  if (options.bassPitchClass !== undefined && pitchClasses.includes(options.bassPitchClass)) {
+    return options.bassPitchClass;
+  }
+  if (options.preferredRoot !== undefined && pitchClasses.includes(options.preferredRoot)) {
+    return options.preferredRoot;
+  }
+  return sorted[0];
+}
+
 /** Find all major scale tonics that contain all given pitch classes diatonically */
 export function findCompatibleKeys(pitchClasses: PitchClass[]): PitchClass[] {
   if (pitchClasses.length === 0) return [];
@@ -743,63 +918,59 @@ export function analyzeFunctionalRole(
 }
 
 export function getChordVibe(chordName: string): string {
-  return CHORD_VIBES[chordName] || 'A unique harmonic color';
+  const baseName = chordName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  return CHORD_VIBES[chordName] || CHORD_VIBES[baseName] || 'A unique harmonic color';
 }
 
 /**
- * Given a set of pitch classes, try to identify the chord name and root.
- * Returns { root, chord } or null.
+ * Identify a chord from pitch classes. Supports exact catalog matches, subset voicings
+ * with omitted tones, dyads, and interval-formula fallbacks.
  */
-/**
- * Given a set of pitch classes, try to identify the chord name and root.
- * Supports dyads (2 notes) as intervals, and full chords (3+ notes).
- */
-export function identifyChordFromPitchClasses(pitchClasses: PitchClass[]): { root: PitchClass; chord: ChordType } | null {
+export function identifyChordFromPitchClasses(
+  pitchClasses: PitchClass[],
+  options: IdentifyChordOptions = {},
+): ChordIdentification | null {
   if (pitchClasses.length < 1) return null;
-  const allChords = Object.values(CHORD_CATEGORIES).flat();
 
-  // Single note — unison
   if (pitchClasses.length === 1) {
     const pc = pitchClasses[0];
-    const unison: ChordType = {
-      name: 'Single Note',
-      intervals: [0],
-      category: 'Single Note',
+    return {
+      root: pc,
+      matchKind: 'single',
+      chord: {
+        name: 'Single Note',
+        intervals: [0],
+        category: 'Single Note',
+      },
     };
-    return { root: pc, chord: unison };
-  }
-  
-  // For 3+ notes, try to match against known chord types
-  if (pitchClasses.length >= 3) {
-    for (const candidateRoot of pitchClasses) {
-      const intervals = pitchClasses
-        .map(pc => ((pc - candidateRoot) % 12 + 12) % 12)
-        .sort((a, b) => a - b);
-      
-      for (const chord of allChords) {
-        const chordNorm = chord.intervals.map(i => ((i % 12) + 12) % 12).sort((a, b) => a - b);
-        if (chordNorm.length === intervals.length && chordNorm.every((v, i) => v === intervals[i])) {
-          return { root: candidateRoot, chord };
-        }
-      }
-    }
-  }
-  
-  // For exactly 2 notes (dyad), treat the lower as root and create an interval "chord"
-  if (pitchClasses.length === 2) {
-    const sorted = [...pitchClasses].sort((a, b) => a - b);
-    const rootPc = sorted[0];
-    const semitones = ((sorted[1] - sorted[0]) % 12 + 12) % 12;
-    const intervalName = INTERVAL_NAMES[semitones];
-    const dyad: ChordType = {
-      name: `Dyad (${intervalName})`,
-      intervals: [0, semitones],
-      category: 'Dyads',
-    };
-    return { root: rootPc, chord: dyad };
   }
 
-  return null;
+  if (pitchClasses.length === 2) {
+    const rootPc = pickDyadRoot(pitchClasses, options);
+    const otherPc = pitchClasses.find(pc => pc !== rootPc)!;
+    const semitones = ((otherPc - rootPc) % 12 + 12) % 12;
+    const intervalName = INTERVAL_NAMES[semitones];
+    return {
+      root: rootPc,
+      matchKind: 'dyad',
+      chord: {
+        name: `Dyad (${intervalName})`,
+        intervals: [0, semitones],
+        category: 'Dyads',
+      },
+    };
+  }
+
+  const bestMatch = pickBestMatch(findCatalogMatches(pitchClasses), options);
+  if (bestMatch) {
+    return {
+      root: bestMatch.root,
+      chord: bestMatch.chord,
+      matchKind: bestMatch.matchKind,
+    };
+  }
+
+  return createFallbackIdentification(pitchClasses, options);
 }
 
 // ─── Cadence Explorer ───────────────────────────────────

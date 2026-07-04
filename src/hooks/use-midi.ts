@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { type PitchClass, identifyChordFromPitchClasses } from '@/lib/musicTheory';
+import {
+  type PitchClass,
+  type ChordMatchKind,
+  type ChordType,
+  type IdentifyChordOptions,
+  identifyChordFromPitchClasses,
+} from '@/lib/musicTheory';
 
 export interface MidiState {
   isSupported: boolean;
@@ -11,12 +17,14 @@ export interface MidiState {
     pitchClasses: PitchClass[];
     bassNote: number;         // lowest MIDI note (for inversion detection)
     inversion: number;
+    matchKind: ChordMatchKind;
   } | null;
 }
 
 export interface MidiChordEvent {
   root: PitchClass;
-  chord: ReturnType<typeof identifyChordFromPitchClasses> extends infer T ? T extends null ? never : T : never;
+  chord: ChordType;
+  matchKind: ChordMatchKind;
   inversion: number;
   pitchClasses: PitchClass[];
 }
@@ -39,7 +47,8 @@ function detectInversion(
 }
 
 export function useMidi(
-  onChordDetected?: (event: MidiChordEvent) => void
+  onChordDetected?: (event: MidiChordEvent) => void,
+  getIdentifyOptions?: () => Omit<IdentifyChordOptions, 'bassPitchClass'>,
 ) {
   const [state, setState] = useState<MidiState>({
     isSupported: typeof navigator !== 'undefined' && 'requestMIDIAccess' in navigator,
@@ -52,6 +61,8 @@ export function useMidi(
   const heldNotesRef = useRef<Set<number>>(new Set());
   const onChordRef = useRef(onChordDetected);
   onChordRef.current = onChordDetected;
+  const getIdentifyOptionsRef = useRef(getIdentifyOptions);
+  getIdentifyOptionsRef.current = getIdentifyOptions;
   const noteOffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const processNotes = useCallback(() => {
@@ -61,24 +72,34 @@ export function useMidi(
     if (notes.length === 0) return; // retain last chord
 
     const pitchClasses = [...new Set(notes.map(n => (n % 12) as PitchClass))].sort((a, b) => a - b);
-    
-    if (pitchClasses.length < 1) return;
 
-    const identified = identifyChordFromPitchClasses(pitchClasses);
-    if (!identified) return;
+    if (pitchClasses.length < 1) return;
 
     const bassNote = notes[0];
     const bassPc = (bassNote % 12) as PitchClass;
+    const identified = identifyChordFromPitchClasses(pitchClasses, {
+      ...getIdentifyOptionsRef.current?.(),
+      bassPitchClass: bassPc,
+    });
+    if (!identified) return;
+
     const inversion = detectInversion(bassPc, identified.root, identified.chord.intervals);
 
     setState(prev => ({
       ...prev,
-      lastChord: { root: identified.root, pitchClasses, bassNote, inversion },
+      lastChord: {
+        root: identified.root,
+        pitchClasses,
+        bassNote,
+        inversion,
+        matchKind: identified.matchKind,
+      },
     }));
 
     onChordRef.current?.({
       root: identified.root,
-      chord: identified,
+      chord: identified.chord,
+      matchKind: identified.matchKind,
       inversion,
       pitchClasses,
     });

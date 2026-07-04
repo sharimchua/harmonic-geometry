@@ -17,6 +17,8 @@ import {
   analyzeFunctionalRole,
   getChordVibe,
   identifyChordFromPitchClasses,
+  type IdentifyChordOptions,
+  type ChordMatchKind,
   type IntervalTension,
   type VoiceLeadingMove,
   calculateVoiceLeading,
@@ -115,19 +117,27 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   }, [harmonicRoot, chord]);
 
   // MIDI integration — update harmony when chords are played
-  const handleMidiChord = useCallback((event: any) => {
+  const handleMidiChord = useCallback((event: {
+    root: PitchClass;
+    chord: ChordType;
+    matchKind: ChordMatchKind;
+    inversion: number;
+    pitchClasses: PitchClass[];
+  }) => {
     if (!midiEnabled) return;
-    const { chord: identified, inversion: inv } = event;
-    if (identified) {
-      setHarmonicRoot(identified.root);
-      setChordRaw(identified.chord);
-      setInversion(inv);
-      setDropVoicing(0);
-      setCustomPitchClasses(null);
-    }
+    setHarmonicRoot(event.root);
+    setChordRaw(event.chord);
+    setInversion(event.inversion);
+    setDropVoicing(0);
+    setCustomPitchClasses(null);
   }, [midiEnabled]);
 
-  const midi = useMidi(midiEnabled ? handleMidiChord : undefined);
+  const getMidiIdentifyOptions = useCallback((): Omit<IdentifyChordOptions, 'bassPitchClass'> => ({
+    preferredRoot: harmonicRoot,
+    scaleTonic,
+  }), [harmonicRoot, scaleTonic]);
+
+  const midi = useMidi(midiEnabled ? handleMidiChord : undefined, getMidiIdentifyOptions);
 
   // Toggle a pitch class on/off in construction mode
   const togglePitchClass = useCallback((pc: PitchClass) => {
@@ -139,7 +149,10 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
       
       // Try to identify the resulting chord (supports single notes, dyads, and full chords)
       if (next.length >= 1) {
-        const identified = identifyChordFromPitchClasses(next);
+        const identified = identifyChordFromPitchClasses(next, {
+          preferredRoot: harmonicRoot,
+          scaleTonic,
+        });
         if (identified) {
           setHarmonicRoot(identified.root);
           setChordRaw(identified.chord);
@@ -147,7 +160,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
       }
       return next.length === 0 ? null : next;
     });
-  }, [harmonicRoot, chord.intervals]);
+  }, [harmonicRoot, scaleTonic]);
 
   // When in scale lock mode, changing root adjusts chord quality diatonically
   const setRoot = useCallback((newRoot: PitchClass) => {
