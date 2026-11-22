@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react'; // v2
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import {
   type PitchClass,
   type ChordType,
@@ -6,6 +6,8 @@ import {
   type LabelMode,
   type HarmonicLockMode,
   type FunctionalAnalysis,
+  type ClockOrientation,
+  type AccidentalPreference,
   CHORD_CATEGORIES,
   SCALE_CATEGORIES,
   getPitchClasses,
@@ -17,6 +19,7 @@ import {
   analyzeFunctionalRole,
   getChordVibe,
   identifyChordFromPitchClasses,
+  shouldKeyUseFlats,
   type IdentifyChordOptions,
   type ChordMatchKind,
   type IntervalTension,
@@ -24,6 +27,7 @@ import {
   calculateVoiceLeading,
 } from '@/lib/musicTheory';
 import { useMidi, type MidiState } from '@/hooks/use-midi';
+import { synthInstance } from '@/lib/audioSynth';
 
 interface HarmonyState {
   scaleTonic: PitchClass;
@@ -33,7 +37,12 @@ interface HarmonyState {
   inversion: number;
   dropVoicingType: number;
   labelMode: LabelMode;
-  
+  clockOrientation: ClockOrientation;
+  accidentalPreference: AccidentalPreference;
+  pptSolfegeColors: boolean;
+  pptNoteheads: boolean;
+  showPianoTriangles: boolean;
+  audioEnabled: boolean;
   cagedPosition: number | null;
   useFlats: boolean;
   lockMode: HarmonicLockMode;
@@ -52,7 +61,14 @@ interface HarmonyContextValue extends HarmonyState {
   setInversion: (inv: number) => void;
   setDropVoicing: (drop: number) => void;
   setLabelMode: (mode: LabelMode) => void;
-  
+  setClockOrientation: (orientation: ClockOrientation) => void;
+  setAccidentalPreference: (pref: AccidentalPreference) => void;
+  setPptSolfegeColors: (on: boolean) => void;
+  setPptNoteheads: (on: boolean) => void;
+  setShowPianoTriangles: (on: boolean) => void;
+  setAudioEnabled: (on: boolean) => void;
+  playCurrentChord: (mode?: 'block' | 'arpeggio') => void;
+  playNote: (midi: number) => void;
   setCagedPosition: (pos: number | null) => void;
   setUseFlats: (useFlats: boolean) => void;
   setLockMode: (mode: HarmonicLockMode) => void;
@@ -88,9 +104,14 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const [inversion, setInversion] = useState(0);
   const [dropVoicingType, setDropVoicing] = useState(0);
   const [labelMode, setLabelMode] = useState<LabelMode>('notes');
-  
+  const [clockOrientation, setClockOrientation] = useState<ClockOrientation>('tonic');
+  const [accidentalPreference, setAccidentalPreference] = useState<AccidentalPreference>('auto');
+  const [pptSolfegeColors, setPptSolfegeColors] = useState<boolean>(true);
+  const [pptNoteheads, setPptNoteheads] = useState<boolean>(true);
+  const [showPianoTriangles, setShowPianoTriangles] = useState<boolean>(false);
+  const [audioEnabled, setAudioEnabledRaw] = useState<boolean>(false);
+
   const [cagedPosition, setCagedPosition] = useState<number | null>(null);
-  const [useFlats, setUseFlats] = useState(false);
   const [lockMode, setLockMode] = useState<HarmonicLockMode>('scale');
   const [constructionMode, setConstructionMode] = useState(false);
   const [customPitchClasses, setCustomPitchClasses] = useState<PitchClass[] | null>(null);
@@ -98,6 +119,20 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const [cadenceMode, setCadenceModeRaw] = useState(false);
   const [lockedRoot, setLockedRoot] = useState<PitchClass | null>(null);
   const [lockedChord, setLockedChord] = useState<ChordType | null>(null);
+
+  const useFlats = useMemo(() => {
+    if (accidentalPreference === 'flats') return true;
+    if (accidentalPreference === 'sharps') return false;
+    return shouldKeyUseFlats(scaleTonic, scale?.intervals ?? null);
+  }, [accidentalPreference, scaleTonic, scale]);
+
+  const setUseFlats = useCallback((flats: boolean) => {
+    setAccidentalPreference(flats ? 'flats' : 'sharps');
+  }, []);
+
+  const setAudioEnabled = useCallback((on: boolean) => {
+    setAudioEnabledRaw(on);
+  }, []);
 
   const setCadenceMode = useCallback((on: boolean) => {
     if (on) {
@@ -110,7 +145,6 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     setCadenceModeRaw(on);
   }, [harmonicRoot, chord]);
 
-  // Atomically re-lock the current harmony as the cadence reference
   const relockCadence = useCallback(() => {
     setLockedRoot(harmonicRoot);
     setLockedChord(chord);
@@ -137,7 +171,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     scaleTonic,
   }), [harmonicRoot, scaleTonic]);
 
-  const midi = useMidi(midiEnabled ? handleMidiChord : undefined, getMidiIdentifyOptions);
+  const midi = useMidi(midiEnabled ? handleMidiChord : undefined, getMidiIdentifyOptions, midiEnabled);
 
   // Toggle a pitch class on/off in construction mode
   const togglePitchClass = useCallback((pc: PitchClass) => {
@@ -146,8 +180,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
       const next = current.includes(pc)
         ? current.filter(p => p !== pc)
         : [...current, pc].sort((a, b) => a - b);
-      
-      // Try to identify the resulting chord (supports single notes, dyads, and full chords)
+
       if (next.length >= 1) {
         const identified = identifyChordFromPitchClasses(next, {
           preferredRoot: harmonicRoot,
@@ -156,38 +189,48 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
         if (identified) {
           setHarmonicRoot(identified.root);
           setChordRaw(identified.chord);
+          if (audioEnabled) {
+            synthInstance.playChordVoicing(identified.root, identified.chord.intervals, 'block');
+          }
         }
       }
       return next.length === 0 ? null : next;
     });
-  }, [harmonicRoot, scaleTonic]);
+  }, [harmonicRoot, chord.intervals, scaleTonic, audioEnabled]);
 
   // When in scale lock mode, changing root adjusts chord quality diatonically
   const setRoot = useCallback((newRoot: PitchClass) => {
-    setCustomPitchClasses(null); // exit custom mode on root change
+    setCustomPitchClasses(null);
     setHarmonicRoot(newRoot);
     setInversion(0);
     setDropVoicing(0);
 
+    let nextChord = chord;
     if (lockMode === 'scale' && scale) {
       const degree = getScaleDegree(scaleTonic, scale.intervals, newRoot);
       if (degree !== -1) {
-        // Preserve the chord family size (triads stay triads, 7ths stay 7ths)
         const currentNoteCount = chord.intervals.length;
         const diatonicChord = getDiatonicChordForDegree(scale.intervals, degree, currentNoteCount);
         if (diatonicChord) {
           setChordRaw(diatonicChord);
+          nextChord = diatonicChord;
         }
       }
     }
-  }, [lockMode, scale, scaleTonic, chord.intervals.length]);
+    if (audioEnabled) {
+      synthInstance.playChordVoicing(newRoot, nextChord.intervals, 'arpeggio');
+    }
+  }, [lockMode, scale, scaleTonic, chord, audioEnabled]);
 
   const setChord = useCallback((c: ChordType) => {
     setChordRaw(c);
     setInversion(0);
     setDropVoicing(0);
     setCustomPitchClasses(null);
-  }, []);
+    if (audioEnabled) {
+      synthInstance.playChordVoicing(harmonicRoot, c.intervals, 'arpeggio');
+    }
+  }, [harmonicRoot, audioEnabled]);
 
   const activeIntervals = useMemo(() => {
     let intervals = [...chord.intervals];
@@ -196,9 +239,17 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     return intervals;
   }, [chord, inversion, dropVoicingType]);
 
-  // Pitch classes are always derived from the base chord intervals (not affected by inversion/drop)
+  const playCurrentChord = useCallback((mode: 'block' | 'arpeggio' = 'arpeggio') => {
+    synthInstance.playChordVoicing(harmonicRoot, activeIntervals, mode);
+  }, [harmonicRoot, activeIntervals]);
+
+  const playNote = useCallback((midiNote: number) => {
+    synthInstance.playSingleNote(midiNote);
+  }, []);
+
+  // Deduplicated pitch classes from the base chord intervals
   const activePitchClasses = useMemo(
-    () => customPitchClasses ?? getPitchClasses(harmonicRoot, chord.intervals),
+    () => customPitchClasses ?? [...new Set(getPitchClasses(harmonicRoot, chord.intervals))],
     [harmonicRoot, chord.intervals, customPitchClasses]
   );
 
@@ -232,7 +283,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const chordVibe = useMemo(() => getChordVibe(chord.name), [chord.name]);
 
   const lockedPitchClasses = useMemo(
-    () => lockedRoot !== null && lockedChord ? getPitchClasses(lockedRoot, lockedChord.intervals) : [],
+    () => lockedRoot !== null && lockedChord ? [...new Set(getPitchClasses(lockedRoot, lockedChord.intervals))] : [],
     [lockedRoot, lockedChord]
   );
 
@@ -244,24 +295,52 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value: HarmonyContextValue = {
-    scaleTonic, setScaleTonic: useCallback((t: PitchClass) => setScaleTonic(t), []),
+    scaleTonic,
+    setScaleTonic: useCallback((t: PitchClass) => setScaleTonic(t), []),
     harmonicRoot,
     root: harmonicRoot,
     setRoot,
-    chord, setChord,
-    scale, setScale,
-    inversion, setInversion,
-    dropVoicingType, setDropVoicing,
-    labelMode, setLabelMode,
-    
-    cagedPosition, setCagedPosition,
-    useFlats, setUseFlats,
-    lockMode, setLockMode,
-    constructionMode, setConstructionMode,
+    chord,
+    setChord,
+    scale,
+    setScale,
+    inversion,
+    setInversion,
+    dropVoicingType,
+    setDropVoicing,
+    labelMode,
+    setLabelMode,
+    clockOrientation,
+    setClockOrientation,
+    accidentalPreference,
+    setAccidentalPreference,
+    pptSolfegeColors,
+    setPptSolfegeColors,
+    pptNoteheads,
+    setPptNoteheads,
+    showPianoTriangles,
+    setShowPianoTriangles,
+    audioEnabled,
+    setAudioEnabled,
+    playCurrentChord,
+    playNote,
+    cagedPosition,
+    setCagedPosition,
+    useFlats,
+    setUseFlats,
+    lockMode,
+    setLockMode,
+    constructionMode,
+    setConstructionMode,
     togglePitchClass,
-    cadenceMode, lockedRoot, lockedChord, setCadenceMode, relockCadence,
+    cadenceMode,
+    lockedRoot,
+    lockedChord,
+    setCadenceMode,
+    relockCadence,
     midi,
-    midiEnabled, setMidiEnabled,
+    midiEnabled,
+    setMidiEnabled,
     activeIntervals,
     activePitchClasses,
     lockedPitchClasses,

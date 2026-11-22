@@ -1,6 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
-import { getIntervalTension, TENSION_COLORS, TENSION_WIDTHS } from '@/lib/musicTheory';
+import {
+  getIntervalTension,
+  TENSION_COLORS,
+  TENSION_WIDTHS,
+  getPptNoteheadSpec,
+  isBlackPianoKey,
+  type PptNoteheadShape,
+} from '@/lib/musicTheory';
 
 type ClefType = 'treble' | 'bass';
 
@@ -76,12 +83,83 @@ function computeKeySignature(
   return { sharps, flats, accidentals };
 }
 
+/**
+ * Renders a Prime Period Theory geometric notehead at (cx, cy).
+ * Encodes interval identity via 8 canonical geometric shapes and Solfège colours,
+ * plus physical piano key topography (white key = solid fill + white outline; black key = obsidian fill + neon outline & centre pip).
+ */
+function PptSvgNotehead({
+  shape,
+  colorHex,
+  neonColorHex,
+  cx,
+  cy,
+  isBlackKey,
+}: {
+  shape: PptNoteheadShape;
+  colorHex: string;
+  neonColorHex: string;
+  cx: number;
+  cy: number;
+  isBlackKey: boolean;
+}) {
+  const isFi = colorHex.toLowerCase() === '#141414';
+  const fillColor = isBlackKey ? '#090d16' : (isFi ? '#141414' : colorHex);
+  const strokeColor = isBlackKey ? neonColorHex : '#ffffff';
+  const strokeWidth = isBlackKey ? 1.8 : 1.4;
+  const r = 7.5;
+
+  const renderShape = () => {
+    switch (shape) {
+      case 'circle':
+        return <circle cx={0} cy={0} r={r} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />;
+      case 'diamond':
+        return <polygon points={`-${r * 1.2},0 0,-${r} ${r * 1.2},0 0,${r}`} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />;
+      case 'square':
+        return <rect x={-r * 0.9} y={-r * 0.8} width={r * 1.8} height={r * 1.6} rx={1} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />;
+      case 'triangle-down':
+        return <polygon points={`-${r * 1.15},-${r * 0.85} ${r * 1.15},-${r * 0.85} 0,${r * 1.1}`} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />;
+      case 'triangle-up':
+        return <polygon points={`-${r * 1.15},${r * 0.85} ${r * 1.15},${r * 0.85} 0,-${r * 1.1}`} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />;
+      case 'semicircle-left':
+        return (
+          <path
+            d={`M ${r * 0.85} -${r} L ${r * 0.85} ${r} C -${r * 0.1} ${r} -${r * 0.95} ${r * 0.55} -${r * 0.95} 0 C -${r * 0.95} -${r * 0.55} -${r * 0.1} -${r} ${r * 0.85} -${r} Z`}
+            fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth}
+          />
+        );
+      case 'semicircle-right':
+        return (
+          <path
+            d={`M -${r * 0.85} ${r} L -${r * 0.85} -${r} C ${r * 0.1} -${r} ${r * 0.95} -${r * 0.55} ${r * 0.95} 0 C ${r * 0.95} ${r * 0.55} ${r * 0.1} ${r} -${r * 0.85} ${r} Z`}
+            fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth}
+          />
+        );
+      case 'cross':
+        return (
+          <g>
+            <circle cx={0} cy={0} r={r} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
+            <line x1={-r * 0.55} y1={-r * 0.55} x2={r * 0.55} y2={r * 0.55} stroke="#f8fafc" strokeWidth={1.8} strokeLinecap="round" />
+            <line x1={r * 0.55} y1={-r * 0.55} x2={-r * 0.55} y2={r * 0.55} stroke="#f8fafc" strokeWidth={1.8} strokeLinecap="round" />
+          </g>
+        );
+    }
+  };
+
+  return (
+    <g transform={`translate(${cx}, ${cy})`}>
+      {renderShape()}
+      {isBlackKey && <circle cx={0} cy={0} r={2.1} fill={neonColorHex} />}
+    </g>
+  );
+}
+
 // ── Component ────────────────────────────────────────────
 
 const StaffNotation = React.memo(function StaffNotation() {
   const {
     root, scaleTonic, scale, activeIntervals,
-    useFlats,
+    useFlats, pptNoteheads, setPptNoteheads,
   } = useHarmony();
 
   const [clef, setClef] = useState<ClefType>('treble');
@@ -207,13 +285,13 @@ const StaffNotation = React.memo(function StaffNotation() {
   const allPositions = staffNotes.map(n => n.staffPos);
   const minPos = allPositions.length ? Math.min(...allPositions) : bottomPos;
   const maxPos = allPositions.length ? Math.max(...allPositions) : topPos;
-  
+
   const staffTopY = STAFF_TOP_Y;
   const staffBottomY = STAFF_TOP_Y + STAFF_H;
-  
+
   const noteTopY = getY(maxPos) - 20;
   const noteBottomY = getY(minPos) + 20;
-  
+
   const minY = Math.min(staffTopY - 12, noteTopY);
   const maxY = Math.max(staffBottomY + 12, noteBottomY);
   const totalHeight = maxY - minY + 12;
@@ -249,6 +327,18 @@ const StaffNotation = React.memo(function StaffNotation() {
               {c === 'treble' ? '𝄞' : '𝄢'}
             </button>
           ))}
+          <button
+            onClick={() => setPptNoteheads(!pptNoteheads)}
+            className={`w-8 h-8 rounded flex items-center justify-center text-[10px] font-mono transition-all border ${
+              !pptNoteheads
+                ? 'bg-primary text-primary-foreground font-bold border-primary'
+                : 'bg-secondary border-transparent text-secondary-foreground hover:bg-secondary/80'
+            }`}
+            title={pptNoteheads ? 'Using PPT Geometric Noteheads — click for Traditional Oval Noteheads' : 'Using Traditional Oval Noteheads — click for PPT Geometric Noteheads'}
+            aria-label="Toggle Traditional vs PPT Geometric Noteheads"
+          >
+            {pptNoteheads ? '◆' : '♩'}
+          </button>
         </div>
       </div>
 
@@ -277,7 +367,7 @@ const StaffNotation = React.memo(function StaffNotation() {
               const notesOnLine = staffNotes
                 .map((n, i) => ({ ...n, x: noteX + noteOffsets[i] }))
                 .filter(n => Math.abs(n.staffPos - pos) <= 1 && n.staffPos % 2 === pos % 2 || n.staffPos === pos);
-              
+
               if (notesOnLine.length > 0) {
                 const minNoteX = Math.min(...notesOnLine.map(n => n.x));
                 const maxNoteX = Math.max(...notesOnLine.map(n => n.x));
@@ -357,8 +447,25 @@ const StaffNotation = React.memo(function StaffNotation() {
               const y = getY(note.staffPos);
               const x = noteX + noteOffsets[i];
               const isRoot = note.pc === root;
-              const fillColor = isRoot ? 'hsl(32, 85%, 55%)' : 'hsl(28, 70%, 50%)';
 
+              if (pptNoteheads) {
+                const semitoneFromTonic = ((note.pc - scaleTonic) % 12 + 12) % 12;
+                const spec = getPptNoteheadSpec(semitoneFromTonic);
+                const blackKey = isBlackPianoKey(note.pc);
+                return (
+                  <PptSvgNotehead
+                    key={`n-${i}`}
+                    shape={spec.shape}
+                    colorHex={spec.colorHex}
+                    neonColorHex={spec.neonColorHex}
+                    cx={x}
+                    cy={y}
+                    isBlackKey={blackKey}
+                  />
+                );
+              }
+
+              const fillColor = isRoot ? 'hsl(32, 85%, 55%)' : 'hsl(28, 70%, 50%)';
               return (
                 <g key={`n-${i}`}>
                   <ellipse

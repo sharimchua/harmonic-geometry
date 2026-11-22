@@ -4,18 +4,32 @@ import {
   getChordPartialsFromVoicing,
   calculatePartialInteractions,
   calculateChordDissonance,
+  calculateChordCoincidence,
+  PRIME_FAMILY_COLORS,
+  SOLFEGE_COLORS,
+  SOLFEGE_NEON_COLORS,
+  getLabel,
   getNoteName,
   type Partial,
+  type PrimeLimitFamily,
 } from '@/lib/musicTheory';
 
-const NOTE_HUES: Record<number, number> = {
-  0: 32, 1: 0, 2: 45, 3: 60, 4: 80, 5: 120,
-  6: 340, 7: 220, 8: 200, 9: 150, 10: 280, 11: 300,
-};
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.slice(0, 2), 16) || 0;
+  const g = parseInt(clean.slice(2, 4), 16) || 0;
+  const b = parseInt(clean.slice(4, 6), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
-function noteColor(pc: number, alpha = 0.85): string {
-  const hue = NOTE_HUES[pc % 12] ?? 0;
-  return `hsla(${hue}, 65%, 55%, ${alpha})`;
+/**
+ * Returns the canonical PPT Solfège colour for a pitch class relative to the active tonic.
+ * Uses vibrant neon sky-blue (#38BDF8) for Fi (semitone 6) on dark spectrum backgrounds so bars and markers remain clearly legible.
+ */
+function pptNoteColor(pc: number, scaleTonic: number, alpha = 0.85): string {
+  const relSemitone = ((pc - scaleTonic) % 12 + 12) % 12;
+  const baseHex = relSemitone === 6 ? SOLFEGE_NEON_COLORS[6] : SOLFEGE_COLORS[relSemitone];
+  return hexToRgba(baseHex, alpha);
 }
 
 const OCTAVE_OPTIONS = [1, 2, 3, 4, 5, 6];
@@ -28,7 +42,7 @@ const SUB_BAR_W = 2;
 const BAR_GAP = 1;
 
 const DissonanceSpectrum = React.memo(function DissonanceSpectrum() {
-  const { activePitchClasses, activeIntervals, root, harmonicRoot, useFlats } = useHarmony();
+  const { activePitchClasses, activeIntervals, root, harmonicRoot, scaleTonic, labelMode, useFlats } = useHarmony();
   const [baseOctave, setBaseOctave] = useState(4);
 
   const { partials, noteFrequencies } = useMemo(
@@ -45,6 +59,18 @@ const DissonanceSpectrum = React.memo(function DissonanceSpectrum() {
     () => calculateChordDissonance(noteFrequencies.map(n => n.freq)),
     [noteFrequencies]
   );
+
+  const coincidence = useMemo(
+    () => calculateChordCoincidence(activeIntervals),
+    [activeIntervals]
+  );
+
+  const primeFamilyKey: PrimeLimitFamily =
+    coincidence.primeLimit === 2 ? '2-Du' :
+    coincidence.primeLimit === 3 ? '3-Tri' :
+    coincidence.primeLimit === 5 ? '5-Qui' :
+    coincidence.primeLimit === 7 ? '7-Sep' : '11-Undec';
+  const primeColor = PRIME_FAMILY_COLORS[primeFamilyKey];
 
   const minFreq = 28;
   const maxFreq = 5500;
@@ -142,9 +168,32 @@ const DissonanceSpectrum = React.memo(function DissonanceSpectrum() {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">
-        Fundamentals and Overtones
-      </h3>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h3 className="text-sm font-sans font-semibold text-muted-foreground uppercase tracking-widest">
+          Fundamentals and Overtones
+        </h3>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span
+            className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-2 border border-border text-foreground"
+            title="Just Intonation integer ratio approximation for this voicing"
+          >
+            JI Ratio: <strong className="text-primary">{coincidence.integerRatioString}</strong>
+          </span>
+          <span
+            className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-2 border border-border text-muted-foreground"
+            title="Prime Period Theory Coincidence Super-Cycle: number of root periods required for all chord tones to simultaneously realign at 12 o'clock Do"
+          >
+            Cycle: <strong className="text-foreground">{coincidence.rootTurnsToAlign}×</strong>
+          </span>
+          <span
+            className="text-[10px] font-mono px-2 py-0.5 rounded font-semibold"
+            style={{ backgroundColor: `${primeColor}22`, color: primeColor, border: `1px solid ${primeColor}55` }}
+            title={`Prime Limit Family (${coincidence.primeLimit}-limit) • Tenney Height: ${coincidence.tenneyHeight}`}
+          >
+            {coincidence.primeLimit}-Limit ({primeFamilyKey})
+          </span>
+        </div>
+      </div>
       <div className="flex items-center gap-3">
         <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Total Crunch:</span>
         <span className="text-sm font-mono font-bold text-foreground">{Math.round(totalDissonance)}%</span>
@@ -173,11 +222,10 @@ const DissonanceSpectrum = React.memo(function DissonanceSpectrum() {
               <stop offset="100%" stopColor="hsl(0, 0%, 100%)" stopOpacity="0.02" />
             </linearGradient>
             {activePitchClasses.map(pc => {
-              const hue = NOTE_HUES[pc % 12] ?? 0;
               return (
                 <linearGradient key={`grad-${pc}`} id={`note-grad-${pc}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={`hsla(${hue}, 55%, 55%, 0.5)`} />
-                  <stop offset="100%" stopColor={`hsla(${hue}, 55%, 55%, 0.03)`} />
+                  <stop offset="0%" stopColor={pptNoteColor(pc, scaleTonic, 0.5)} />
+                  <stop offset="100%" stopColor={pptNoteColor(pc, scaleTonic, 0.03)} />
                 </linearGradient>
               );
             })}
@@ -215,35 +263,41 @@ const DissonanceSpectrum = React.memo(function DissonanceSpectrum() {
             );
           })}
 
-          {noteBars.map(({ pc, items }) => (
-            <g key={`bars-${pc}`}>
-              {items.map((bar, i) => {
-                const isFundamental = bar.partial.partialNumber === 1;
-                return (
-                  <g key={`b-${pc}-${i}`}>
-                    {bar.subBars.map((sb, si) => (
-                      <rect key={si} x={sb.x} y={plotBottom - sb.h} width={SUB_BAR_W} height={sb.h}
-                        fill={noteColor(pc, isFundamental ? 0.7 : 0.4)} rx={0.5}
-                      />
-                    ))}
-                    {isFundamental && (
-                      <>
-                        <circle cx={bar.cx} cy={plotTop - 6} r={7} fill={noteColor(pc)} opacity={0.9} />
-                        <text x={bar.cx} y={plotTop - 3} textAnchor="middle" fontSize={7.5}
-                          fontFamily="'JetBrains Mono', monospace" fill="hsl(0, 0%, 7%)" fontWeight={700}
-                        >{getNoteName(pc, useFlats)}</text>
-                      </>
-                    )}
-                    {!isFundamental && bar.partial.amplitude > 0.35 && (
-                      <text x={bar.cx} y={plotBottom - bar.height - 3} textAnchor="middle" fontSize={6}
-                        fontFamily="'JetBrains Mono', monospace" fill={noteColor(pc, 0.6)}
-                      >{bar.partial.partialNumber}×</text>
-                    )}
-                  </g>
-                );
-              })}
-            </g>
-          ))}
+          {noteBars.map(({ pc, items }) => {
+            const relSemitone = ((pc - scaleTonic) % 12 + 12) % 12;
+            const isLightBadge = relSemitone === 3 || relSemitone === 4 || relSemitone === 6;
+            const badgeTextFill = isLightBadge ? 'hsl(0, 0%, 7%)' : '#ffffff';
+            const label = getLabel(pc, root, labelMode, useFlats, scaleTonic);
+            return (
+              <g key={`bars-${pc}`}>
+                {items.map((bar, i) => {
+                  const isFundamental = bar.partial.partialNumber === 1;
+                  return (
+                    <g key={`b-${pc}-${i}`}>
+                      {bar.subBars.map((sb, si) => (
+                        <rect key={si} x={sb.x} y={plotBottom - sb.h} width={SUB_BAR_W} height={sb.h}
+                          fill={pptNoteColor(pc, scaleTonic, isFundamental ? 0.8 : 0.45)} rx={0.5}
+                        />
+                      ))}
+                      {isFundamental && (
+                        <>
+                          <circle cx={bar.cx} cy={plotTop - 6} r={7.5} fill={pptNoteColor(pc, scaleTonic, 0.95)} />
+                          <text x={bar.cx} y={plotTop - 3} textAnchor="middle" fontSize={7.5}
+                            fontFamily="'JetBrains Mono', monospace" fill={badgeTextFill} fontWeight={700}
+                          >{label}</text>
+                        </>
+                      )}
+                      {!isFundamental && bar.partial.amplitude > 0.35 && (
+                        <text x={bar.cx} y={plotBottom - bar.height - 3} textAnchor="middle" fontSize={6}
+                          fontFamily="'JetBrains Mono', monospace" fill={pptNoteColor(pc, scaleTonic, 0.75)}
+                        >{bar.partial.partialNumber}×</text>
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })}
 
           {dissonancePath.fill && (
             <>
@@ -259,8 +313,8 @@ const DissonanceSpectrum = React.memo(function DissonanceSpectrum() {
       <div className="flex flex-wrap items-center gap-3 text-[9px] font-mono text-muted-foreground">
         {activePitchClasses.map(pc => (
           <div key={pc} className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: noteColor(pc) }} />
-            <span>{getNoteName(pc, useFlats)}</span>
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: pptNoteColor(pc, scaleTonic, 0.95) }} />
+            <span>{getLabel(pc, root, labelMode, useFlats, scaleTonic)} ({getNoteName(pc, useFlats)})</span>
           </div>
         ))}
         <div className="flex items-center gap-1 ml-2">

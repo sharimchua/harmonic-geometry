@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
 import { generateVoicings, type VoicingPosition } from '@/lib/guitarVoicings';
-import { getLabel, getIntervalTension, TENSION_COLORS } from '@/lib/musicTheory';
+import { getLabel, getIntervalTension, TENSION_COLORS, SOLFEGE_COLORS } from '@/lib/musicTheory';
 
 const FRET_WIDTH = 50;
 const STRING_SPACING = 24;
@@ -13,12 +13,14 @@ const FRET_MARKERS = [3, 5, 7, 9, 12, 15, 17, 19];
 
 const TUNING_PRESETS: { name: string; tuning: number[]; stringNames: string[] }[] = [
   { name: 'Standard', tuning: [40, 45, 50, 55, 59, 64], stringNames: ['E', 'A', 'D', 'G', 'B', 'e'] },
+  { name: 'D Standard (PPT)', tuning: [38, 43, 48, 53, 57, 62], stringNames: ['D', 'G', 'C', 'F', 'A', 'd'] },
   { name: 'Drop D', tuning: [38, 45, 50, 55, 59, 64], stringNames: ['D', 'A', 'D', 'G', 'B', 'e'] },
+  { name: 'DADGAD', tuning: [38, 45, 50, 55, 57, 62], stringNames: ['D', 'A', 'D', 'G', 'A', 'D'] },
   { name: 'Open G', tuning: [38, 43, 50, 55, 59, 62], stringNames: ['D', 'G', 'D', 'G', 'B', 'D'] },
   { name: 'Open D', tuning: [38, 45, 50, 54, 57, 62], stringNames: ['D', 'A', 'D', 'F#', 'A', 'D'] },
-  { name: 'DADGAD', tuning: [38, 45, 50, 55, 57, 62], stringNames: ['D', 'A', 'D', 'G', 'A', 'D'] },
   { name: 'Open E', tuning: [40, 47, 52, 56, 59, 64], stringNames: ['E', 'B', 'E', 'G#', 'B', 'E'] },
   { name: 'Half Step Down', tuning: [39, 44, 49, 54, 58, 63], stringNames: ['Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'] },
+  { name: 'All Fourths (E–F)', tuning: [40, 45, 50, 55, 60, 65], stringNames: ['E', 'A', 'D', 'G', 'C', 'f'] },
   { name: 'FACGCE', tuning: [41, 45, 48, 55, 60, 64], stringNames: ['F', 'A', 'C', 'G', 'C', 'e'] },
 ];
 
@@ -107,8 +109,11 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     activeIntervals,
     activePitchClasses,
     labelMode, useFlats,
+    pptSolfegeColors,
+    playNote,
   } = useHarmony();
 
+  const useSolfegePalette = pptSolfegeColors;
   const [tuningIdx, setTuningIdx] = React.useState(0);
   const currentTuning = TUNING_PRESETS[tuningIdx];
   const tuning = currentTuning.tuning;
@@ -122,6 +127,25 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
     for (let i = numStrings - 1; i >= 0; i--) order.push(i);
     return order;
   }, [numStrings]);
+
+  // Identify any non-Perfect-4th (non-5-semitone) tuning seams between adjacent strings (e.g. G-B / F-A Major 3rd seam)
+  const tuningSeams = useMemo(() => {
+    const seams: { y: number; interval: number; label: string }[] = [];
+    for (let s = 0; s < numStrings - 1; s++) {
+      const diff = tuning[s + 1] - tuning[s];
+      if (diff !== 5) {
+        const rowA = displayOrder.indexOf(s);
+        const rowB = displayOrder.indexOf(s + 1);
+        const midY = TOP_PAD + ((rowA + rowB) / 2) * STRING_SPACING;
+        seams.push({
+          y: midY,
+          interval: diff,
+          label: diff === 4 ? 'M3 Seam (+1 fret)' : `${diff}st Seam`,
+        });
+      }
+    }
+    return seams;
+  }, [tuning, numStrings, displayOrder]);
 
   const bassPc = useMemo(() => {
     const bassInterval = activeIntervals.length ? Math.min(...activeIntervals) : 0;
@@ -317,6 +341,33 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             </g>
           ))}
 
+          {/* Major-3rd / Non-4th Tuning Seam Lines (PPT Fretboard Leaps) */}
+          {tuningSeams.map((seam, idx) => (
+            <g key={`seam-${idx}`}>
+              <line
+                x1={LEFT_PAD}
+                y1={seam.y}
+                x2={totalWidth - 10}
+                y2={seam.y}
+                stroke="hsl(340, 65%, 55%)"
+                strokeWidth={1}
+                strokeDasharray="3 4"
+                opacity={0.45}
+              />
+              <text
+                x={totalWidth - 14}
+                y={seam.y - 3}
+                textAnchor="end"
+                fontSize={7.5}
+                fontFamily="'JetBrains Mono', monospace"
+                fill="hsl(340, 70%, 65%)"
+                opacity={0.75}
+              >
+                {seam.label}
+              </text>
+            </g>
+          ))}
+
           {/* Fret markers */}
           {FRET_MARKERS.filter(f => f !== 12 && f <= NUM_FRETS).map(f => (
             <circle
@@ -358,25 +409,44 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
             const displayRow = displayOrder.indexOf(note.s);
             const cx = LEFT_PAD + (note.f === 0 ? 0 : note.f * FRET_WIDTH - FRET_WIDTH / 2);
             const cy = TOP_PAD + displayRow * STRING_SPACING;
-            
+
             const isRoot = note.pc === root;
-            const fill = isRoot 
-              ? 'hsl(32, 85%, 52%)' 
-              : note.isCore 
-                ? 'hsl(28, 60%, 40%)' 
+            const relToTonic = ((note.pc - scaleTonic) % 12 + 12) % 12;
+            const solfegeHex = SOLFEGE_COLORS[relToTonic];
+
+            let fill = isRoot
+              ? 'hsl(32, 85%, 52%)'
+              : note.isCore
+                ? 'hsl(28, 60%, 40%)'
                 : 'hsl(28, 40%, 35%)';
-            const stroke = isRoot 
-              ? 'hsl(32, 90%, 65%)' 
-              : note.isCore 
-                ? 'hsl(28, 50%, 55%)' 
+            let stroke = isRoot
+              ? 'hsl(32, 90%, 65%)'
+              : note.isCore
+                ? 'hsl(28, 50%, 55%)'
                 : 'hsl(28, 30%, 50%)';
-            const opacity = note.isCore ? 1 : 0.6;
+
+            if (useSolfegePalette) {
+              fill = relToTonic === 6 ? '#141414' : solfegeHex;
+              stroke = isRoot ? '#ffffff' : (relToTonic === 6 ? '#38BDF8' : '#ffffffaa');
+            }
+
+            const opacity = note.isCore ? 1 : 0.65;
+            const midi = tuning[note.s] + note.f;
 
             return (
-              <g key={`note-${i}`} onClick={() => setRoot(note.pc)} className="cursor-pointer">
-                <circle 
-                  cx={cx} cy={cy} r={DOT_R} 
-                  fill={fill} stroke={stroke} strokeWidth={1} 
+              <g
+                key={`note-${i}`}
+                onClick={() => {
+                  if (!audioEnabled) {
+                    playNote(midi);
+                  }
+                  setRoot(note.pc);
+                }}
+                className="cursor-pointer"
+              >
+                <circle
+                  cx={cx} cy={cy} r={DOT_R}
+                  fill={fill} stroke={stroke} strokeWidth={isRoot ? 1.6 : 1}
                   opacity={opacity}
                 />
                 <text
@@ -384,7 +454,7 @@ const GuitarFretboard = React.memo(function GuitarFretboard() {
                   textAnchor="middle" dominantBaseline="central"
                   fontSize={8} fontWeight={600}
                   fontFamily="'JetBrains Mono', monospace"
-                  fill="hsl(0, 0%, 92%)"
+                  fill="hsl(0, 0%, 95%)"
                   opacity={opacity}
                 >
                   {getLabel(note.pc, root, labelMode, useFlats, scaleTonic)}

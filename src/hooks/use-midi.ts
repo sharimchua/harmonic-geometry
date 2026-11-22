@@ -49,6 +49,7 @@ function detectInversion(
 export function useMidi(
   onChordDetected?: (event: MidiChordEvent) => void,
   getIdentifyOptions?: () => Omit<IdentifyChordOptions, 'bassPitchClass'>,
+  enabled: boolean = false,
 ) {
   const [state, setState] = useState<MidiState>({
     isSupported: typeof navigator !== 'undefined' && 'requestMIDIAccess' in navigator,
@@ -121,6 +122,7 @@ export function useMidi(
     if (!state.isSupported) return;
 
     let midiAccess: any = null;
+    let isCancelled = false;
 
     const handleMidiMessage = (e: any) => {
       const [status, note, velocity] = e.data ?? [];
@@ -128,7 +130,6 @@ export function useMidi(
 
       const command = status & 0xf0;
       if (command === 0x90 && velocity > 0) {
-        // Note On — process immediately for responsiveness
         if (noteOffTimerRef.current) {
           clearTimeout(noteOffTimerRef.current);
           noteOffTimerRef.current = null;
@@ -136,13 +137,13 @@ export function useMidi(
         heldNotesRef.current.add(note);
         processNotes();
       } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-        // Note Off — delay processing
         heldNotesRef.current.delete(note);
         scheduleNoteOffProcess();
       }
     };
 
     const connectInputs = (access: any) => {
+      if (isCancelled) return;
       let firstName: string | null = null;
       access.inputs.forEach((input: any) => {
         if (!firstName) firstName = input.name ?? 'MIDI Device';
@@ -155,20 +156,41 @@ export function useMidi(
       }));
     };
 
-    navigator.requestMIDIAccess({ sysex: false })
-      .then((access) => {
-        midiAccess = access;
-        connectInputs(access);
-
-        access.onstatechange = () => {
+    const requestMidi = () => {
+      navigator.requestMIDIAccess({ sysex: false })
+        .then((access) => {
+          if (isCancelled) return;
+          midiAccess = access;
           connectInputs(access);
-        };
-      })
-      .catch(() => {
-        setState(prev => ({ ...prev, isSupported: false }));
-      });
+
+          access.onstatechange = () => {
+            connectInputs(access);
+          };
+        })
+        .catch(() => {
+          if (!isCancelled) {
+            setState(prev => ({ ...prev, isConnected: false }));
+          }
+        });
+    };
+
+    if (enabled) {
+      requestMidi();
+    } else if (typeof navigator !== 'undefined' && navigator.permissions && navigator.permissions.query) {
+      // Connect silently only if permission was already granted in a previous session
+      navigator.permissions.query({ name: 'midi' as PermissionName, sysex: false } as any)
+        .then((status) => {
+          if (!isCancelled && status.state === 'granted') {
+            requestMidi();
+          }
+        })
+        .catch(() => {
+          // Ignore permissions query error
+        });
+    }
 
     return () => {
+      isCancelled = true;
       if (noteOffTimerRef.current) {
         clearTimeout(noteOffTimerRef.current);
       }
@@ -178,7 +200,7 @@ export function useMidi(
         });
       }
     };
-  }, [state.isSupported, processNotes, scheduleNoteOffProcess]);
+  }, [state.isSupported, enabled, processNotes, scheduleNoteOffProcess]);
 
   return state;
 }

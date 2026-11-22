@@ -1,9 +1,11 @@
 import React from 'react';
 import { useHarmony } from '@/contexts/HarmonyContext';
 import {
-  NOTE_NAMES_SHARP, NOTE_NAMES_FLAT,
+  NOTE_NAMES_SHARP, NOTE_NAMES_FLAT, TRI_PITCH_CLASSES,
   CHORD_CATEGORIES, SCALE_CATEGORIES,
   type HarmonicLockMode,
+  type ClockOrientation,
+  type AccidentalPreference,
 } from '@/lib/musicTheory';
 
 export default function ControlPanel() {
@@ -11,12 +13,20 @@ export default function ControlPanel() {
     scaleTonic, setScaleTonic,
     root, setRoot, chord, setChord, scale, setScale,
     inversion, setInversion, dropVoicingType, setDropVoicing,
-    useFlats, setUseFlats,
+    useFlats, labelMode,
+    clockOrientation, setClockOrientation,
+    accidentalPreference, setAccidentalPreference,
+    pptSolfegeColors, setPptSolfegeColors,
+    pptNoteheads, setPptNoteheads,
+    showPianoTriangles, setShowPianoTriangles,
+    audioEnabled, setAudioEnabled, playCurrentChord,
     lockMode, setLockMode,
     midi, midiEnabled, setMidiEnabled,
   } = useHarmony();
 
-  const noteNames = useFlats ? NOTE_NAMES_FLAT : NOTE_NAMES_SHARP;
+  const noteNames = labelMode === 'tri'
+    ? TRI_PITCH_CLASSES
+    : (useFlats ? NOTE_NAMES_FLAT : NOTE_NAMES_SHARP);
   const maxInversion = chord.intervals.length - 1;
 
   return (
@@ -187,18 +197,97 @@ export default function ControlPanel() {
         </div>
       </Section>
 
-      {/* Display Settings */}
-      <Section title="Display">
-        <div className="flex gap-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={useFlats}
-              onChange={e => setUseFlats(e.target.checked)}
-              className="rounded border-border accent-primary"
-            />
-            <span className="text-xs font-sans text-muted-foreground">♭ Flats</span>
-          </label>
+      {/* Display & PPT Settings */}
+      <Section title="Display & PPT Layers">
+        <div className="space-y-3">
+          <div>
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">12 o'clock Zenith</p>
+            <div className="flex gap-1">
+              {([
+                ['tonic', 'Tonic (Do)'],
+                ['root', 'Chord Root'],
+                ['fixed-c', 'Fixed C'],
+              ] as [ClockOrientation, string][]).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => setClockOrientation(mode)}
+                  className={`px-2 py-1 rounded text-xs font-mono transition-all ${
+                    clockOrientation === mode
+                      ? 'bg-primary text-primary-foreground font-semibold'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">Enharmonic Spelling</p>
+            <div className="flex gap-1">
+              {([
+                ['auto', 'Auto (Key)'],
+                ['sharps', '♯ Sharps'],
+                ['flats', '♭ Flats'],
+              ] as [AccidentalPreference, string][]).map(([pref, label]) => (
+                <button
+                  key={pref}
+                  onClick={() => setAccidentalPreference(pref)}
+                  className={`px-2 py-1 rounded text-xs font-mono transition-all ${
+                    accidentalPreference === pref
+                      ? 'bg-primary text-primary-foreground font-semibold'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5 pt-1">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!pptNoteheads}
+                onChange={e => setPptNoteheads(!e.target.checked)}
+                className="rounded border-border accent-primary"
+              />
+              <span className="text-xs font-sans text-muted-foreground">♩ Traditional Oval Noteheads</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showPianoTriangles}
+                onChange={e => setShowPianoTriangles(e.target.checked)}
+                className="rounded border-border accent-primary"
+              />
+              <span className="text-xs font-sans text-muted-foreground">△ PPT Piano Triangles (D/L/U/R)</span>
+            </label>
+          </div>
+        </div>
+      </Section>
+
+      {/* Audio & Ear-First Auditioning */}
+      <Section title="Audio Synth">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAudioEnabled(!audioEnabled)}
+            className={`px-2.5 py-1.5 rounded text-xs font-sans transition-all ${
+              audioEnabled
+                ? 'bg-primary text-primary-foreground font-semibold'
+                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+            }`}
+          >
+            {audioEnabled ? '🔊 Auto-Play On' : '🔇 Auto-Play Off'}
+          </button>
+          <button
+            onClick={() => playCurrentChord('arpeggio')}
+            className="px-2.5 py-1.5 rounded text-xs font-mono bg-surface-3 border border-border text-foreground hover:border-primary/50 transition-all"
+          >
+            ▶ Strum Chord
+          </button>
         </div>
       </Section>
 

@@ -1,11 +1,102 @@
-// ─── Note Names ──────────────────────────────────────────
+import {
+  SOLFEGE_SYLLABLES,
+  SOLFEGE_SPECS,
+  SOLFEGE_COLORS,
+  SOLFEGE_NEON_COLORS,
+  TRI_PITCH_CLASSES,
+  getTriPitchClass,
+  PPT_NOTEHEAD_SPECS,
+  getPptNoteheadSpec,
+  isBlackPianoKey,
+  PITCH_CLASS_TO_PIANO_TRIANGLE,
+  PIANO_TRIANGLE_META,
+  encodePianoTriangles,
+  JUST_INTERVAL_SPECS,
+  PRIME_FAMILY_COLORS,
+  getJustIntervalSpec,
+  calculateChordCoincidence,
+  PATH_BASE,
+  PATH_SHARP,
+  PATH_FLAT,
+  type SolfegeSyllable,
+  type SolfegeSpec,
+  type PptNoteheadShape,
+  type PptNoteheadSpec,
+  type PianoTriangleType,
+  type PianoTrianglePoint,
+  type PianoTriangleInfo,
+  type JustIntervalSpec,
+  type PrimeLimitFamily,
+} from './pptConstants';
+
+export {
+  SOLFEGE_SYLLABLES,
+  SOLFEGE_SPECS,
+  SOLFEGE_COLORS,
+  SOLFEGE_NEON_COLORS,
+  TRI_PITCH_CLASSES,
+  getTriPitchClass,
+  PPT_NOTEHEAD_SPECS,
+  getPptNoteheadSpec,
+  isBlackPianoKey,
+  PITCH_CLASS_TO_PIANO_TRIANGLE,
+  PIANO_TRIANGLE_META,
+  encodePianoTriangles,
+  JUST_INTERVAL_SPECS,
+  PRIME_FAMILY_COLORS,
+  getJustIntervalSpec,
+  calculateChordCoincidence,
+  PATH_BASE,
+  PATH_SHARP,
+  PATH_FLAT,
+  type SolfegeSyllable,
+  type SolfegeSpec,
+  type PptNoteheadShape,
+  type PptNoteheadSpec,
+  type PianoTriangleType,
+  type PianoTrianglePoint,
+  type PianoTriangleInfo,
+  type JustIntervalSpec,
+  type PrimeLimitFamily,
+};
+
+// ─── Note Names & Pitch Class Modes ──────────────────────
 export const NOTE_NAMES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 export const NOTE_NAMES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'] as const;
 
 export type PitchClass = number; // 0-11
+export type ClockOrientation = 'tonic' | 'root' | 'fixed-c';
+export type AccidentalPreference = 'auto' | 'sharps' | 'flats';
 
-export function getNoteName(pc: PitchClass, useFlats = false): string {
-  return useFlats ? NOTE_NAMES_FLAT[pc % 12] : NOTE_NAMES_SHARP[pc % 12];
+/**
+ * Determines whether a given key center (and optional scale intervals) conventionally spells with flats.
+ * E.g. F (5), Bb (10), Eb (3), Ab (8), Db (1) in Major; or C minor, D minor, G minor, F minor, etc.
+ */
+export function shouldKeyUseFlats(scaleTonic: PitchClass, scaleIntervals?: number[] | null): boolean {
+  const flatMajorTonics = new Set([1, 3, 5, 8, 10]); // Db, Eb, F, Ab, Bb
+  if (!scaleIntervals || scaleIntervals.length === 0) {
+    return flatMajorTonics.has(((scaleTonic % 12) + 12) % 12);
+  }
+  // Check relative major tonic for common diatonic modes or minor scales:
+  const hasMinorThird = scaleIntervals.includes(3) && !scaleIntervals.includes(4);
+  const hasFlatTwo = scaleIntervals.includes(1);
+  if (hasFlatTwo) {
+    // Phrygian / Locrian: usually flat-leaning unless tonic is B, F#, C#, G#
+    const sharpModalTonics = new Set([11, 6, 1, 8]);
+    return !sharpModalTonics.has(scaleTonic);
+  }
+  if (hasMinorThird) {
+    // Minor / Dorian: D(2), G(7), C(0), F(5), Bb(10), Eb(3) use flats
+    const flatMinorTonics = new Set([0, 2, 3, 5, 7, 8, 10]);
+    return flatMinorTonics.has(((scaleTonic % 12) + 12) % 12);
+  }
+  return flatMajorTonics.has(((scaleTonic % 12) + 12) % 12);
+}
+
+export function getNoteName(pc: PitchClass, useFlats = false, useTri = false): string {
+  const norm = ((pc % 12) + 12) % 12;
+  if (useTri) return TRI_PITCH_CLASSES[norm];
+  return useFlats ? NOTE_NAMES_FLAT[norm] : NOTE_NAMES_SHARP[norm];
 }
 
 // ─── Interval Data ───────────────────────────────────────
@@ -151,7 +242,10 @@ export const SCALE_CATEGORIES: Record<string, ScaleType[]> = {
     { name: 'Harmonic Minor', intervals: [0, 2, 3, 5, 7, 8, 11], category: 'Melodic/Harmonic Minor' },
     { name: 'Melodic Minor', intervals: [0, 2, 3, 5, 7, 9, 11], category: 'Melodic/Harmonic Minor' },
     { name: 'Phrygian Dominant', intervals: [0, 1, 4, 5, 7, 8, 10], category: 'Melodic/Harmonic Minor' },
+    { name: 'Lydian Dominant', intervals: [0, 2, 4, 6, 7, 9, 10], category: 'Melodic/Harmonic Minor' },
     { name: 'Lydian Augmented', intervals: [0, 2, 4, 6, 8, 9, 11], category: 'Melodic/Harmonic Minor' },
+    { name: 'Altered (Super Locrian)', intervals: [0, 1, 3, 4, 6, 8, 10], category: 'Melodic/Harmonic Minor' },
+    { name: 'Double Harmonic (Hijaz)', intervals: [0, 1, 4, 5, 7, 8, 11], category: 'Melodic/Harmonic Minor' },
   ],
   'Symmetrical': [
     { name: 'Chromatic', intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], category: 'Symmetrical' },
@@ -163,6 +257,11 @@ export const SCALE_CATEGORIES: Record<string, ScaleType[]> = {
     { name: 'Major Pentatonic', intervals: [0, 2, 4, 7, 9], category: 'Pentatonic/Blues' },
     { name: 'Minor Pentatonic', intervals: [0, 3, 5, 7, 10], category: 'Pentatonic/Blues' },
     { name: 'Blues', intervals: [0, 3, 5, 6, 7, 10], category: 'Pentatonic/Blues' },
+  ],
+  'PPT Axis-Fan': [
+    { name: 'Stage 1: Do–Fi Axis', intervals: [0, 6], category: 'PPT Axis-Fan' },
+    { name: 'Stage 2: Tri-Dressed Fan', intervals: [0, 1, 5, 6, 7, 11], category: 'PPT Axis-Fan' },
+    { name: 'Stage 3: Perpendicular Axis', intervals: [0, 1, 3, 5, 6, 7, 9, 11], category: 'PPT Axis-Fan' },
   ],
 };
 
@@ -375,11 +474,11 @@ export function calculateVoiceLeading(
 }
 
 // ─── Label Modes ─────────────────────────────────────────
-export type LabelMode = 'notes' | 'intervals' | 'scaleDegrees' | 'semitones' | 'solfege';
+export type LabelMode = 'notes' | 'tri' | 'intervals' | 'scaleDegrees' | 'semitones' | 'solfege';
 
 const SCALE_DEGREE_LABELS = ['1', 'b2', '2', 'b3', '3', '4', 'b5', '5', '#5', '6', 'b7', '7'] as const;
 
-const SOLFEGE_LABELS = ['Do', 'Ra', 'Re', 'Me', 'Mi', 'Fa', 'Se', 'Sol', 'Le', 'La', 'Te', 'Ti'] as const;
+export const SOLFEGE_LABELS = SOLFEGE_SYLLABLES;
 
 /** Get a scale degree label for a pitch class relative to a tonic (e.g. "1", "b3", "#5") */
 export function getScaleDegreeLabel(pc: PitchClass, scaleTonic: PitchClass): string {
@@ -396,7 +495,9 @@ export function getLabel(
 ): string {
   switch (mode) {
     case 'notes':
-      return getNoteName(pc, useFlats);
+      return getNoteName(pc, useFlats, false);
+    case 'tri':
+      return getTriPitchClass(pc, 'symbol');
     case 'intervals':
       return getIntervalName((pc - root + 12) % 12);
     case 'scaleDegrees':
@@ -435,23 +536,23 @@ function intervalsFromRoot(root: PitchClass, pitchClasses: PitchClass[]): number
 }
 
 /** Semitone classes that may be omitted in real-world voicings */
-function getOmittableSemitones(chordNorm: number[]): Set<number> {
+function getOmittableSemitones(chordNorm: number[], played: number[]): Set<number> {
   const omittable = new Set<number>();
   const hasSeventh = chordNorm.includes(10) || chordNorm.includes(11);
-  const hasExtensions = chordNorm.some(s => [2, 5, 9].includes(s));
-
-  if (chordNorm.includes(7)) omittable.add(7);
-  if (hasSeventh && (chordNorm.includes(3) || chordNorm.includes(4))) {
+  // 5th (7) can be omitted if the chord has a 7th or extensions
+  if (chordNorm.includes(7) && chordNorm.length >= 4) {
+    omittable.add(7);
+  }
+  // 3rd (3 or 4) can only be omitted in a 4-note 7th chord when the 5th (7) and 7th (10/11) are both played (e.g. C-G-B = Maj7 no 3)
+  if (chordNorm.length === 4 && hasSeventh && played.includes(7) && (played.includes(10) || played.includes(11))) {
     if (chordNorm.includes(3)) omittable.add(3);
     if (chordNorm.includes(4)) omittable.add(4);
   }
-  if (hasExtensions) {
-    if (chordNorm.includes(2)) omittable.add(2);
-    if (chordNorm.includes(5)) omittable.add(5);
-    if (chordNorm.includes(9)) omittable.add(9);
-    if (hasSeventh && chordNorm.includes(7)) omittable.add(7);
+  // In 11th/13th chords (5+ notes), intermediate 9th (2) or 11th (5) can be omitted if the 3rd and 7th are played
+  if (chordNorm.length >= 5 && (played.includes(3) || played.includes(4)) && (played.includes(10) || played.includes(11))) {
+    if (chordNorm.includes(2) && (chordNorm.includes(5) || chordNorm.includes(9))) omittable.add(2);
+    if (chordNorm.includes(5) && chordNorm.includes(9)) omittable.add(5);
   }
-
   return omittable;
 }
 
@@ -517,7 +618,7 @@ function findCatalogMatches(pitchClasses: PitchClass[]): ChordMatchCandidate[] {
 
       if (played.length >= 3 && played.length < catalogNorm.length) {
         const missing = catalogNorm.filter(s => !played.includes(s));
-        const omittable = getOmittableSemitones(catalogNorm);
+        const omittable = getOmittableSemitones(catalogNorm, played);
         if (
           missing.length > 0 &&
           missing.every(s => omittable.has(s)) &&
@@ -593,13 +694,12 @@ function pickDyadRoot(pitchClasses: PitchClass[], options: IdentifyChordOptions)
   return sorted[0];
 }
 
-/** Find all major scale tonics that contain all given pitch classes diatonically */
-export function findCompatibleKeys(pitchClasses: PitchClass[]): PitchClass[] {
-  if (pitchClasses.length === 0) return [];
-  const majorScale = [0, 2, 4, 5, 7, 9, 11]; // Ionian intervals
+/** Find all scale tonics that contain all given pitch classes within the given scale intervals (defaults to Major/Ionian) */
+export function findCompatibleKeys(pitchClasses: PitchClass[], scaleIntervals: number[] = [0, 2, 4, 5, 7, 9, 11]): PitchClass[] {
+  if (pitchClasses.length === 0 || scaleIntervals.length === 0) return [];
   const compatible: PitchClass[] = [];
   for (let tonic = 0; tonic < 12; tonic++) {
-    const scalePCs = majorScale.map(i => (tonic + i) % 12);
+    const scalePCs = scaleIntervals.map(i => (tonic + i) % 12);
     if (pitchClasses.every(pc => scalePCs.includes(pc))) {
       compatible.push(tonic);
     }
@@ -858,6 +958,28 @@ const CHORD_VIBES: Record<string, string> = {
   'Dyad (M7)': 'Major 7th — the most "reaching" consonance. Just one semitone from the octave, it carries a luminous, yearning quality — at once beautiful and slightly tense, the sound of jazz sophistication.',
 };
 
+const SEMITONE_ROMAN_MAJOR = ['I', '♭II', 'II', '♭III', 'III', 'IV', '♭V', 'V', '♭VI', 'VI', '♭VII', 'VII'] as const;
+const SEMITONE_ROMAN_MINOR = ['i', '♭ii', 'ii', '♭iii', 'iii', 'iv', '♭v', 'v', '♭vi', 'vi', '♭vii', 'vii'] as const;
+
+const SEMITONE_FUNCTION_NAMES: Record<number, string> = {
+  0: 'Tonic (Do)',
+  1: 'Phrygian / Neapolitan (Ra)',
+  2: 'Supertonic (Re)',
+  3: 'Minor Mediant (Me)',
+  4: 'Major Mediant (Mi)',
+  5: 'Subdominant (Fa)',
+  6: 'Tritone Axis (Fi)',
+  7: 'Dominant (So)',
+  8: 'Minor Submediant (Le)',
+  9: 'Major Submediant (La)',
+  10: 'Subtonic (Te)',
+  11: 'Leading Tone (Ti)',
+};
+
+const SEMITONE_TO_DEGREE_SLOT: Record<number, number> = {
+  0: 0, 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 5, 9: 5, 10: 6, 11: 6,
+};
+
 export function analyzeFunctionalRole(
   scaleTonic: PitchClass,
   scaleIntervals: number[] | null,
@@ -875,43 +997,50 @@ export function analyzeFunctionalRole(
   }
 
   const degree = getScaleDegree(scaleTonic, scaleIntervals, harmonicRoot);
-  
+  const semitoneOffset = ((harmonicRoot - scaleTonic) % 12 + 12) % 12;
+
+  // Determine chord quality for appropriate description and numeral case
+  const isDiminished = chordName.includes('Diminished') || chordName.includes('dim') || chordName === 'm7b5';
+  const isAugmented = chordName.includes('Augmented') || chordName.includes('#5');
+  const isMinorQuality = chordName.includes('Minor') || chordName.includes('min') ||
+    chordName.includes('m7') || chordName.includes('Min') || isDiminished;
+  const isDominant7 = chordName.includes('Dominant') || chordName.includes('Dom') ||
+    chordName.includes('7b') || chordName.includes('7#');
+
+  const baseRoman = isMinorQuality
+    ? SEMITONE_ROMAN_MINOR[semitoneOffset]
+    : SEMITONE_ROMAN_MAJOR[semitoneOffset];
+  const qualitySuffix = chordName === 'm7b5' ? 'ø7' : isDiminished ? '°' : isAugmented ? '+' : '';
+  const accurateRoman = `${baseRoman}${qualitySuffix}`;
+
   if (degree === -1) {
     return {
       scaleDegree: -1,
-      degreeName: 'Non-diatonic',
-      functionName: 'Chromatic',
-      description: `Outside the current scale. ${CHORD_VIBES[chordName] || 'A unique harmonic color.'}`,
+      degreeName: `${accurateRoman} (Borrowed)`,
+      functionName: `Chromatic · ${SEMITONE_FUNCTION_NAMES[semitoneOffset]}`,
+      description: `Outside the active scale (${accurateRoman}). ${CHORD_VIBES[chordName] || 'A unique harmonic color.'}`,
       isDiatonic: false,
     };
   }
 
-  // Determine chord quality for appropriate description and numeral case
-  const isMinorQuality = chordName.includes('Minor') || chordName.includes('min') || 
-    chordName.includes('m7') || chordName === 'Diminished' || chordName === 'Diminished 7';
-  const isDominant7 = chordName.includes('Dominant 7') || chordName.includes('7b') || 
-    chordName.includes('7#') || chordName === 'Dominant 7';
-  const isDiminished = chordName.includes('Diminished') || chordName.includes('dim');
+  const slot = SEMITONE_TO_DEGREE_SLOT[semitoneOffset] ?? Math.min(6, degree);
 
-  // Choose appropriate description based on chord quality
+  // Choose appropriate description based on chord quality and functional slot
   let description: string;
   if (isDominant7) {
-    description = DOMINANT7_FUNCTION_DESCRIPTIONS[degree] || 'Dominant-type harmony with specific functional role.';
+    description = DOMINANT7_FUNCTION_DESCRIPTIONS[slot] || 'Dominant-type harmony with specific functional role.';
   } else if (isDiminished) {
-    description = DIMINISHED_FUNCTION_DESCRIPTIONS[degree] || 'Diminished harmony creating instability and tension.';
+    description = DIMINISHED_FUNCTION_DESCRIPTIONS[slot] || 'Diminished harmony creating instability and tension.';
   } else if (isMinorQuality) {
-    description = MINOR_FUNCTION_DESCRIPTIONS[degree] || 'Minor harmony providing introspective color.';
+    description = MINOR_FUNCTION_DESCRIPTIONS[slot] || 'Minor harmony providing introspective color.';
   } else {
-    description = MAJOR_FUNCTION_DESCRIPTIONS[degree] || 'Major harmony providing bright, stable color.';
+    description = MAJOR_FUNCTION_DESCRIPTIONS[slot] || 'Major harmony providing bright, stable color.';
   }
-
-  // Use appropriate numeral casing
-  const degreeName = isMinorQuality ? SCALE_DEGREE_NAMES_LOWER[degree] : SCALE_DEGREE_NAMES[degree];
 
   return {
     scaleDegree: degree,
-    degreeName,
-    functionName: FUNCTION_NAMES[degree] || 'Unknown',
+    degreeName: accurateRoman,
+    functionName: SEMITONE_FUNCTION_NAMES[semitoneOffset] || FUNCTION_NAMES[slot] || 'Scale Degree',
     description,
     isDiatonic: true,
   };
@@ -1606,38 +1735,92 @@ export function getCadenceSuggestions(
   scaleTonic: PitchClass,
   direction: CadenceDirection,
   useFlats: boolean,
+  scaleIntervals?: number[] | null,
 ): CadenceOption[] {
   const allChords = Object.values(CHORD_CATEGORIES).flat();
-  
-  // Calculate current chord's degree relative to the key
+  const isMinorKey = Boolean(scaleIntervals && scaleIntervals.includes(3) && !scaleIntervals.includes(4));
+
+  // Calculate current chord's semitone degree relative to the key
   const currentDegree = ((currentRoot - scaleTonic) % 12 + 12) % 12;
   const degreeNumerals = ['I', '♭II', 'II', '♭III', 'III', 'IV', '♭V', 'V', '♭VI', 'VI', '♭VII', 'VII'];
-  
-  // Find functional cadences that apply to this degree
-  const applicableCadences = FUNCTIONAL_CADENCES.filter(cad => 
+
+  // 1) Find functional cadences that apply to this degree in the key
+  const applicableFunctional = FUNCTIONAL_CADENCES.filter(cad =>
     cad.direction === direction && cad.fromDegrees.includes(currentDegree)
   );
-  
-  // If no specific cadences for this degree, provide generic options
-  const cadencesToUse = applicableCadences.length > 0 
-    ? applicableCadences 
+
+  // 2) Also match quality-driven CADENCE_TEMPLATES for the current chord quality
+  const baseChordName = currentChordName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const qualityTemplates = CADENCE_TEMPLATES.filter(t =>
+    t.direction === direction &&
+    t.sourceQualities &&
+    (t.sourceQualities.includes(currentChordName) || t.sourceQualities.includes(baseChordName))
+  );
+
+  const cadencesToUse: FunctionalCadence[] = [...applicableFunctional];
+
+  // Adapt tonic/subdominant targets for minor keys
+  const resolvedCadences = cadencesToUse.map(cad => {
+    if (!isMinorKey) return cad;
+    if (cad.targetDegree === 0 && (cad.targetQuality === 'Major' || cad.targetQuality === 'Major 7')) {
+      return {
+        ...cad,
+        label: cad.label.replace('I', 'i'),
+        targetQuality: cad.targetQuality === 'Major 7' ? 'Minor 7' : 'Minor',
+      };
+    }
+    if (cad.targetDegree === 5 && cad.targetQuality === 'Major' && cad.category !== 'surprise') {
+      return {
+        ...cad,
+        label: cad.label.replace('IV', 'iv'),
+        targetQuality: 'Minor 7',
+      };
+    }
+    return cad;
+  });
+
+  // Merge non-duplicate quality templates
+  for (const tpl of qualityTemplates) {
+    const targetRoot = direction === 'leadTo'
+      ? ((currentRoot + tpl.rootOffset) % 12 + 12) % 12
+      : ((currentRoot - tpl.rootOffset) % 12 + 12) % 12;
+    const targetDegree = ((targetRoot - scaleTonic) % 12 + 12) % 12;
+    const alreadyExists = resolvedCadences.some(
+      c => c.targetDegree === targetDegree && c.targetQuality === tpl.chordName
+    );
+    if (!alreadyExists) {
+      resolvedCadences.push({
+        fromDegrees: [currentDegree],
+        direction: tpl.direction,
+        category: tpl.category,
+        name: tpl.name,
+        label: tpl.label,
+        targetDegree,
+        targetQuality: tpl.chordName,
+        description: getContextualCadenceDescription(currentDegree, targetDegree, direction, tpl.description),
+        songExample: tpl.songExample,
+      });
+    }
+  }
+
+  const finalCadences = resolvedCadences.length > 0
+    ? resolvedCadences
     : getGenericCadences(currentDegree, direction);
-  
-  return cadencesToUse.map(cadence => {
-    // Calculate the target root from the target degree
+
+  return finalCadences.map(cadence => {
     const targetRoot = ((scaleTonic + cadence.targetDegree) % 12 + 12) % 12 as PitchClass;
     const targetChord = allChords.find(c => c.name === cadence.targetQuality)
       ?? CHORD_CATEGORIES['Tertian Triads'][0];
-    
+
     const fromLabel = degreeNumerals[currentDegree];
     const toLabel = degreeNumerals[cadence.targetDegree];
-    
+
     const displayName = `${getNoteName(targetRoot, useFlats)} ${targetChord.name}`;
-    const functionalLabel = direction === 'leadTo' 
-      ? `${fromLabel} → ${toLabel}` 
+    const functionalLabel = direction === 'leadTo'
+      ? `${fromLabel} → ${toLabel}`
       : `${toLabel} → ${fromLabel}`;
-    
-    return { 
+
+    return {
       suggestion: {
         category: cadence.category,
         direction: cadence.direction,
@@ -1645,12 +1828,12 @@ export function getCadenceSuggestions(
         label: cadence.label,
         description: cadence.description,
         songExample: cadence.songExample,
-        rootOffset: 0, // Not used in new system
+        rootOffset: 0,
         chordName: cadence.targetQuality,
         resTonic: cadence.targetDegree === 0,
       },
-      targetRoot, 
-      targetChord, 
+      targetRoot,
+      targetChord,
       displayName,
       functionalLabel,
       targetDegree: cadence.targetDegree,
@@ -1875,15 +2058,13 @@ export function getChordPartialsFromVoicing(
   root: PitchClass,
   intervals: number[],
   baseOctave: number
-): { partials: Partial[]; noteFrequencies: { freq: number; pc: PitchClass }[] } {
+): { partials: Partial[]; noteFrequencies: { freq: number; pc: PitchClass; midi: number }[] } {
+  const rootMidi = (baseOctave + 1) * 12 + ((root % 12) + 12) % 12;
   const noteFrequencies = intervals.map(semitones => {
     const pc = ((root + semitones) % 12 + 12) % 12 as PitchClass;
-    // Calculate the actual octave offset from the interval
-    const octaveOffset = Math.floor(semitones / 12);
-    const remainder = ((semitones % 12) + 12) % 12;
-    // If the remainder pushes past the root's position, it's still in the same octave
-    const freq = pitchClassToFrequency(pc, baseOctave + octaveOffset);
-    return { freq, pc };
+    const midi = rootMidi + semitones;
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    return { freq, pc, midi };
   });
   const partials = noteFrequencies.flatMap(n => generatePartials(n.freq, n.pc));
   return { partials, noteFrequencies };

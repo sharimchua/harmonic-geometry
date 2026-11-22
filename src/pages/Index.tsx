@@ -12,7 +12,7 @@ import StaffNotation from '@/components/StaffNotation';
 import ChordSynonyms from '@/components/ChordSynonyms';
 import DissonanceSpectrum from '@/components/DissonanceSpectrum';
 import { useSectionOrder, type SectionId, type ColumnId } from '@/hooks/useSectionOrder';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Lock, Unlock, Tags, Menu, X, Layers } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Lock, Unlock, Tags, Menu, Volume2, VolumeX, Layers } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -45,12 +45,19 @@ function getInversionLabel(i: number) {
 }
 
 const Index = () => {
-  const { root, scaleTonic, chord, scale, useFlats, activeIntervals, lockMode, setLockMode, labelMode, setLabelMode, inversion, setInversion, functionalAnalysis, midi, midiEnabled } = useHarmony();
+  const {
+    root, scaleTonic, chord, scale, useFlats, activeIntervals,
+    lockMode, setLockMode, labelMode, setLabelMode,
+    inversion, setInversion, functionalAnalysis,
+    midi, midiEnabled,
+    audioEnabled, setAudioEnabled, playCurrentChord,
+  } = useHarmony();
   const { order, columns, moveUp, moveDown, moveToColumn } = useSectionOrder();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const chordLabel = `${getNoteName(root, useFlats)} ${chord.name}`;
-  const keyLabel = scale ? `Key of ${getNoteName(scaleTonic, useFlats)} ${scale.name}` : 'No key';
+  const useTri = labelMode === 'tri';
+  const chordLabel = `${getNoteName(root, useFlats, useTri)} ${chord.name}`;
+  const keyLabel = scale ? `Key of ${getNoteName(scaleTonic, useFlats, useTri)} ${scale.name}` : 'No key';
   const intervalStr = activeIntervals.map(i => ((i % 12) + 12) % 12).join('-');
   const maxInversion = chord.intervals.length - 1;
   const showInversionDropdown = chord.intervals.length >= 3;
@@ -220,6 +227,23 @@ const Index = () => {
             </Tooltip>
           </div>
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+            {/* Auto-Play quick toggle */}
+            <button
+              onClick={() => {
+                const next = !audioEnabled;
+                setAudioEnabled(next);
+                if (next) playCurrentChord('arpeggio');
+              }}
+              className={`text-xs font-mono px-2 py-1 rounded-md border transition-colors flex items-center gap-1 cursor-pointer ${
+                audioEnabled
+                  ? 'bg-primary/15 border-primary/40 text-primary font-semibold'
+                  : 'bg-surface-3 border-border text-muted-foreground hover:text-foreground'
+              }`}
+              title={audioEnabled ? 'Auto-Play Chords: ON (Plays automatically when changing chords/roots)' : 'Auto-Play Chords: OFF (Click to auto-play when changing chords/roots)'}
+            >
+              {audioEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
+              <span className="hidden sm:inline">{audioEnabled ? 'Auto-Play' : 'Auto-Play Off'}</span>
+            </button>
             {midiEnabled && midi.isConnected && (
               <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-surface-3 flex items-center gap-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${midi.heldNotes.length > 0 ? 'bg-primary animate-pulse' : 'bg-green-500'}`} />
@@ -262,11 +286,12 @@ const Index = () => {
                 onChange={e => setLabelMode(e.target.value as LabelMode)}
                 className="text-xs font-mono bg-surface-3 border border-border text-foreground rounded-md pl-7 pr-6 py-1 appearance-none cursor-pointer hover:bg-surface-2 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/40"
               >
-                <option value="notes">Notes</option>
-                <option value="intervals">Intervals</option>
-                <option value="solfege">Solfège</option>
-                <option value="scaleDegrees">Scale Degree</option>
-                <option value="semitones">Semitones</option>
+                <option value="notes">Notes (A–G)</option>
+                <option value="tri">Tri Notation (△)</option>
+                <option value="solfege">Solfège (Do–Ti)</option>
+                <option value="intervals">Intervals (P1–M7)</option>
+                <option value="scaleDegrees">Scale Degree (1–7)</option>
+                <option value="semitones">Semitones (0–11)</option>
               </select>
             </div>
             {/* Interval string — hidden on small screens */}

@@ -3,10 +3,11 @@ import { useHarmony } from '@/contexts/HarmonyContext';
 import { getChordFormulaFromPitchClasses, findCompatibleKeys, getNoteName, CHORD_GENRE_HINTS } from '@/lib/musicTheory';
 
 export default function HarmonicContext() {
-  const { functionalAnalysis, chordVibe, chord, activePitchClasses, useFlats, scaleTonic, setScaleTonic, root } = useHarmony();
+  const { functionalAnalysis, chordVibe, chord, activePitchClasses, useFlats, scaleTonic, setScaleTonic, root, scale, labelMode } = useHarmony();
+  const useTri = labelMode === 'tri';
 
   const formula = getChordFormulaFromPitchClasses(root, activePitchClasses);
-  const compatibleKeys = findCompatibleKeys(activePitchClasses);
+  const compatibleKeys = findCompatibleKeys(activePitchClasses, scale?.intervals ?? [0, 2, 4, 5, 7, 9, 11]);
   const genreHint = CHORD_GENRE_HINTS[chord.name];
 
   return (
@@ -64,12 +65,12 @@ export default function HarmonicContext() {
                       : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                   }`}
                 >
-                  {getNoteName(tonic, useFlats)}
+                  {getNoteName(tonic, useFlats, useTri)}
                 </button>
               ))}
             </div>
             <p className="text-[10px] font-sans text-muted-foreground mt-1 italic">
-              Major keys containing all notes of this chord
+              {scale ? `${scale.name} keys containing all notes of this chord` : 'Major keys containing all notes of this chord'}
             </p>
           </div>
         )}
