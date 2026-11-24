@@ -36,6 +36,26 @@ export class AudioSynth {
     }
   }
 
+  public getAudioState(): 'running' | 'suspended' | 'closed' {
+    if (!this.ctx) return 'suspended';
+    const state = this.ctx.state as string;
+    if (state === 'running') return 'running';
+    if (state === 'closed') return 'closed';
+    return 'suspended';
+  }
+
+  public async unlock(): Promise<'running' | 'suspended' | 'closed'> {
+    this.initContext();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      try {
+        await this.ctx.resume();
+      } catch {
+        // Ignore resume failure without user gesture
+      }
+    }
+    return this.getAudioState();
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (this.masterGain && this.ctx) {

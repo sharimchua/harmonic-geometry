@@ -50,6 +50,7 @@ export function useMidi(
   onChordDetected?: (event: MidiChordEvent) => void,
   getIdentifyOptions?: () => Omit<IdentifyChordOptions, 'bassPitchClass'>,
   enabled: boolean = false,
+  suppressed: boolean = false,
 ) {
   const [state, setState] = useState<MidiState>({
     isSupported: typeof navigator !== 'undefined' && 'requestMIDIAccess' in navigator,
@@ -119,7 +120,7 @@ export function useMidi(
   }, [processNotes]);
 
   useEffect(() => {
-    if (!state.isSupported) return;
+    if (!state.isSupported || suppressed) return;
 
     let midiAccess: any = null;
     let isCancelled = false;
@@ -200,7 +201,7 @@ export function useMidi(
         });
       }
     };
-  }, [state.isSupported, enabled, processNotes, scheduleNoteOffProcess]);
+  }, [state.isSupported, enabled, suppressed, processNotes, scheduleNoteOffProcess]);
 
   return state;
 }

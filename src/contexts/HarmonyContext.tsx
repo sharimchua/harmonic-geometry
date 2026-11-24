@@ -28,6 +28,7 @@ import {
 } from '@/lib/musicTheory';
 import { useMidi, type MidiState } from '@/hooks/use-midi';
 import { synthInstance } from '@/lib/audioSynth';
+import { useStageBridge, type SyncableHarmonyState } from '@/hooks/useStageBridge';
 
 interface HarmonyState {
   scaleTonic: PitchClass;
@@ -116,6 +117,7 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
   const [constructionMode, setConstructionMode] = useState(false);
   const [customPitchClasses, setCustomPitchClasses] = useState<PitchClass[] | null>(null);
   const [midiEnabled, setMidiEnabled] = useState(false);
+  const [suppressLocalMidi, setSuppressLocalMidi] = useState(false);
   const [cadenceMode, setCadenceModeRaw] = useState(false);
   const [lockedRoot, setLockedRoot] = useState<PitchClass | null>(null);
   const [lockedChord, setLockedChord] = useState<ChordType | null>(null);
@@ -171,7 +173,12 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     scaleTonic,
   }), [harmonicRoot, scaleTonic]);
 
-  const midi = useMidi(midiEnabled ? handleMidiChord : undefined, getMidiIdentifyOptions, midiEnabled);
+  const midi = useMidi(
+    midiEnabled ? handleMidiChord : undefined,
+    getMidiIdentifyOptions,
+    midiEnabled,
+    suppressLocalMidi
+  );
 
   // Toggle a pitch class on/off in construction mode
   const togglePitchClass = useCallback((pc: PitchClass) => {
@@ -239,13 +246,107 @@ export function HarmonyProvider({ children }: { children: React.ReactNode }) {
     return intervals;
   }, [chord, inversion, dropVoicingType]);
 
+  const syncableState: SyncableHarmonyState = useMemo(
+    () => ({
+      scaleTonic,
+      harmonicRoot,
+      chordName: chord.name,
+      scaleName: scale ? scale.name : null,
+      inversion,
+      dropVoicingType,
+      labelMode,
+      clockOrientation,
+      accidentalPreference,
+      pptSolfegeColors,
+      pptNoteheads,
+      showPianoTriangles,
+      cagedPosition,
+      lockMode,
+      constructionMode,
+      customPitchClasses,
+      cadenceMode,
+      lockedRoot,
+      lockedChordName: lockedChord ? lockedChord.name : null,
+    }),
+    [
+      scaleTonic,
+      harmonicRoot,
+      chord.name,
+      scale,
+      inversion,
+      dropVoicingType,
+      labelMode,
+      clockOrientation,
+      accidentalPreference,
+      pptSolfegeColors,
+      pptNoteheads,
+      showPianoTriangles,
+      cagedPosition,
+      lockMode,
+      constructionMode,
+      customPitchClasses,
+      cadenceMode,
+      lockedRoot,
+      lockedChord,
+    ]
+  );
+
+  const stageBridge = useStageBridge({
+    state: syncableState,
+    audioEnabled,
+    onUnlockAudio: () => {
+      setAudioEnabledRaw(true);
+      synthInstance.setMuted(false);
+    },
+    onSetSuppressLocalMidi: setSuppressLocalMidi,
+    onRemoteChordDetected: (nextRoot, nextChord, nextInversion) => {
+      setHarmonicRoot(nextRoot);
+      setChordRaw(nextChord);
+      setInversion(nextInversion);
+      setDropVoicing(0);
+      setCustomPitchClasses(null);
+    },
+    applyRemoteState: (st) => {
+      if (st.scaleTonic !== undefined) setScaleTonic(st.scaleTonic);
+      if (st.harmonicRoot !== undefined) setHarmonicRoot(st.harmonicRoot);
+      if (st.chordName !== undefined) {
+        const found = stageBridge.findChordByName(st.chordName);
+        if (found) setChordRaw(found);
+      }
+      if (st.scaleName !== undefined) {
+        setScale(st.scaleName ? stageBridge.findScaleByName(st.scaleName) ?? null : null);
+      }
+      if (st.inversion !== undefined) setInversion(st.inversion);
+      if (st.dropVoicingType !== undefined) setDropVoicing(st.dropVoicingType);
+      if (st.labelMode !== undefined) setLabelMode(st.labelMode);
+      if (st.clockOrientation !== undefined) setClockOrientation(st.clockOrientation);
+      if (st.accidentalPreference !== undefined) setAccidentalPreference(st.accidentalPreference);
+      if (st.pptSolfegeColors !== undefined) setPptSolfegeColors(st.pptSolfegeColors);
+      if (st.pptNoteheads !== undefined) setPptNoteheads(st.pptNoteheads);
+      if (st.showPianoTriangles !== undefined) setShowPianoTriangles(st.showPianoTriangles);
+      if (st.cagedPosition !== undefined) setCagedPosition(st.cagedPosition);
+      if (st.lockMode !== undefined) setLockMode(st.lockMode);
+      if (st.constructionMode !== undefined) setConstructionMode(st.constructionMode);
+      if (st.customPitchClasses !== undefined) setCustomPitchClasses(st.customPitchClasses);
+      if (st.cadenceMode !== undefined) setCadenceModeRaw(st.cadenceMode);
+      if (st.lockedRoot !== undefined) setLockedRoot(st.lockedRoot);
+      if (st.lockedChordName !== undefined) {
+        setLockedChord(
+          st.lockedChordName ? stageBridge.findChordByName(st.lockedChordName) ?? null : null
+        );
+      }
+    },
+  });
+
   const playCurrentChord = useCallback((mode: 'block' | 'arpeggio' = 'arpeggio') => {
     synthInstance.playChordVoicing(harmonicRoot, activeIntervals, mode);
-  }, [harmonicRoot, activeIntervals]);
+    stageBridge.broadcastAction('PLAY_CHORD', { root: harmonicRoot, intervals: activeIntervals, mode });
+  }, [harmonicRoot, activeIntervals, stageBridge]);
 
   const playNote = useCallback((midiNote: number) => {
     synthInstance.playSingleNote(midiNote);
-  }, []);
+    stageBridge.broadcastAction('PLAY_NOTE', { midi: midiNote });
+  }, [stageBridge]);
 
   // Deduplicated pitch classes from the base chord intervals
   const activePitchClasses = useMemo(
