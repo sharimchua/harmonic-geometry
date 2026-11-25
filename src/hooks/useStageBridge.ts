@@ -50,9 +50,44 @@ export function isStageEmbedded(): boolean {
   }
 }
 
+function getInitialRole(): 'teacher' | 'student' {
+  if (typeof window === 'undefined') return 'student';
+  return new URLSearchParams(window.location.search).get('role') === 'teacher'
+    ? 'teacher'
+    : 'student';
+}
+
 function postToParent(msg: Record<string, unknown>): void {
   if (typeof window === 'undefined' || window.parent === window) return;
   window.parent.postMessage({ protocol: STAGE_PROTOCOL, appId: APP_ID, ...msg }, '*');
+}
+
+function mountAudioPromptPill(onTap: () => void) {
+  let el: HTMLButtonElement | null = null;
+  const hide = () => {
+    if (el) {
+      el.remove();
+      el = null;
+    }
+  };
+  const show = () => {
+    if (el || typeof document === 'undefined' || !document.body) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Tap to Enable Sound';
+    btn.style.cssText =
+      'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:2147483647;' +
+      'padding:10px 18px;border-radius:9999px;border:1px solid rgba(167,139,250,0.55);' +
+      'background:rgba(15,23,42,0.95);color:#ddd6fe;font:600 13px/1.2 system-ui,sans-serif;' +
+      'box-shadow:0 10px 28px rgba(0,0,0,0.45);cursor:pointer;backdrop-filter:blur(8px);';
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      onTap();
+    });
+    document.body.appendChild(btn);
+    el = btn;
+  };
+  return { show, hide, destroy: hide };
 }
 
 function findChordByName(name: string): ChordType | undefined {
@@ -90,7 +125,8 @@ export function useStageBridge({
 }: UseStageBridgeOptions) {
   const embedded = isStageEmbedded();
   const isApplyingRemoteRef = useRef(false);
-  const lastSentRef = useRef('');
+  const roleRef = useRef<'teacher' | 'student'>(getInitialRole());
+  const lastSentRef = useRef(JSON.stringify(state));
   const throttleRef = useRef<number | null>(null);
   const remoteHeldMidiRef = useRef<Set<number>>(new Set());
 
@@ -114,6 +150,30 @@ export function useStageBridge({
   useEffect(() => {
     if (!embedded) return;
 
+    const pushCurrentState = () => {
+      const cur = latestRef.current;
+      lastSentRef.current = JSON.stringify(cur.state);
+      postToParent({ type: 'APP_STATE_UPDATE', state: cur.state });
+    };
+
+    const handleGestureUnlock = () => {
+      latestRef.current.onUnlockAudio();
+      void synthInstance.unlock().then((audioState) => {
+        postToParent({ type: 'STAGE_AUDIO_STATE', audioState });
+        if (audioState === 'running') {
+          prompt.hide();
+        }
+      });
+    };
+
+    const prompt = mountAudioPromptPill(handleGestureUnlock);
+    const onPointerUnlock = () => {
+      if (synthInstance.getAudioState() !== 'running') {
+        handleGestureUnlock();
+      }
+    };
+    window.addEventListener('pointerdown', onPointerUnlock, true);
+
     postToParent({
       type: 'STAGE_READY',
       audioState: synthInstance.getAudioState(),
@@ -126,13 +186,28 @@ export function useStageBridge({
 
       switch (data.type) {
         case 'STAGE_INIT': {
+          roleRef.current = data.role === 'teacher' ? 'teacher' : 'student';
           cur.onSetSuppressLocalMidi(Boolean(data.suppressLocalMidi));
+          if (roleRef.current === 'teacher') {
+            pushCurrentState();
+          }
+          break;
+        }
+        case 'STAGE_REQUEST_STATE': {
+          if (roleRef.current === 'teacher') {
+            pushCurrentState();
+          }
           break;
         }
         case 'STAGE_UNLOCK_AUDIO': {
           cur.onUnlockAudio();
           void synthInstance.unlock().then((audioState) => {
             postToParent({ type: 'STAGE_AUDIO_STATE', audioState });
+            if (audioState !== 'running') {
+              prompt.show();
+            } else {
+              prompt.hide();
+            }
           });
           break;
         }
@@ -144,6 +219,9 @@ export function useStageBridge({
             remoteHeldMidiRef.current.add(midi);
             if (cur.audioEnabled) {
               synthInstance.noteOn(midi, vel);
+            }
+            if (synthInstance.getAudioState() !== 'running') {
+              prompt.show();
             }
             const notes = Array.from(remoteHeldMidiRef.current).sort((a, b) => a - b);
             const pcs = [...new Set(notes.map((n) => (n % 12) as PitchClass))].sort((a, b) => a - b);
@@ -180,6 +258,7 @@ export function useStageBridge({
           const st = data.state as Partial<SyncableHarmonyState> | null;
           if (!st || typeof st !== 'object') break;
           isApplyingRemoteRef.current = true;
+          lastSentRef.current = JSON.stringify({ ...cur.state, ...st });
           cur.applyRemoteState(st);
           window.setTimeout(() => {
             isApplyingRemoteRef.current = false;
@@ -197,8 +276,14 @@ export function useStageBridge({
             const mode = payload.mode === 'block' ? 'block' : 'arpeggio';
             const intervals = payload.intervals.filter((n): n is number => typeof n === 'number');
             synthInstance.playChordVoicing(payload.root, intervals, mode);
+            if (synthInstance.getAudioState() !== 'running') {
+              prompt.show();
+            }
           } else if (action === 'PLAY_NOTE' && typeof payload?.midi === 'number') {
             synthInstance.playSingleNote(payload.midi);
+            if (synthInstance.getAudioState() !== 'running') {
+              prompt.show();
+            }
           }
           break;
         }
@@ -206,7 +291,11 @@ export function useStageBridge({
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('pointerdown', onPointerUnlock, true);
+      prompt.destroy();
+    };
   }, [embedded]);
 
   useEffect(() => {
