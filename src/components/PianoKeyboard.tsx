@@ -89,6 +89,14 @@ const PianoKeyboard = React.memo(function PianoKeyboard() {
     return BLACK_KEY_PCS.includes(pc) ? 38 : 92;
   }, []);
 
+  const whiteIndexByMidi = useMemo(() => {
+    const map = new Map<number, number>();
+    whiteKeys.forEach((wk, idx) => {
+      map.set(wk.midi, idx);
+    });
+    return map;
+  }, [whiteKeys]);
+
   // Build geometric Piano Triangle overlay instances across the 3 octaves
   const triangleOverlays = useMemo(() => {
     if (!showPianoTriangles) return [];
@@ -100,39 +108,93 @@ const PianoKeyboard = React.memo(function PianoKeyboard() {
 
     const minMidi = START_OCTAVE * 12;
     const maxMidi = (START_OCTAVE + OCTAVES) * 12 - 1;
+    const Y_BLACK = 38;
+    const Y_WHITE = 92;
 
-    // Each triangle starts at C# (1), E (4), G (7), A# (10)
-    const starts: { offset: number; type: PianoTriangleType }[] = [
-      { offset: 1, type: 'D' },
-      { offset: 4, type: 'L' },
-      { offset: 7, type: 'U' },
-      { offset: 10, type: 'R' },
+    const specs: {
+      offset: number;
+      type: PianoTriangleType;
+      computeCoords: (m1: number, m2: number, m3: number) => [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }] | null;
+    }[] = [
+      {
+        offset: 1,
+        type: 'D',
+        computeCoords: (_m1, m2) => {
+          const dIdx = whiteIndexByMidi.get(m2);
+          if (dIdx === undefined) return null;
+          return [
+            { x: dIdx * whiteKeyWidth, y: Y_BLACK },
+            { x: (dIdx + 0.5) * whiteKeyWidth, y: Y_WHITE },
+            { x: (dIdx + 1.0) * whiteKeyWidth, y: Y_BLACK },
+          ];
+        },
+      },
+      {
+        offset: 4,
+        type: 'L', // Right-angled at F (x2 === x3)
+        computeCoords: (m1, m2) => {
+          const eIdx = whiteIndexByMidi.get(m1);
+          const fIdx = whiteIndexByMidi.get(m2);
+          if (eIdx === undefined || fIdx === undefined) return null;
+          return [
+            { x: (eIdx + 0.5) * whiteKeyWidth, y: Y_WHITE },
+            { x: (fIdx + 0.85) * whiteKeyWidth, y: Y_WHITE },
+            { x: (fIdx + 0.85) * whiteKeyWidth, y: Y_BLACK },
+          ];
+        },
+      },
+      {
+        offset: 7,
+        type: 'U',
+        computeCoords: (m1, _m2, m3) => {
+          const gIdx = whiteIndexByMidi.get(m1);
+          const aIdx = whiteIndexByMidi.get(m3);
+          if (gIdx === undefined || aIdx === undefined) return null;
+          return [
+            { x: (gIdx + 0.5) * whiteKeyWidth, y: Y_WHITE },
+            { x: (gIdx + 1.0) * whiteKeyWidth, y: Y_BLACK },
+            { x: (aIdx + 0.5) * whiteKeyWidth, y: Y_WHITE },
+          ];
+        },
+      },
+      {
+        offset: 10,
+        type: 'R', // Right-angled at B (x1 === x2)
+        computeCoords: (_m1, m2, m3) => {
+          const bIdx = whiteIndexByMidi.get(m2);
+          const cIdx = whiteIndexByMidi.get(m3);
+          if (bIdx === undefined || cIdx === undefined) return null;
+          return [
+            { x: (bIdx + 0.15) * whiteKeyWidth, y: Y_BLACK },
+            { x: (bIdx + 0.15) * whiteKeyWidth, y: Y_WHITE },
+            { x: (cIdx + 0.5) * whiteKeyWidth, y: Y_WHITE },
+          ];
+        },
+      },
     ];
 
     for (let oct = START_OCTAVE; oct < START_OCTAVE + OCTAVES; oct++) {
-      for (const st of starts) {
-        const m1 = oct * 12 + st.offset;
+      for (const sp of specs) {
+        const m1 = oct * 12 + sp.offset;
         const m2 = m1 + 1;
         const m3 = m1 + 2;
         if (m1 < minMidi || m3 > maxMidi) continue;
-        const x1 = getMidiX(m1);
-        const x2 = getMidiX(m2);
-        const x3 = getMidiX(m3);
-        if (x1 === -1 || x2 === -1 || x3 === -1) continue;
+        const coords = sp.computeCoords(m1, m2, m3);
+        if (!coords) continue;
 
         instances.push({
-          type: st.type,
-          color: PIANO_TRIANGLE_META[st.type].color,
+          type: sp.type,
+          color: PIANO_TRIANGLE_META[sp.type].color,
           pts: [
-            { midi: m1, x: x1, y: getMidiY(m1), active: isVoicingNote(m1), ptNum: 1 },
-            { midi: m2, x: x2, y: getMidiY(m2), active: isVoicingNote(m2), ptNum: 2 },
-            { midi: m3, x: x3, y: getMidiY(m3), active: isVoicingNote(m3), ptNum: 3 },
+            { midi: m1, x: coords[0].x, y: coords[0].y, active: isVoicingNote(m1), ptNum: 1 },
+            { midi: m2, x: coords[1].x, y: coords[1].y, active: isVoicingNote(m2), ptNum: 2 },
+            { midi: m3, x: coords[2].x, y: coords[2].y, active: isVoicingNote(m3), ptNum: 3 },
           ],
         });
       }
     }
     return instances;
-  }, [showPianoTriangles, getMidiX, getMidiY, isVoicingNote]);
+  }, [showPianoTriangles, whiteIndexByMidi, isVoicingNote]);
 
   const intervalPairs = useMemo(() => {
     const pairs: { fromX: number; toX: number; tension: string; semitones: number }[] = [];
